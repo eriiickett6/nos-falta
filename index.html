@@ -90,6 +90,18 @@ a.row:hover{background:var(--fill)}
 .thumb.ph{background:var(--fill);color:var(--ink-3)}
 .price{font-weight:700;white-space:nowrap}
 .good{color:var(--good)}
+.bad{color:var(--warn)}
+.kprice{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;margin-top:2px}
+.kprice b{font-size:17px;color:var(--ink)}
+.kprice .pu{font-size:12px;color:var(--ink-3)}
+.kprice s{font-size:12px;color:var(--ink-3)}
+.kmatch{font-size:12px;color:var(--good);font-weight:600;margin-top:2px}
+.bigp{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
+.bigp b{font-size:30px;line-height:1.1}
+.bigp .pu{font-size:14px;color:var(--ink-3)}
+.bigp s{color:var(--ink-3)}
+.chips.sub .chip{padding:5px 11px;font-size:13px}
+.diff{font-size:12px;font-weight:700;display:block;text-align:right}
 .foot-note{font-size:12.5px;color:var(--ink-3);margin-top:10px;padding:0 4px}
 .empty{padding:28px 16px;text-align:center;color:var(--ink-2)}
 .notice{background:var(--warn-soft);color:var(--ink);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:14px}
@@ -237,7 +249,7 @@ body.nohouse .view{padding-bottom:40px}
     <a class="logo" href="#inicio"><svg><use href="#logo"/></svg><b>nos <span>falta</span></b></a>
     <a class="nl" href="#inicio"><svg class="i"><use href="#i-home"/></svg>Principal</a>
     <a class="nl" href="#lista"><svg class="i"><use href="#i-list"/></svg>Lista<span class="badge num" data-count></span></a>
-    <a class="nl" href="#productos"><svg class="i"><use href="#i-bag"/></svg>Productos</a>
+    <a class="nl" href="#catalogo"><svg class="i"><use href="#i-bag"/></svg>Catálogo por súper</a>
     <a class="nl" href="#comparar"><svg class="i"><use href="#i-scale"/></svg>Comparar precios</a>
     <a class="nl" href="#familia"><svg class="i"><use href="#i-users"/></svg>Familia y gastos</a>
     <a class="nl" href="#supers"><svg class="i"><use href="#i-store"/></svg>Supermercados</a>
@@ -321,6 +333,19 @@ body.nohouse .view{padding-bottom:40px}
         <div class="more"><button class="btn btn-s" id="pMore" type="button" hidden>Cargar más productos</button></div>
       </section>
 
+      <!-- CATÁLOGO POR SÚPER -->
+      <section class="screen" id="s-catalogo" data-title="Catálogo">
+        <div class="page-title"><h1>Catálogo</h1></div>
+        <div class="seg" id="kStore" style="max-width:420px" role="group" aria-label="Supermercado"></div>
+        <label class="searchbox" style="margin-top:12px"><svg class="i"><use href="#i-search"/></svg><span class="sr">Buscar en el catálogo</span><input id="kq" type="search" placeholder="Buscar"></label>
+        <div class="chips" id="kTop" style="margin-top:12px"></div>
+        <div class="chips sub" id="kSub" style="margin-top:8px"></div>
+        <p class="count" id="kCount"></p>
+        <div class="pgrid" id="kgrid"></div>
+        <div class="more"><button class="btn btn-s" id="kMore" type="button" hidden>Cargar más productos</button></div>
+        <p class="foot-note">Precios y fotos sacados de la web de cada súper (Aldi y bonÀrea), actualizados cada día. Los de peso variable se muestran por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
+      </section>
+
       <!-- COMPARAR -->
       <section class="screen" id="s-comparar" data-title="Comparar precios">
         <div class="page-title"><h1>Comparar precios</h1></div>
@@ -382,7 +407,7 @@ body.nohouse .view{padding-bottom:40px}
 <nav class="tabbar" aria-label="Menú">
   <a href="#inicio"><svg class="i"><use href="#i-home"/></svg>Principal</a>
   <a href="#lista"><svg class="i"><use href="#i-list"/></svg>Lista<span class="badge num" data-count></span></a>
-  <a href="#productos"><svg class="i"><use href="#i-bag"/></svg>Productos</a>
+  <a href="#catalogo"><svg class="i"><use href="#i-bag"/></svg>Catálogo</a>
   <a href="#comparar"><svg class="i"><use href="#i-scale"/></svg>Comparar</a>
   <a href="#familia"><svg class="i"><use href="#i-users"/></svg>Familia</a>
 </nav>
@@ -560,6 +585,78 @@ async function openProduct(pid){const root=$('#sheetRoot');
     sheet.querySelector('.x').focus()}
   draw()}
 
+
+/* ---------- Catálogo por súper ---------- */
+const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea']];
+const kName=id=>(KSTORES.find(x=>x[0]===id)||[id,id])[1];
+let K={store:'aldi',top:null,sub:null,q:'',off:0,tree:{},seq:0};
+let KMODE=(()=>{try{return localStorage.getItem('nf-cmp')||'rec'}catch(e){return 'rec'}})();
+const kUnit=u=>u==='kg'?'/kg':u==='l'?'/l':'';
+function kPrice(it,big){
+  const main=it.loose&&it.unit_price!=null?fmt(it.unit_price)+kUnit(it.unit):fmt(it.price);
+  const small=!it.loose&&it.unit_price!=null&&it.unit?fmt(it.unit_price)+kUnit(it.unit):(it.loose&&it.size_label&&/aprox/i.test(it.size_label)?'≈ '+fmt(it.price)+' la pieza':'');
+  const old=it.old_price&&it.old_price>it.price?h('s',null,fmt(it.old_price)):null;
+  return h('div',{class:big?'bigp':'kprice'},h('b',{class:'num'},main),old,small?h('span',{class:'pu num'},small):null)}
+function kcard(it){
+  return h('div',{class:'pcard'},
+    h('button',{class:'pcard-open',type:'button',onclick(){openItem(it.id)}},pic(it.image_url,'art'),h('span',{class:'t'},it.name),
+      h('span',{class:'s'},[it.brand,it.size_label].filter(Boolean).join(' · ')||' '),kPrice(it),
+      it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null),
+    h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCustom(it.name+' ('+kName(it.store)+')');this.className='add in';this.textContent='✓'}},'+'))}
+async function kTree(){if(K.tree[K.store])return K.tree[K.store];
+  const {data,error}=await sb.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
+async function rCatalog(){
+  $('#kStore').replaceChildren(...KSTORES.map(([id,n])=>h('button',{type:'button','aria-pressed':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},n)));
+  $('#kq').placeholder='Buscar en '+kName(K.store);
+  const tree=await kTree();
+  $('#kTop').replaceChildren(h('button',{class:'chip',type:'button','aria-pressed':String(!K.top),onclick(){K.top=null;K.sub=null;rCatalog()}},'Todo'),
+    ...tree.map(c=>h('button',{class:'chip',type:'button','aria-pressed':String(K.top===c.id),onclick(){K.top=c.id;K.sub=null;rCatalog()}},c.name)));
+  const t=tree.find(c=>c.id===K.top);
+  $('#kSub').hidden=!t;
+  $('#kSub').replaceChildren(...(t?[h('button',{class:'chip',type:'button','aria-pressed':String(!K.sub),onclick(){K.sub=null;rCatalog()}},'Todo '+t.name.toLowerCase()),
+    ...t.subs.map(s=>h('button',{class:'chip',type:'button','aria-pressed':String(K.sub===s.id),onclick(){K.sub=s.id;rCatalog()}},s.name+' · '+s.n))]:[]));
+  kLoad(true)}
+async function kLoad(reset){if(reset){K.off=0;$('#kgrid').replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},'Cargando productos…'))}
+  const my=++K.seq;
+  const {data,error}=await sb.rpc('c_list',{p_store:K.store,p_cat:K.sub||K.top,p_q:K.q||null,p_lim:40,p_off:K.off});
+  if(my!==K.seq)return;if(error){netError(error);return}
+  if(reset)$('#kgrid').replaceChildren();
+  $('#kgrid').append(...data.items.map(kcard));K.off+=data.items.length;
+  if(!data.total)$('#kgrid').replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},'No hay productos aquí.'));
+  $('#kCount').textContent=pl(data.total,'producto','productos')+' en '+kName(K.store);
+  $('#kMore').hidden=K.off>=data.total}
+let kqT;$('#kq').addEventListener('input',e=>{clearTimeout(kqT);kqT=setTimeout(()=>{K.q=e.target.value.trim();kLoad(true)},300)});
+$('#kMore').addEventListener('click',()=>kLoad(false));
+function kDiff(a,b){
+  const same=a.net_qty&&b.net_qty&&a.net_unit===b.net_unit&&Math.abs(a.net_qty-b.net_qty)/a.net_qty<=0.02&&!a.loose&&!b.loose;
+  let va=a.price,vb=b.price,by='';
+  if(!same&&a.unit_price!=null&&b.unit_price!=null&&a.unit&&a.unit===b.unit){va=a.unit_price;vb=b.unit_price;by=kUnit(a.unit)}
+  const d=r2(vb-va);if(Math.abs(d)<0.005)return h('span',{class:'diff'},'Mismo precio');
+  return h('span',{class:'diff '+(d<0?'good':'bad')},fmt(Math.abs(d))+by+(d<0?' más barato':' más caro')+' ('+Math.round(Math.abs(d)/va*100)+'%)')}
+async function openItem(id){const root=$('#sheetRoot');
+  const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
+  const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando en otros súpers…'));
+  root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
+  const {data,error}=await sb.rpc('c_item',{p_id:id});if(error||!data||!data.item){netError(error);close();return}
+  const it=data.item,all=data.matches;let added=false;
+  function draw(){const ms=KMODE==='strict'?all.filter(m=>m.strict):all;
+    sheet.replaceChildren(h('div',{class:'grab'}),
+      h('div',{class:'sheet-head'},pic(it.image_url),h('div',{style:'min-width:0'},h('h2',null,it.name),h('div',{class:'sub'},[kName(it.store),it.brand,it.size_label].filter(Boolean).join(' · ')),h('div',{class:'sub'},[it.top_name,it.cat_name].filter(Boolean).join(' › '))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
+      kPrice(it,true),
+      it.old_price&&it.old_price>it.price?h('span',{class:'tag tag-g'},'Oferta'+(it.promo_until?' hasta el '+new Date(it.promo_until).toLocaleDateString('es-ES',{day:'numeric',month:'short'}):'')):'',
+      h('p',{class:'s',style:'margin:6px 0 0'},'Precio en '+kName(it.store)+' · '+fdate(it.updated_at)+' · ',h('a',{href:it.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web')),
+      h('p',{class:'gtitle'},'En otros supermercados'),
+      h('div',{class:'seg',role:'group','aria-label':'Cómo de parecido',style:'margin-bottom:10px'},...[['strict','Casi idéntico'],['rec','Parecido']].map(([m,l])=>h('button',{type:'button','aria-pressed':String(KMODE===m),onclick(){KMODE=m;try{localStorage.setItem('nf-cmp',m)}catch(e){}draw()}},l))),
+      ms.length?h('div',{class:'group'},...ms.map(m=>h('button',{class:'row',type:'button',style:'width:100%;text-align:left',onclick(){openItem(m.id)}},pic(m.image_url),
+        h('div',{class:'grow'},h('span',{class:'t'},m.name),h('span',{class:'s'},[kName(m.store),m.size_label].filter(Boolean).join(' · ')),!m.strict?h('span',{class:'tag tag-n'},'Parecido'):null),
+        h('div',{class:'rp'},h('span',{class:'price num',style:'display:block;text-align:right'},m.loose&&m.unit_price!=null?fmt(m.unit_price)+kUnit(m.unit):fmt(m.price)),
+          !m.loose&&m.unit_price!=null?h('span',{class:'s num',style:'display:block;text-align:right'},fmt(m.unit_price)+kUnit(m.unit)):null,kDiff(it,m))))):
+        h('div',{class:'group'},h('div',{class:'empty'},KMODE==='strict'&&all.length?'No hay uno casi idéntico. Prueba «Parecido».':'Todavía no hemos encontrado este producto en otro súper.')),
+      h('p',{class:'foot-note'},KMODE==='strict'?'Casi idéntico: mismo tipo, misma variedad y casi el mismo tamaño (±5%).':'Parecido: mismo tipo y variedad, tamaño parecido (±30%). Si el tamaño cambia, comparamos el precio por kilo o litro.'),
+      h('div',{style:'display:flex;gap:10px;margin-top:14px'},h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addCustom(it.name+' ('+kName(it.store)+')');added=true;draw()}},added?'Añadido ✓ · añadir otro':'Añadir a la lista')));
+    sheet.querySelector('.x').focus()}
+  draw()}
+
 /* ---------- Lista ---------- */
 const q=$('#q'),sg=$('#sugg');let hl=0,sT,sSeq=0;
 q.addEventListener('input',()=>{clearTimeout(sT);sT=setTimeout(sugg,250)});
@@ -680,7 +777,7 @@ function netError(e){console.error(e);$('#offline').hidden=false}
 
 /* ---------- Render y rutas ---------- */
 function update(){rHome();rList();rFamily();const n=pend().length;$$('[data-count]').forEach(e=>{e.textContent=n;e.hidden=!n});if(location.hash==='#comparar')rCompare()}
-const ROUTES=['inicio','lista','productos','comparar','familia','supers','sobre','bienvenida'];let loaded={};
+const ROUTES=['inicio','lista','catalogo','productos','comparar','familia','supers','sobre','bienvenida'];let loaded={};
 function route(){let r=location.hash.slice(1);if(!ROUTES.includes(r))r='inicio';
   const noHouse=!SES;document.body.classList.toggle('nohouse',noHouse);
   if(noHouse&&r!=='sobre')r='bienvenida';if(!noHouse&&r==='bienvenida')r='inicio';
@@ -689,6 +786,7 @@ function route(){let r=location.hash.slice(1);if(!ROUTES.includes(r))r='inicio';
   for(const a of $$('.side a.nl,.tabbar a')){if(a.getAttribute('href')==='#'+r)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}
   $('#sheetRoot').replaceChildren();window.scrollTo(0,0);
   if(r==='productos'&&!loaded.p){loaded.p=1;loadProducts(true)}
+  if(r==='catalogo'&&!loaded.k){loaded.k=1;rCatalog()}
   if(r==='comparar')rCompare(true);
   if(r==='supers')rSupers()}
 window.addEventListener('hashchange',route);
