@@ -1,0 +1,10 @@
+const fs=require('fs');const {minify}=require('terser');
+const src=fs.readFileSync(''+__dirname+'/../index.html','utf8');
+const st=src.indexOf('<style>'),se=src.indexOf('</style>');
+const css=src.slice(st+7,se).trim();
+const marker='<script>\n(function(){';const a=src.indexOf(marker);const b=src.lastIndexOf('</script>');
+const js=src.slice(a+9,b);
+let html=src.slice(0,st)+'<link rel="stylesheet" href="styles.css">'+src.slice(se+8,a)+'<script src="app.js"></script>'+src.slice(b+9);
+minify(js,{compress:true,mangle:true}).then(r=>{let c=r.code.replace(/\\u0300-\\u036f/g,'̀-ͯ');
+ fs.writeFileSync(''+__dirname+'/app.js',c);fs.writeFileSync(''+__dirname+'/styles.css',css);fs.writeFileSync(''+__dirname+'/wix-index.html',html);
+ console.log('app.js',Buffer.byteLength(c),'css',Buffer.byteLength(css),'html',Buffer.byteLength(html));});
