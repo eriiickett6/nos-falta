@@ -7,6 +7,7 @@ const UA = 'NosFaltaBot/0.1 (proyecto escolar)';
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 const n = (v: unknown) => { const x = parseFloat(String(v ?? '').trim()); return isFinite(x) ? x : null; };
 const fmtQty = (q: number) => String(+q.toFixed(3)).replace('.', ',');
+// precio que pagas = unit_price; €/kg o €/l = bulk_price
 
 function toItem(p: any, path: { ids: string[], names: string[] }) {
   const pi = p.price_instructions || {};
@@ -22,11 +23,16 @@ function toItem(p: any, path: { ids: string[], names: string[] }) {
   else if (size && sf === 'g') { net_qty = size / 1000; net_unit = 'kg'; }
   else if (size && sf === 'ml') { net_qty = size / 1000; net_unit = 'l'; }
   else if (size && (sf === 'ud' || sf === 'u')) { net_qty = size; net_unit = 'ud'; }
-  if (!net_qty && price && bulk && unit && !loose) { net_qty = +(price / bulk).toFixed(3); net_unit = unit; }
-  const parts: string[] = [];
-  if (pi.is_pack && pi.total_units) parts.push(pi.total_units + ' x ' + (pi.unit_name || 'ud'));
-  if (size) parts.push((pi.approx_size ? 'aprox. ' : '') + fmtQty(size) + ' ' + (sf === 'l' ? 'l' : sf || ''));
-  const label = [p.packaging, parts.join(' · ')].filter(Boolean).join(' ');
+  // el total real sale de precio ÷ precio por kilo/litro (unit_size a veces es por unidad del pack y a veces el total)
+  if (price && bulk && unit && !loose) { net_qty = +(price / bulk).toFixed(3); net_unit = unit; }
+  const units = pi.is_pack && pi.total_units > 1 ? Number(pi.total_units) : 0;
+  let qtxt = '';
+  if (net_qty && net_unit && net_unit !== 'ud') {
+    const per = units ? net_qty / units : 0;
+    qtxt = units && per > 0 ? units + ' x ' + fmtQty(per) + ' ' + net_unit : fmtQty(net_qty) + ' ' + net_unit;
+  } else if (size) qtxt = fmtQty(size) + ' ' + (sf || '');
+  if (pi.approx_size && qtxt) qtxt = 'aprox. ' + qtxt;
+  const label = [units ? null : p.packaging, qtxt].filter(Boolean).join(' ');
   const prev = n(pi.previous_unit_price);
   return {
     store: 'mercadona', ext_id: String(p.id), url: p.share_url || ('https://tienda.mercadona.es/product/' + p.id),
