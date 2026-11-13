@@ -24,8 +24,15 @@ function toItem(p: any, path: { ids: string[], names: string[] }) {
   else if (size && sf === 'ml') { net_qty = size / 1000; net_unit = 'l'; }
   else if (size && (sf === 'ud' || sf === 'u')) { net_qty = size; net_unit = 'ud'; }
   // el total real sale de precio ÷ precio por kilo/litro (unit_size a veces es por unidad del pack y a veces el total)
-  if (price && bulk && unit && !loose) { net_qty = +(price / bulk).toFixed(3); net_unit = unit; }
   const units = pi.is_pack && pi.total_units > 1 ? Number(pi.total_units) : 0;
+  if (price && bulk && unit && !loose) {
+    const est = price / bulk; // aproximado: el €/kg viene redondeado
+    const sz = net_unit === unit ? net_qty : null;
+    if (sz && units && Math.abs(units * sz - est) / est < 0.06) net_qty = +(units * sz).toFixed(3);
+    else if (sz && Math.abs(sz - est) / est < 0.06) net_qty = sz;
+    else net_qty = +est.toFixed(3);
+    net_unit = unit;
+  }
   let qtxt = '';
   if (net_qty && net_unit && net_unit !== 'ud') {
     const per = units ? net_qty / units : 0;
