@@ -354,7 +354,7 @@ body.nohouse .view{padding-bottom:40px}
         <div class="group" id="cmpRank"><div class="empty">Añade productos a la lista para comparar.</div></div>
         <p class="gtitle">Producto a producto</p>
         <div class="tw"><table id="cmpTable"></table></div>
-        <p class="foot-note">Último precio real conocido de cada producto en cada súper (web del súper, Open Prices o apuntado a mano). — : aún no tenemos ese precio. * : a ese súper le faltan precios de tu lista.</p>
+        <p class="foot-note">Último precio real conocido de cada producto en cada súper (web del súper, Open Prices o apuntado a mano). — : aún no tenemos ese precio. * : a ese súper le faltan precios de tu lista. ≈ : en ese súper no hay uno casi idéntico y ponemos el precio del más parecido.</p>
       </section>
 
       <!-- FAMILIA Y GASTOS -->
@@ -474,6 +474,7 @@ const inListG=gid=>ST.items.find(i=>!i.done&&i.generic&&i.gid===gid);
 const uP=(v,u)=>fmt(v)+(u==='kg'?'/kg':u==='l'?'/l':'');
 const shownP=(pack,up,unit,loose)=>loose?uP(up,unit):fmt(pack);
 const nrm=x=>(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+async function addCItem(it){if(!SES)return;try{await call('hh_add_citem',{p_code:SES.code,p_member:SES.member,p_citem:it.id,p_qty:1});toast(it.name+' añadido');await refresh()}catch(e){}}
 async function addCustom(name){if(!SES)return;try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:name,p_qty:1});toast(name+' añadido');await refresh()}catch(e){}}
 
 /* ---------- Principal ---------- */
@@ -602,7 +603,7 @@ function kcard(it){
     h('button',{class:'pcard-open',type:'button',onclick(){openItem(it.id)}},pic(it.image_url,'art'),h('span',{class:'t'},it.name),
       h('span',{class:'s'},[it.brand,it.size_label].filter(Boolean).join(' · ')||' '),kPrice(it),
       it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null),
-    h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCustom(it.name+' ('+kName(it.store)+')');this.className='add in';this.textContent='✓'}},'+'))}
+    h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
 async function kTree(){if(K.tree[K.store])return K.tree[K.store];
   const {data,error}=await sb.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
 async function rCatalog(){
@@ -653,7 +654,7 @@ async function openItem(id){const root=$('#sheetRoot');
           !m.loose&&m.unit_price!=null?h('span',{class:'s num',style:'display:block;text-align:right'},fmt(m.unit_price)+kUnit(m.unit)):null,kDiff(it,m))))):
         h('div',{class:'group'},h('div',{class:'empty'},KMODE==='strict'&&all.length?'No hay uno casi idéntico. Prueba «Parecido».':'Todavía no hemos encontrado este producto en otro súper.')),
       h('p',{class:'foot-note'},KMODE==='strict'?'Casi idéntico: mismo tipo, misma variedad y casi el mismo tamaño (±5%).':'Parecido: mismo tipo y variedad, tamaño parecido (±30%). Si el tamaño cambia, comparamos el precio por kilo o litro.'),
-      h('div',{style:'display:flex;gap:10px;margin-top:14px'},h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addCustom(it.name+' ('+kName(it.store)+')');added=true;draw()}},added?'Añadido ✓ · añadir otro':'Añadir a la lista')));
+      h('div',{style:'display:flex;gap:10px;margin-top:14px'},h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addCItem(it);added=true;draw()}},added?'Añadido ✓ · añadir otro':'Añadir a la lista')));
     sheet.querySelector('.x').focus()}
   draw()}
 
@@ -677,9 +678,9 @@ function itemRow(i){
   return h('div',{class:'row'+(i.done?' done':'')},
     h('button',{class:'chk',type:'button','aria-label':(i.done?'Desmarcar ':'Comprado: ')+i.name,onclick(){toggleDone(i)}},ic('i-check','')),
     h('span',{class:'hide-sm'},pic(i.img)),
-    h('button',{class:'grow open',type:'button',onclick(){if(i.generic)openGroup(i.gid);else if(i.pid)openProduct(i.pid)}},h('span',{class:'t'},i.name+(i.qty>1?' ×'+i.qty:'')),
+    h('button',{class:'grow open',type:'button',onclick(){if(i.generic)openGroup(i.gid);else if(i.pid)openProduct(i.pid);else if(i.cid)openItem(i.cid)}},h('span',{class:'t'},i.name+(i.qty>1?' ×'+i.qty:'')),
       h('span',{class:'s'},i.done?'Comprado por '+who(i.done_by)+(i.paid!=null?' · '+fmt(i.paid):''):(SES&&i.by===SES.member?'Lo apuntaste tú':'Lo apuntó '+nameOf(i.by))+(i.generic?' · cualquier marca':i.brand?' · '+i.brand:''))),
-    !i.done?h('div',{class:'rp'},i.best!=null?h('span',{class:'price num good',style:'display:block'},fmt(r2(i.best*i.qty))):h('span',{class:'s'},'Sin precio'),i.best_store?h('span',{class:'s'},sName(i.best_store)):null):null,
+    !i.done?h('div',{class:'rp'},i.best!=null?h('span',{class:'price num good',style:'display:block'},i.loose&&i.unit?fmt(i.best)+'/'+i.unit:fmt(r2(i.best*i.qty))):h('span',{class:'s'},'Sin precio'),i.best_store?h('span',{class:'s'},sName(i.best_store)):null):null,
     !i.done?h('div',{class:'stepper'},h('button',{type:'button','aria-label':'Uno menos',onclick(){setQty(i,i.qty-1)}},'−'),h('span',{class:'num'},String(i.qty)),h('button',{type:'button','aria-label':'Uno más',onclick(){setQty(i,i.qty+1)}},'+'))
       :h('button',{class:'x',type:'button','aria-label':'Quitar de la lista',onclick(){setQty(i,0)}},ic('i-x')))}
 async function setQty(i,n){if(n<1)ST.items=ST.items.filter(x=>x!==i);else i.qty=n;update();
@@ -688,22 +689,22 @@ function rList(){const p=pend(),d=ST.items.filter(i=>i.done);const box=$('#listB
   if(!p.length)box.append(h('p',{class:'gtitle'},'Por comprar'),h('div',{class:'group'},h('div',{class:'empty'},'No falta nada en casa. Busca arriba lo que se haya acabado.')));
   const groups={};for(const i of p){const top=CATS.find(c=>c.id===i.cat);const k=top?(top.parent_id||top.id):'otros';(groups[k]=groups[k]||[]).push(i)}
   for(const k of [...CATS.filter(c=>!c.parent_id).map(c=>c.id),'otros'])if(groups[k])box.append(h('p',{class:'gtitle'},k==='otros'?'Otros':CN[k]),h('div',{class:'group'},...groups[k].map(itemRow)));
-  if(p.some(i=>i.pid))box.append(h('div',{class:'group',style:'margin-top:16px'},h('a',{class:'row',href:'#comparar'},h('span',{class:'thumb ph',style:'color:var(--good)'},ic('i-scale')),h('div',{class:'grow'},h('span',{class:'t'},'¿Dónde te sale más barata la lista?'),h('span',{class:'s'},'Compara los '+STORES.length+' supermercados')),ic('i-chev'))));
+  if(p.some(i=>i.pid||i.cid))box.append(h('div',{class:'group',style:'margin-top:16px'},h('a',{class:'row',href:'#comparar'},h('span',{class:'thumb ph',style:'color:var(--good)'},ic('i-scale')),h('div',{class:'grow'},h('span',{class:'t'},'¿Dónde te sale más barata la lista?'),h('span',{class:'s'},'Compara los '+STORES.length+' supermercados')),ic('i-chev'))));
   const db=$('#doneBox');db.replaceChildren();if(d.length)db.append(h('p',{class:'gtitle'},'Comprado ('+d.length+')',h('button',{type:'button',async onclick(){ST.items=pend();update();try{await call('hh_clear_bought',{p_code:SES.code})}catch(e){}refresh()}},'Vaciar')),h('div',{class:'group'},...d.map(itemRow)))}
 async function toggleDone(i){if(!SES.member){toast(ERR.miembro_no_valido);location.hash='familia';return}
-  const price=!i.done&&i.best!=null?r2(i.best*i.qty):null;i.done=!i.done;i.done_by=SES.member;i.paid=price;update();
+  const price=!i.done&&i.best!=null&&!(i.loose&&i.unit)?r2(i.best*i.qty):null;i.done=!i.done;i.done_by=SES.member;i.paid=price;update();
   try{await call('hh_toggle_bought',{p_code:SES.code,p_item:i.id,p_member:SES.member,p_price:price,p_store:i.best_store});
     if(i.done)toast(i.name+' comprado'+(price!=null?' · '+fmt(price)+' apuntado':''))}catch(e){}refresh()}
 
 /* ---------- Comparar ---------- */
 let cmpSeq=0,cmpKey='';
-const ik=i=>i.generic?'g:'+i.gid:'p:'+i.pid;
-async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic);const W=$('#cmpWinner'),R=$('#cmpRank'),T=$('#cmpTable');
+const ik=i=>i.generic?'g:'+i.gid:i.cid?'c:'+i.cid:'p:'+i.pid;
+async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic||i.cid);const W=$('#cmpWinner'),R=$('#cmpRank'),T=$('#cmpTable');
   const key=its.map(i=>ik(i)+'x'+i.qty).join(',');if(!force&&key===cmpKey)return;cmpKey=key;
   if(!its.length){W.replaceChildren();R.replaceChildren(h('div',{class:'empty'},'Añade productos a la lista para comparar.'));T.replaceChildren();return}
-  const pids=its.filter(i=>!i.generic).map(i=>i.pid),gids=its.filter(i=>i.generic).map(i=>i.gid);
-  const seq=++cmpSeq;const [a,b]=await Promise.all([pids.length?sb.rpc('compare_prices',{pids}):{data:[]},gids.length?sb.rpc('compare_groups',{gids}):{data:[]}]);if(seq!==cmpSeq)return;if(a.error||b.error){netError(a.error||b.error);return}
-  const M={};for(const r of a.data){(M['p:'+r.product_id]=M['p:'+r.product_id]||{})[r.store_id]=r}for(const r of b.data){(M['g:'+r.group_id]=M['g:'+r.group_id]||{})[r.store_id]=r}
+  const pids=its.filter(i=>!i.generic&&i.pid).map(i=>i.pid),gids=its.filter(i=>i.generic).map(i=>i.gid),cids=its.filter(i=>i.cid&&!i.pid).map(i=>i.cid);
+  const seq=++cmpSeq;const [a,b,c]=await Promise.all([pids.length?sb.rpc('compare_prices',{pids}):{data:[]},gids.length?sb.rpc('compare_groups',{gids}):{data:[]},cids.length?sb.rpc('compare_citems',{cids}):{data:[]}]);if(seq!==cmpSeq)return;if(a.error||b.error||c.error){netError(a.error||b.error||c.error);return}
+  const M={};for(const r of a.data){(M['p:'+r.product_id]=M['p:'+r.product_id]||{})[r.store_id]=r}for(const r of b.data){(M['g:'+r.group_id]=M['g:'+r.group_id]||{})[r.store_id]=r}for(const r of c.data){(M['c:'+r.c_item_id]=M['c:'+r.c_item_id]||{})[r.store_id]=r}
   const best={};for(const i of its){const vals=Object.values(M[ik(i)]||{}).sort((a,b)=>a.price-b.price);best[i.id]=vals[0]||null}
   const tots=STORES.map(s=>{let t=0,miss=0;for(const i of its){const r=(M[ik(i)]||{})[s.id];if(r)t+=r.price*i.qty;else miss++}return{s,t:r2(t),miss}}).sort((a,b)=>a.miss-b.miss||a.t-b.t);
   let mix=0,mixMiss=0;for(const i of its){if(best[i.id])mix+=best[i.id].price*i.qty;else mixMiss++}mix=r2(mix);
@@ -715,7 +716,7 @@ async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic);cons
     h('div',{class:'grow'},h('span',{class:'t'},t.s.name),h('span',{class:'s'},t.miss===its.length?'Sin precios de tu lista':(t.miss?'Faltan '+t.miss+' de '+its.length+' precios':'Todos los precios')),h('div',{class:'bar'},h('i',{style:'width:'+(t.t/max*100)+'%'}))),
     h('span',{class:'price num'},t.miss===its.length?'—':fmt(t.t)))));
   T.replaceChildren(h('thead',null,h('tr',null,h('th',null,'Producto'),...STORES.map(s=>h('th',null,s.name)))),
-    h('tbody',null,...its.map(i=>{const m=M[ik(i)]||{};return h('tr',null,h('td',null,h('b',null,i.name),i.qty>1?' ×'+i.qty:'',i.generic?h('span',{class:'gmeta',style:'display:block;font-size:12.5px;color:var(--ink-3);font-weight:400'},'cualquier marca'):null),...STORES.map(s=>{const r=m[s.id];return h('td',{class:!r?'na':(best[i.id]&&best[i.id].store_id===s.id?'min':''),title:r?(r.product_name?r.product_name+' · ':'')+fdate(r.seen_at):''},r?fmt(r2(r.price*i.qty)):'—')}))})),
+    h('tbody',null,...its.map(i=>{const m=M[ik(i)]||{};return h('tr',null,h('td',null,h('b',null,i.name),i.qty>1?' ×'+i.qty:'',i.generic?h('span',{class:'gmeta',style:'display:block;font-size:12.5px;color:var(--ink-3);font-weight:400'},'cualquier marca'):null),...STORES.map(s=>{const r=m[s.id];return h('td',{class:!r?'na':(best[i.id]&&best[i.id].store_id===s.id?'min':''),title:r?(r.approx?'Parecido: ':'')+(r.product_name?r.product_name+' · ':'')+fdate(r.seen_at):''},r?(r.approx?'≈ ':'')+fmt(r2(r.price*i.qty)):'—')}))})),
     h('tfoot',null,h('tr',null,h('td',null,'Total'),...STORES.map(s=>{const t=tots.find(x=>x.s.id===s.id);return h('td',null,t.miss===its.length?'—':fmt(t.t)+(t.miss?'*':''))}))));
 }
 
