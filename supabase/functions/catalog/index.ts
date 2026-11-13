@@ -10,8 +10,8 @@ const SITEMAPS: Record<string, string> = {
   aldi: 'https://www.aldi.es/sitemaps/.aldi-nord-sitemap-products.xml',
   bonarea: 'https://www.bonarea-online.com/sitemap.xml',
 };
-// bonÀrea: familias excluidas (electrodomésticos, informática)
-const BON_EXCLUDE = [/^13\*370/, /^13\*390/];
+// bonÀrea: solo se excluye lo electrónico (electrodomésticos, informática y telefonía, herramientas eléctricas, TPV)
+const BON_EXCLUDE = [/^13\*370/, /^13\*390\*010/, /^13\*390\*070/, /^13\*070\*050/, /^13\*390\*030\*070/, /^13\*410\*030/, /^13\*100\*070/];
 
 function decode(s: string): string {
   return s.replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n))
@@ -92,7 +92,8 @@ function parseBon(html: string, url: string, ext: string): Item | null {
   const name = decode(h1[1]);
   const sub = html.match(/<h1 class=title>[\s\S]*?<\/h1>\s*<div class=subtitle>([\s\S]*?)<\/div>/);
   const size = sub ? decode(sub[1]) : null;
-  const cp = html.match(/<div class=content-price>([\s\S]*?)<\/div>/);
+  const ci = html.indexOf('<div class=content-price>');
+  const cp = ci >= 0 ? [null, html.slice(ci, ci + 700).split('block-product')[0]] as const : null;
   let price: number | null = null, punit: string | null = null, unit_price: number | null = null, unit: string | null = null, old: number | null = null;
   if (cp) {
     const block = cp[1];
@@ -112,7 +113,7 @@ function parseBon(html: string, url: string, ext: string): Item | null {
   const sz = parseSize(size);
   let net_qty = sz.q, net_unit = sz.u;
   if ((!loose || approx) && price && unit_price && unit && (net_qty == null || net_unit !== unit)) { net_qty = +(price / unit_price).toFixed(3); net_unit = unit; }
-  const img = html.match(/https:\/\/images\.bonarea\.com\/[0-9_]+_1\.png/);
+  const img = html.match(/https:\/\/images\.bonarea\.com\/[^"'\s?]+\.(?:png|jpe?g|webp)/i);
   const ref = last?.ref || null;
   return {
     store: 'bonarea', ext_id: ext, url, name, brand: null, image_url: img ? img[0] + '?width=400&height=400' : null,
@@ -162,7 +163,8 @@ Deno.serve(async (req) => {
     for (const u of (body.urls || []).slice(0, 5)) {
       const r = await get(u); const html = await r.text();
       const ext = store === 'aldi' ? (u.match(/-(\d+)\.html/)?.[1] ?? u) : (u.match(/(\d+_\d+)$/)?.[1] ?? u);
-      try { out.push({ u, status: r.status, item: store === 'aldi' ? parseAldi(html, u, ext) : parseBon(html, u, ext) }); }
+      const k = html.indexOf('content-title');
+      try { out.push({ u, status: r.status, item: store === 'aldi' ? parseAldi(html, u, ext) : parseBon(html, u, ext), snip: body.snip && k > 0 ? html.slice(k, k + 1500) : undefined }); }
       catch (e) { out.push({ u, status: r.status, err: String(e) }); }
       await sleep(PAUSE);
     }
