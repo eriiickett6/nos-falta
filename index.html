@@ -343,7 +343,7 @@ body.nohouse .view{padding-bottom:40px}
         <p class="count" id="kCount"></p>
         <div class="pgrid" id="kgrid"></div>
         <div class="more"><button class="btn btn-s" id="kMore" type="button" hidden>Cargar más productos</button></div>
-        <p class="foot-note">Precios y fotos sacados de la web de cada súper (Aldi y bonÀrea), actualizados cada día. Los de peso variable se muestran por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
+        <p class="foot-note">Precios y fotos sacados de la web de cada súper. Aldi y bonÀrea se actualizan cada día. Mercadona cada semana, con el catálogo abierto de <a href="https://huggingface.co/datasets/datania/mercadona-catalog" target="_blank" rel="noopener" style="color:var(--accent-ink)">datania</a> (licencia MIT). Los de peso variable se muestran por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
       </section>
 
       <!-- COMPARAR -->
@@ -587,7 +587,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
 
 
 /* ---------- Catálogo por súper ---------- */
-const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea']];
+const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea'],['mercadona','Mercadona']];
 const kName=id=>(KSTORES.find(x=>x[0]===id)||[id,id])[1];
 let K={store:'aldi',top:null,sub:null,q:'',off:0,tree:{},seq:0};
 let KMODE=(()=>{try{return localStorage.getItem('nf-cmp')||'rec'}catch(e){return 'rec'}})();
@@ -644,7 +644,7 @@ async function openItem(id){const root=$('#sheetRoot');
       h('div',{class:'sheet-head'},pic(it.image_url),h('div',{style:'min-width:0'},h('h2',null,it.name),h('div',{class:'sub'},[kName(it.store),it.brand,it.size_label].filter(Boolean).join(' · ')),h('div',{class:'sub'},[it.top_name,it.cat_name].filter(Boolean).join(' › '))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
       kPrice(it,true),
       it.old_price&&it.old_price>it.price?h('span',{class:'tag tag-g'},'Oferta'+(it.promo_until?' hasta el '+new Date(it.promo_until).toLocaleDateString('es-ES',{day:'numeric',month:'short'}):'')):'',
-      h('p',{class:'s',style:'margin:6px 0 0'},'Precio en '+kName(it.store)+' · '+fdate(it.updated_at)+' · ',h('a',{href:it.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web')),
+      h('p',{class:'s',style:'margin:6px 0 0'},'Precio en '+kName(it.store)+(it.store==='mercadona'?' (catálogo semanal)':'')+' · '+fdate(it.updated_at)+' · ',h('a',{href:it.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web')),
       h('p',{class:'gtitle'},'En otros supermercados'),
       h('div',{class:'seg',role:'group','aria-label':'Cómo de parecido',style:'margin-bottom:10px'},...[['strict','Casi idéntico'],['rec','Parecido']].map(([m,l])=>h('button',{type:'button','aria-pressed':String(KMODE===m),onclick(){KMODE=m;try{localStorage.setItem('nf-cmp',m)}catch(e){}draw()}},l))),
       ms.length?h('div',{class:'group'},...ms.map(m=>h('button',{class:'row',type:'button',style:'width:100%;text-align:left',onclick(){openItem(m.id)}},pic(m.image_url),
