@@ -207,6 +207,8 @@ tfoot td{font-weight:800;border-bottom:0}
 body.nohouse .tabbar,body.nohouse .side,body.nohouse .topbar a{display:none}
 body.nohouse .shell{grid-template-columns:minmax(0,1fr)}
 body.nohouse .view{padding-bottom:40px}
+.gmeta{font-size:12.5px;color:var(--ink-3)}
+.mode{margin-top:12px;max-width:360px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translate(-50%,16px);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);text-align:center}
 @media (min-width:821px){.toast{bottom:28px}}
 .toast.show{opacity:1;transform:translate(-50%,0)}
@@ -440,6 +442,13 @@ async function refresh(){if(!SES)return;try{ST=await call('hh_state',{p_code:SES
 async function addProduct(p,qty){if(!SES)return;
   try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:p.id,p_custom:null,p_qty:qty||1});await refresh();
     const n=inList(p.id);toast(n&&n.qty>1?p.name+' · '+n.qty+' en la lista':p.name+' añadido a la lista')}catch(e){}}
+async function addGroup(g,qty){if(!SES)return;
+  try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:null,p_qty:qty||1,p_group:g.id});await refresh();
+    const n=ST.items.find(i=>!i.done&&i.generic&&i.gid===g.id);toast(n&&n.qty>1?g.name+' · '+n.qty+' en la lista':g.name+' añadido a la lista (cualquier marca)')}catch(e){}}
+const inListG=gid=>ST.items.find(i=>!i.done&&i.generic&&i.gid===gid);
+const uP=(v,u)=>fmt(v)+(u==='kg'?'/kg':u==='l'?'/l':'');
+const shownP=(pack,up,unit,loose)=>loose?uP(up,unit):fmt(pack);
+const nrm=x=>(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 async function addCustom(name){if(!SES)return;try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:name,p_qty:1});toast(name+' añadido');await refresh()}catch(e){}}
 
 /* ---------- Principal ---------- */
@@ -461,21 +470,34 @@ function rHome(){const n=meName();$('#hello').textContent=n?'Hola, '+n:'Hola';$(
 $('#homeQ').addEventListener('keydown',e=>{if(e.key==='Enter'){$('#pq').value=e.target.value;P.q=e.target.value.trim();location.hash='productos';loadProducts(true)}});
 
 /* ---------- Productos ---------- */
-const P={q:'',cat:'all',store:'',priced:false,off:0,total:0,loading:false,seq:0};
+const P={q:'',cat:'all',store:'',priced:false,off:0,total:0,loading:false,seq:0,mode:'groups'};
+const modeSeg=h('div',{class:'seg mode',style:'margin-top:12px;max-width:360px',role:'group','aria-label':'Cómo ver los productos'});
+function rMode(){modeSeg.replaceChildren(...[['groups','Agrupados'],['products','Todas las marcas']].map(([m,l])=>h('button',{type:'button','aria-pressed':String(P.mode===m),onclick(){P.mode=m;rMode();loadProducts(true)}},l)));
+  $('.filters').hidden=P.mode==='groups'}
+$('#cats').before(modeSeg);
 function rCats(){const top=CATS.filter(c=>!c.parent_id);$('#cats').replaceChildren(...[{id:'all',name:'Todo'},...top].map(c=>h('button',{class:'chip',type:'button','aria-pressed':String(P.cat===c.id),onclick(){P.cat=c.id;rCats();loadProducts(true)}},c.name)))}
 async function loadProducts(reset){
   if(reset){P.off=0;$('#pgrid').replaceChildren(...Array.from({length:8},()=>h('div',{class:'skel'})));rCats()}
   const seq=++P.seq;P.loading=true;$('#pMore').disabled=true;
-  const {data,error}=await sb.rpc('search_products',{q:P.q||null,cat:P.cat==='all'?null:P.cat,store:P.store||null,only_priced:P.priced,lim:40,off:P.off});
+  const G=P.mode==='groups';
+  let {data,error}=G?await sb.rpc('search_groups',{q:P.q||null,cat:P.cat==='all'?null:P.cat,lim:40,off:P.off})
+    :await sb.rpc('search_products',{q:P.q||null,cat:P.cat==='all'?null:P.cat,store:P.store||null,only_priced:P.priced,lim:40,off:P.off});
+  if(G&&data&&P.q){const nq=nrm(P.q);data=[...data].sort((a,b)=>(nrm(a.name).includes(nq)?0:1)-(nrm(b.name).includes(nq)?0:1))}
   if(seq!==P.seq)return;P.loading=false;$('#pMore').disabled=false;
   if(error){netError(error);return}
   if(reset)$('#pgrid').replaceChildren();
   P.total=data.length?Number(data[0].total_count):(reset?0:P.total);P.off+=data.length;
-  $('#pCount').textContent=pl(P.total,'producto','productos')+(P.q?' para «'+P.q+'»':'');
+  $('#pCount').textContent=(G?pl(P.total,'tipo de producto','tipos de producto'):pl(P.total,'producto','productos'))+(P.q?' para «'+P.q+'»':'');
   if(reset&&!data.length)$('#pgrid').append(h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'No hay productos con estos filtros.',P.q?h('div',null,h('button',{class:'btn btn-s btn-sm',type:'button',style:'margin-top:10px',onclick(){addCustom(P.q)}},'Añadir «'+P.q+'» a la lista igualmente')):null)));
-  $('#pgrid').append(...data.map(card));
+  $('#pgrid').append(...data.map(G?gcard:card));
   $('#pMore').hidden=P.off>=P.total;
 }
+function gcard(g){const it=inListG(g.id);
+  return h('div',{class:'pcard'},
+    h('button',{class:'pcard-open',type:'button',onclick(){openGroup(g.id)}},pic(g.image_url,'art'),h('span',{class:'t'},g.name),
+      h('span',{class:'s'},pl(Number(g.n_products),'producto','productos')+' · '+pl(Number(g.n_stores),'súper','súpers')),
+      h('span',{class:'from'},g.best_unit_price!=null?['desde ',h('b',{class:'num'},shownP(g.best_price,g.best_unit_price,g.best_unit,g.best_loose)),' · '+sName(g.best_store)+(!g.best_loose&&g.best_qty?' · '+g.best_qty:'')]:'Sin precio todavía')),
+    h('button',{class:'add'+(it?' in':''),type:'button','aria-label':it?g.name+': '+it.qty+' en la lista':'Añadir '+g.name+' (cualquier marca)',async onclick(){const b=this;await addGroup(g);const n=inListG(g.id);if(n){b.className='add in';b.textContent=String(n.qty)}}},it?String(it.qty):'+'))}
 function card(p){const it=inList(p.id);
   return h('div',{class:'pcard'},
     h('button',{class:'pcard-open',type:'button',onclick(){openProduct(p.id)}},pic(p.image_url,'art'),h('span',{class:'t'},p.name),h('span',{class:'s'},[p.brand,p.quantity_label].filter(Boolean).join(' · ')||' '),
@@ -486,6 +508,32 @@ let pqT;$('#pq').addEventListener('input',e=>{clearTimeout(pqT);pqT=setTimeout((
 $('#pStore').addEventListener('change',e=>{P.store=e.target.value;loadProducts(true)});
 $('#pPriced').addEventListener('click',e=>{P.priced=!P.priced;e.currentTarget.setAttribute('aria-checked',String(P.priced));loadProducts(true)});
 $('#pMore').addEventListener('click',()=>loadProducts(false));
+
+/* ---------- Ficha de grupo ---------- */
+async function openGroup(gid){const root=$('#sheetRoot');
+  const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
+  const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Comparando supermercados…'));
+  root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
+  const {data,error}=await sb.rpc('group_detail',{gid});if(error||!data||!data.group){netError(error);close();return}
+  const g=data.group,stores=data.stores,prods=data.products,withP=stores.filter(s=>s.has),best=withP[0];let shown=40;
+  const img=(best&&best.image_url)||(prods.find(p=>p.image_url)||{}).image_url;
+  function draw(){const it=inListG(gid);const last=withP[withP.length-1];
+    sheet.replaceChildren(h('div',{class:'grab'}),
+      h('div',{class:'sheet-head'},pic(img),h('div',{style:'min-width:0'},h('h2',null,g.name),h('div',{class:'sub'},pl(prods.length,'producto','productos')+' de '+pl(stores.filter(s=>s.n_products>0).length,'súper','súpers')+(CN[g.category_id]?' · '+CN[g.category_id]:''))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
+      h('p',{class:'gtitle'},'El más barato de cada súper'),
+      h('div',{class:'group'},...stores.filter(s=>s.n_products>0||s.has).map(s=>h(s.has?'button':'div',{class:'row',type:s.has?'button':null,style:'width:100%;text-align:left',onclick:s.has?()=>openProduct(s.product_id):null},h('span',{class:'slogo'},abbr(s.store_id)),
+        h('div',{class:'grow'},h('span',{class:'t'},s.store_name),s.has?h('span',{class:'s'},s.product+(s.quantity_label?' · '+s.quantity_label:'')+' · '+fdate(s.seen_at)):h('span',{class:'s'},pl(s.n_products,'producto','productos')+', aún sin precio')),
+        s.has?h('div',{class:'rp'},h('span',{class:'price num'+(s===best?' good':''),style:'display:block'},shownP(s.price,s.unit_price,s.unit,s.loose))):null))),
+      withP.length>1?h('p',{class:'foot-note'},'Ordenado de más barato a más caro teniendo en cuenta el tamaño de cada paquete.'):null,
+      h('div',{style:'display:flex;gap:10px;margin-top:14px'},h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addGroup(g);draw()}},it?'Añadir otro ('+it.qty+' en la lista)':'Añadir «'+g.name+'» a la lista')),
+      h('p',{class:'foot-note'},'Se apunta sin marca: en el comparador se usa el más barato de cada súper.'),
+      h('p',{class:'gtitle'},'Todos los productos ('+prods.length+')'),
+      h('div',{class:'group'},...prods.slice(0,shown).map(p=>h('button',{class:'row',type:'button',style:'width:100%;text-align:left',onclick(){openProduct(p.id)}},pic(p.image_url),
+        h('div',{class:'grow'},h('span',{class:'t'},p.name),h('span',{class:'s'},[p.brand,p.quantity_label,(p.stores||[]).map(sName).join(', ')].filter(Boolean).join(' · '))),
+        p.unit_price!=null?h('div',{class:'rp'},h('span',{class:'price num',style:'display:block'},shownP(p.price,p.unit_price,p.unit,p.loose)),h('span',{class:'s'},sName(p.store_id))):null))),
+      prods.length>shown?h('div',{class:'more'},h('button',{class:'btn btn-s btn-sm',type:'button',onclick(){shown+=60;draw()}},'Ver más productos')):null);
+    sheet.querySelector('.x').focus()}
+  draw()}
 
 /* ---------- Ficha ---------- */
 async function openProduct(pid){const root=$('#sheetRoot');
@@ -503,8 +551,9 @@ async function openProduct(pid){const root=$('#sheetRoot');
       h('div',{class:'group'},...ps.map((x,k)=>h('div',{class:'row'},h('span',{class:'slogo'},abbr(x.store_id)),
         h('div',{class:'grow'},h('span',{class:'t'},x.store_name),x.price!=null?h('span',{class:'s'},SOURCE[x.source]+' · '+fdate(x.seen_at)+(x.location_name?' · '+x.location_name:'')):h('span',{class:'s'},'Aún no tenemos este precio'),
           x.url?h('a',{class:'s',href:x.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web'):null),
-        x.price!=null?h('div',{class:'rp'},h('span',{class:'price num'+(k===0?' good':''),style:'display:block'},fmt(x.price)+(x.unit==='kg'?'/kg':x.unit==='l'?'/l':'')),x.unit==='ud'&&perUnit(p,x.price)?h('span',{class:'s num'},perUnit(p,x.price)):null):null))),
+        x.price!=null?h('div',{class:'rp'},h('span',{class:'price num'+(k===0?' good':''),style:'display:block'},fmt(x.price)+(x.unit==='kg'?'/kg':x.unit==='l'?'/l':'')),null):null))),
       priced.length>1?h('p',{class:'foot-note'},'Diferencia entre el más caro y el más barato: '+fmt(r2(priced[priced.length-1].price-priced[0].price))+'. Los precios pueden ser de días distintos.'):null,
+      p.group_id?h('div',{class:'group',style:'margin-top:14px'},h('button',{class:'row',type:'button',style:'width:100%;text-align:left',onclick(){openGroup(p.group_id)}},h('span',{class:'thumb ph',style:'color:var(--good)'},ic('i-scale')),h('div',{class:'grow'},h('span',{class:'t'},'Comparar con otras marcas'),h('span',{class:'s'},'El más barato de este tipo en cada súper')),ic('i-chev'))):null,
       p.image_credit?h('p',{class:'foot-note'},'Foto: '+p.image_credit):null,
       h('div',{style:'display:flex;gap:10px;margin-top:14px'},
         h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addProduct(p);draw()}},it?'Añadir otro ('+it.qty+' en la lista)':'Añadir a la lista'+(best?' · desde '+fmt(best.price):''))));
@@ -515,9 +564,11 @@ async function openProduct(pid){const root=$('#sheetRoot');
 const q=$('#q'),sg=$('#sugg');let hl=0,sT,sSeq=0;
 q.addEventListener('input',()=>{clearTimeout(sT);sT=setTimeout(sugg,250)});
 async function sugg(){const t=q.value.trim();if(!t){sg.hidden=true;q.setAttribute('aria-expanded','false');return}
-  const seq=++sSeq;const {data,error}=await sb.rpc('search_products',{q:t,cat:null,store:null,only_priced:false,lim:7,off:0});if(seq!==sSeq)return;if(error){netError(error);return}
-  hl=0;const bs=(data||[]).map(p=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addProduct(p);q.value='';sg.hidden=true}},pic(p.image_url),
-    h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},p.name),h('span',{class:'s'},[p.brand,p.quantity_label].filter(Boolean).join(' · '))),p.best_price!=null?h('span',{class:'s num'},'desde '+fmt(p.best_price)):null));
+  const seq=++sSeq;const [gr,{data,error}]=await Promise.all([sb.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sb.rpc('search_products',{q:t,cat:null,store:null,only_priced:false,lim:5,off:0})]);if(seq!==sSeq)return;if(error){netError(error);return}
+  const nq=nrm(t);const gs=(gr.data||[]).filter(g=>nrm(g.name).includes(nq)).slice(0,3);
+  hl=0;const bs=[...gs.map(g=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addGroup(g);q.value='';sg.hidden=true}},pic(g.image_url),
+    h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},g.name+' · cualquier marca'),h('span',{class:'s'},pl(Number(g.n_products),'producto','productos')+' en '+pl(Number(g.n_stores),'súper','súpers'))),g.best_unit_price!=null?h('span',{class:'s num'},'desde '+shownP(g.best_price,g.best_unit_price,g.best_unit,g.best_loose)):null)),...(data||[]).map(p=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addProduct(p);q.value='';sg.hidden=true}},pic(p.image_url),
+    h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},p.name),h('span',{class:'s'},[p.brand,p.quantity_label].filter(Boolean).join(' · '))),p.best_price!=null?h('span',{class:'s num'},'desde '+fmt(p.best_price)):null))];
   bs.push(h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addCustom(t);q.value='';sg.hidden=true}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow'},'Añadir «'+t+'» sin buscar')));
   bs[0].classList.add('hl');sg.replaceChildren(...bs);sg.hidden=false;q.setAttribute('aria-expanded','true')}
 q.addEventListener('keydown',e=>{const bs=[...sg.querySelectorAll('button')];
@@ -529,8 +580,8 @@ function itemRow(i){
   return h('div',{class:'row'+(i.done?' done':'')},
     h('button',{class:'chk',type:'button','aria-label':(i.done?'Desmarcar ':'Comprado: ')+i.name,onclick(){toggleDone(i)}},ic('i-check','')),
     h('span',{class:'hide-sm'},pic(i.img)),
-    h('button',{class:'grow open',type:'button',onclick(){if(i.pid)openProduct(i.pid)}},h('span',{class:'t'},i.name+(i.qty>1?' ×'+i.qty:'')),
-      h('span',{class:'s'},i.done?'Comprado por '+who(i.done_by)+(i.paid!=null?' · '+fmt(i.paid):''):(SES&&i.by===SES.member?'Lo apuntaste tú':'Lo apuntó '+nameOf(i.by))+(i.brand?' · '+i.brand:''))),
+    h('button',{class:'grow open',type:'button',onclick(){if(i.generic)openGroup(i.gid);else if(i.pid)openProduct(i.pid)}},h('span',{class:'t'},i.name+(i.qty>1?' ×'+i.qty:'')),
+      h('span',{class:'s'},i.done?'Comprado por '+who(i.done_by)+(i.paid!=null?' · '+fmt(i.paid):''):(SES&&i.by===SES.member?'Lo apuntaste tú':'Lo apuntó '+nameOf(i.by))+(i.generic?' · cualquier marca':i.brand?' · '+i.brand:''))),
     !i.done?h('div',{class:'rp'},i.best!=null?h('span',{class:'price num good',style:'display:block'},fmt(r2(i.best*i.qty))):h('span',{class:'s'},'Sin precio'),i.best_store?h('span',{class:'s'},sName(i.best_store)):null):null,
     !i.done?h('div',{class:'stepper'},h('button',{type:'button','aria-label':'Uno menos',onclick(){setQty(i,i.qty-1)}},'−'),h('span',{class:'num'},String(i.qty)),h('button',{type:'button','aria-label':'Uno más',onclick(){setQty(i,i.qty+1)}},'+'))
       :h('button',{class:'x',type:'button','aria-label':'Quitar de la lista',onclick(){setQty(i,0)}},ic('i-x')))}
@@ -549,13 +600,15 @@ async function toggleDone(i){if(!SES.member){toast(ERR.miembro_no_valido);locati
 
 /* ---------- Comparar ---------- */
 let cmpSeq=0,cmpKey='';
-async function rCompare(force){const its=pend().filter(i=>i.pid);const W=$('#cmpWinner'),R=$('#cmpRank'),T=$('#cmpTable');
-  const key=its.map(i=>i.pid+'x'+i.qty).join(',');if(!force&&key===cmpKey)return;cmpKey=key;
+const ik=i=>i.generic?'g:'+i.gid:'p:'+i.pid;
+async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic);const W=$('#cmpWinner'),R=$('#cmpRank'),T=$('#cmpTable');
+  const key=its.map(i=>ik(i)+'x'+i.qty).join(',');if(!force&&key===cmpKey)return;cmpKey=key;
   if(!its.length){W.replaceChildren();R.replaceChildren(h('div',{class:'empty'},'Añade productos a la lista para comparar.'));T.replaceChildren();return}
-  const seq=++cmpSeq;const {data,error}=await sb.rpc('compare_prices',{pids:its.map(i=>i.pid)});if(seq!==cmpSeq)return;if(error){netError(error);return}
-  const M={};for(const r of data){(M[r.product_id]=M[r.product_id]||{})[r.store_id]=r}
-  const best={};for(const i of its){const vals=Object.values(M[i.pid]||{}).sort((a,b)=>a.price-b.price);best[i.id]=vals[0]||null}
-  const tots=STORES.map(s=>{let t=0,miss=0;for(const i of its){const r=(M[i.pid]||{})[s.id];if(r)t+=r.price*i.qty;else miss++}return{s,t:r2(t),miss}}).sort((a,b)=>a.miss-b.miss||a.t-b.t);
+  const pids=its.filter(i=>!i.generic).map(i=>i.pid),gids=its.filter(i=>i.generic).map(i=>i.gid);
+  const seq=++cmpSeq;const [a,b]=await Promise.all([pids.length?sb.rpc('compare_prices',{pids}):{data:[]},gids.length?sb.rpc('compare_groups',{gids}):{data:[]}]);if(seq!==cmpSeq)return;if(a.error||b.error){netError(a.error||b.error);return}
+  const M={};for(const r of a.data){(M['p:'+r.product_id]=M['p:'+r.product_id]||{})[r.store_id]=r}for(const r of b.data){(M['g:'+r.group_id]=M['g:'+r.group_id]||{})[r.store_id]=r}
+  const best={};for(const i of its){const vals=Object.values(M[ik(i)]||{}).sort((a,b)=>a.price-b.price);best[i.id]=vals[0]||null}
+  const tots=STORES.map(s=>{let t=0,miss=0;for(const i of its){const r=(M[ik(i)]||{})[s.id];if(r)t+=r.price*i.qty;else miss++}return{s,t:r2(t),miss}}).sort((a,b)=>a.miss-b.miss||a.t-b.t);
   let mix=0,mixMiss=0;for(const i of its){if(best[i.id])mix+=best[i.id].price*i.qty;else mixMiss++}mix=r2(mix);
   const top=tots[0];const max=Math.max(...tots.map(t=>t.t),1);
   W.replaceChildren(h('div',{class:'winner'},
@@ -565,7 +618,7 @@ async function rCompare(force){const its=pend().filter(i=>i.pid);const W=$('#cmp
     h('div',{class:'grow'},h('span',{class:'t'},t.s.name),h('span',{class:'s'},t.miss===its.length?'Sin precios de tu lista':(t.miss?'Faltan '+t.miss+' de '+its.length+' precios':'Todos los precios')),h('div',{class:'bar'},h('i',{style:'width:'+(t.t/max*100)+'%'}))),
     h('span',{class:'price num'},t.miss===its.length?'—':fmt(t.t)))));
   T.replaceChildren(h('thead',null,h('tr',null,h('th',null,'Producto'),...STORES.map(s=>h('th',null,s.name)))),
-    h('tbody',null,...its.map(i=>{const m=M[i.pid]||{};return h('tr',null,h('td',null,h('b',null,i.name),i.qty>1?' ×'+i.qty:''),...STORES.map(s=>{const r=m[s.id];return h('td',{class:!r?'na':(best[i.id]&&best[i.id].store_id===s.id?'min':''),title:r?fdate(r.seen_at):''},r?fmt(r2(r.price*i.qty)):'—')}))})),
+    h('tbody',null,...its.map(i=>{const m=M[ik(i)]||{};return h('tr',null,h('td',null,h('b',null,i.name),i.qty>1?' ×'+i.qty:'',i.generic?h('span',{class:'gmeta',style:'display:block;font-size:12.5px;color:var(--ink-3);font-weight:400'},'cualquier marca'):null),...STORES.map(s=>{const r=m[s.id];return h('td',{class:!r?'na':(best[i.id]&&best[i.id].store_id===s.id?'min':''),title:r?(r.product_name?r.product_name+' · ':'')+fdate(r.seen_at):''},r?fmt(r2(r.price*i.qty)):'—')}))})),
     h('tfoot',null,h('tr',null,h('td',null,'Total'),...STORES.map(s=>{const t=tots.find(x=>x.s.id===s.id);return h('td',null,t.miss===its.length?'—':fmt(t.t)+(t.miss?'*':''))}))));
 }
 
@@ -642,7 +695,7 @@ window.addEventListener('hashchange',route);
 (async()=>{
   try{await loadStatic()}catch(e){netError(e)}
   $('#pStore').append(...STORES.map(s=>h('option',{value:s.id},s.name)));
-  update();route();rHomeStats();await refresh();
+  rMode();update();route();rHomeStats();await refresh();
   setInterval(()=>{if(!document.hidden&&SES&&!$('#sheetRoot').children.length)refresh()},8000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
