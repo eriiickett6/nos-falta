@@ -343,7 +343,7 @@ body.nohouse .view{padding-bottom:40px}
         <p class="count" id="kCount"></p>
         <div class="pgrid" id="kgrid"></div>
         <div class="more"><button class="btn btn-s" id="kMore" type="button" hidden>Cargar más productos</button></div>
-        <p class="foot-note">Precios y fotos sacados de la web de cada súper. Aldi y bonÀrea se actualizan cada día. Mercadona cada semana, con el catálogo abierto de <a href="https://huggingface.co/datasets/datania/mercadona-catalog" target="_blank" rel="noopener" style="color:var(--accent-ink)">datania</a> (licencia MIT). Los de peso variable se muestran por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
+        <p class="foot-note">Precios y fotos sacados de la web de cada súper. Aldi y bonÀrea se actualizan cada día; Condis, cada semana desde su tienda online. Mercadona cada semana, con el catálogo abierto de <a href="https://huggingface.co/datasets/datania/mercadona-catalog" target="_blank" rel="noopener" style="color:var(--accent-ink)">datania</a> (licencia MIT). Los de peso variable se muestran por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
       </section>
 
       <!-- COMPARAR -->
@@ -588,7 +588,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
 
 
 /* ---------- Catálogo por súper ---------- */
-const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea'],['mercadona','Mercadona']];
+const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea'],['mercadona','Mercadona'],['condis','Condis']];
 const kName=id=>(KSTORES.find(x=>x[0]===id)||[id,id])[1];
 let K={store:'aldi',top:null,sub:null,q:'',off:0,tree:{},seq:0};
 let KMODE=(()=>{try{return localStorage.getItem('nf-cmp')||'rec'}catch(e){return 'rec'}})();
