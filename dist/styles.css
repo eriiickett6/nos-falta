@@ -140,6 +140,10 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .switch[aria-checked="true"]::after{transform:translateX(20px)}
 .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;flex:none;background:#3B7DD8;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
 .slogo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none;background:var(--fill);color:var(--ink-2);letter-spacing:-.02em}
+.slogo.has{background:#fff!important;padding:5px;box-shadow:inset 0 0 0 1px var(--line);filter:none!important}
+.slogo img{width:100%;height:100%;object-fit:contain;border-radius:6px;display:block}
+#kStore .slogo{width:24px;height:24px;border-radius:7px;font-size:10px;padding:2px}
+#kStore button:has(.slogo)::before{display:none}
 .slogo[data-s="aldi"]{background:#E3ECFB;color:#1D4ED8}
 .slogo[data-s="mercadona"]{background:#DDF3E6;color:#047857}
 .slogo[data-s="lidl"]{background:#FFF4C2;color:#1E3A8A}

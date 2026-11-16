@@ -150,6 +150,10 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .switch[aria-checked="true"]::after{transform:translateX(20px)}
 .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;flex:none;background:#3B7DD8;box-shadow:inset 0 -2px 0 rgba(0,0,0,.12)}
 .slogo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none;background:var(--fill);color:var(--ink-2);letter-spacing:-.02em}
+.slogo.has{background:#fff!important;padding:5px;box-shadow:inset 0 0 0 1px var(--line);filter:none!important}
+.slogo img{width:100%;height:100%;object-fit:contain;border-radius:6px;display:block}
+#kStore .slogo{width:24px;height:24px;border-radius:7px;font-size:10px;padding:2px}
+#kStore button:has(.slogo)::before{display:none}
 .slogo[data-s="aldi"]{background:#E3ECFB;color:#1D4ED8}
 .slogo[data-s="mercadona"]{background:#DDF3E6;color:#047857}
 .slogo[data-s="lidl"]{background:#FFF4C2;color:#1E3A8A}
@@ -570,6 +574,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
           <p>Productos y fotos: <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, base de datos abierta (ODbL). Fotos con licencia CC BY-SA.</p>
           <p>Precios: <a href="https://prices.openfoodfacts.org" target="_blank" rel="noopener">Open Prices</a>, precios reales que la gente sube desde sus tickets (ODbL). Fruta y verdura: web de Bonpreu y Alcampo, consultada el 13/11/2026.</p>
           <p>Catálogo por súper: fichas públicas de las webs de Aldi, bonÀrea, <a href="https://compraonline.condis.es" target="_blank" rel="noopener">Condis</a> y <a href="https://www.lidl.es" target="_blank" rel="noopener">Lidl</a> (permitido en su robots.txt), y el catálogo abierto de Mercadona de datania. Las fotos se enlazan desde la web de cada súper.</p>
+          <p>Los logotipos son marcas de sus propietarios y se cargan desde la web de cada supermercado; solo sirven para identificarlos.</p>
           <p>Fotos de fruta y verdura: <a href="https://github.com/fruits-360/fruits-360-100x100" target="_blank" rel="noopener">Fruits-360</a> de Mihai Oltean (CC BY-SA 4.0).</p>
         </div>
       </section>
@@ -618,6 +623,13 @@ async function loadStatic(){
 }
 const sName=id=>SM[id]?.name||id;
 const abbr=id=>sName(id).slice(0,2);
+// icono oficial de cada súper, cargado desde su propia web (vía el servicio de iconos de Google, 128 px)
+const SDOM={aldi:'aldi.es',lidl:'lidl.es',mercadona:'mercadona.es',bonarea:'bonarea.com',condis:'condis.es',carrefour:'carrefour.es',dia:'dia.es',alcampo:'alcampo.es',bonpreu:'bonpreuesclat.cat'};
+const logoUrl=id=>SDOM[id]?'https://www.google.com/s2/favicons?domain='+SDOM[id]+'&sz=128':null;
+function slogo(id,style){const sp=h('span',{class:'slogo','data-s':id,style});const u=logoUrl(id);const txt=()=>(SM[id]?SM[id].name:id).slice(0,2);
+  if(!u){sp.textContent=txt();return sp}
+  const im=h('img',{src:u,alt:'',loading:'lazy',decoding:'async'});im.onerror=()=>{sp.classList.remove('has');im.remove();sp.textContent=txt()};
+  im.onload=()=>{if(im.naturalWidth<24){im.onerror()}};sp.classList.add('has');sp.append(im);return sp}
 
 /* ---------- Casa compartida (Supabase) ---------- */
 const SKEY='nosfalta-casa';
@@ -674,10 +686,15 @@ async function nearData(cp){
   const {data,error}=await sb.rpc('near_get',{p_cp:cp});if(error)throw error;if(!data)return null;
   if(data.shops)return data;
   // primera vez con este código postal: lo pregunta el navegador a OpenStreetMap y lo guardamos para los demás
-  const q='[out:json][timeout:25];nwr["shop"~"^(supermarket|convenience|department_store)$"](around:10000,'+data.lat+','+data.lon+');out center tags 1500;';
+  // solo las cadenas que nos interesan (por marca o por nombre): la consulta es pequeña y rápida
+  const A='(around:10000,'+data.lat+','+data.lon+')',RE='mercadona|lidl|aldi|bon ?[àa]rea|condis|carrefour|^dia|dia %|cl[aà]rel|alcampo|simply|sabeco|bonpreu|esclat';
+  const q='[out:json][timeout:20];(nwr["shop"]["brand"~"'+RE+'",i]'+A+';nwr["shop"~"^(supermarket|convenience|department_store)$"]["name"~"'+RE+'",i]'+A+';);out center tags 600;';
+  // preguntamos a varios servidores a la vez y nos quedamos con el primero que conteste bien
+  const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),20000);
+  const ask=ep=>fetch(ep,{method:'POST',signal:ctl.signal,body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}}).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()}).then(j=>j.elements||[]);
   let el=null;
-  for(const ep of ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter']){
-    try{const r=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});if(r.ok){el=(await r.json()).elements||[];break}}catch(e){}}
+  try{el=await Promise.any(['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'].map(ask))}catch(e){}
+  clearTimeout(tm);ctl.abort();
   if(!el){data.shops=[];data.failed=true;return data}
   const shops=[];
   for(const e of el){const t=e.tags||{};const txt=[t.brand,t.name,t.operator].filter(Boolean).join(' | ');const m=BRANDRE.find(([,re])=>re.test(txt));if(!m)continue;
@@ -698,14 +715,14 @@ async function drawMap(box,d,radius,sel){
     L.circleMarker([d.lat,d.lon],{radius:8,color:'#fff',weight:3,fillColor:'#14181F',fillOpacity:1}).addTo(MAP).bindTooltip('Tu zona ('+esc(d.cp)+')');
     for(const x of d.shops.filter(x=>x.km<=radius&&sel.includes(x.store)))
       L.circleMarker([x.lat,x.lon],{radius:9,color:'#fff',weight:2.5,fillColor:CCOL[x.store]||'#888',fillOpacity:1}).addTo(MAP)
-       .bindPopup('<b>'+esc(x.name)+'</b><br>a '+kmFmt(x.km)+(x.addr?'<br>'+esc(x.addr):'')+(x.hours?'<br><small>'+esc(x.hours)+'</small>':'')+'<br><a target="_blank" rel="noopener" href="'+dirUrl(x)+'">Cómo llegar</a>');
+       .bindPopup((logoUrl(x.store)?'<img src="'+logoUrl(x.store)+'" alt="" width="22" height="22" style="vertical-align:-6px;margin-right:6px;border-radius:5px">':'')+'<b>'+esc(x.name)+'</b><br>a '+kmFmt(x.km)+(x.addr?'<br>'+esc(x.addr):'')+(x.hours?'<br><small>'+esc(x.hours)+'</small>':'')+'<br><a target="_blank" rel="noopener" href="'+dirUrl(x)+'">Cómo llegar</a>');
     setTimeout(()=>MAP&&MAP.invalidateSize(),250)
   }catch(e){box.replaceChildren(h('div',{class:'empty'},'No se ha podido cargar el mapa.'))}}
-const Z={d:null,radius:5,sel:new Set(),admin:false,busy:false,onb:false,loaded:false};
+const Z={d:null,cp:'',radius:5,sel:new Set(),admin:false,busy:false,onb:false,loaded:false};
 async function zSearch(cp){cp=String(cp||'').replace(/\D/g,'');
   if(cp===ADMIN_CP){Z.admin=true;Z.d=null;rZona();return}
   if(!/^\d{5}$/.test(cp)){toast(ERR.cp_no_valido);return}
-  Z.admin=false;Z.busy=true;Z.d=null;rZona();
+  Z.cp=cp;Z.admin=false;Z.busy=true;Z.d=null;rZona();
   try{const d=await nearData(cp);if(!d)toast('No encontramos ese código postal');else{Z.d=d;Z.sel=new Set(d.shops.map(x=>x.store))}}catch(e){netError(e)}
   Z.busy=false;rZona()}
 async function saveZona(){if(!SES)return;const b=$('.zsave');if(b)b.disabled=true;
@@ -720,7 +737,7 @@ function rZona(){const hh=ST.household||{};const box=$('#zonaBox');if(!box)retur
     if(hh.admin)Z.admin=true;else{Z.busy=true;nearData(hh.postcode).then(d=>{Z.d=d;Z.sel=new Set(hh.stores||(d?d.shops.map(x=>x.store):[]))}).catch(netError).finally(()=>{Z.busy=false;rZona()})}}
   const kids=[];
   if(Z.onb||!hh.postcode)kids.push(h('div',{class:'zstep'},h('span',{class:'tag tag-a',style:'justify-self:start'},Z.onb?'Paso 2 de 2 · Tu zona':'Falta un paso'),h('h2',null,'¿Dónde haces la compra?'),h('p',{class:'sub'},'Con tu código postal te enseñamos solo los supermercados que tienes cerca. Puedes cambiarlo cuando quieras.')));
-  const inp=h('input',{type:'text',inputmode:'numeric',autocomplete:'postal-code',maxlength:'5',placeholder:'Tu código postal',value:Z.admin?ADMIN_CP:(Z.d?Z.d.cp:(hh.admin?'':hh.postcode||'')),'aria-label':'Código postal'});
+  const inp=h('input',{type:'text',inputmode:'numeric',autocomplete:'postal-code',maxlength:'5',placeholder:'Tu código postal',value:Z.admin?ADMIN_CP:(Z.d?Z.d.cp:(Z.cp||(hh.admin?'':hh.postcode||''))),'aria-label':'Código postal'});
   kids.push(h('form',{class:'zform',onsubmit(e){e.preventDefault();zSearch(inp.value)}},ic('i-pin'),inp,h('button',{class:'btn btn-p btn-sm',type:'submit',disabled:Z.busy},Z.busy?'Buscando…':'Buscar')));
   kids.push(h('p',{class:'foot-note'},'¿Eres del equipo de Nos Falta? Escribe '+ADMIN_CP+' para ver todos los supermercados.'));
   if(Z.admin){kids.push(h('div',{class:'group',style:'margin-top:16px'},h('div',{class:'row'},h('span',{class:'slogo',style:'background:var(--ink);color:var(--surface)'},'★'),h('div',{class:'grow'},h('span',{class:'t'},'Modo admin'),h('span',{class:'s'},'Ves los '+STORES.length+' supermercados, estén donde estén, para revisar que todo funciona.')))),
@@ -730,17 +747,17 @@ function rZona(){const hh=ST.household||{};const box=$('#zonaBox');if(!box)retur
     kids.push(h('div',{class:'zhead'},h('div',null,h('span',{class:'t'},d.place||('CP '+d.cp)),h('span',{class:'s'},'Código postal '+d.cp)),
       h('div',{class:'seg zrad',role:'group','aria-label':'Distancia'},...[1,2,5,10].map(r=>h('button',{type:'button','aria-pressed':String(Z.radius===r),onclick(){Z.radius=r;rZona()}},r+' km')))));
     const mapBox=h('div',{class:'zmap'});kids.push(mapBox);
-    if(d.failed)kids.push(h('div',{class:'notice',style:'margin-top:12px'},'Ahora mismo no podemos consultar el mapa de tiendas. Puedes guardar igualmente (verás todos los súpers) y probar más tarde.'));
+    if(d.failed)kids.push(h('div',{class:'notice',style:'margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap'},h('span',{style:'flex:1;min-width:200px'},'El mapa de tiendas (OpenStreetMap) no ha contestado a tiempo. Puedes reintentar o guardar igualmente y verás todos los súpers.'),h('button',{class:'btn btn-s btn-sm',type:'button',onclick(){zSearch(d.cp)}},'Reintentar')));
     kids.push(h('p',{class:'gtitle'},'Tus supermercados ('+ch.filter(c=>Z.sel.has(c.id)).length+' de '+ch.length+')'));
     kids.push(ch.length?h('div',{class:'group'},...ch.map(c=>{const on=Z.sel.has(c.id);
-        return h('div',{class:'row'},h('span',{class:'slogo','data-s':c.id},CHAIN[c.id].slice(0,2)),h('div',{class:'grow'},h('span',{class:'t'},CHAIN[c.id],KSTORES.some(([k])=>k===c.id)?h('span',{class:'tag tag-g',style:'margin-left:8px;vertical-align:2px'},'Con catálogo'):null),h('span',{class:'s'},'La más cercana a '+kmFmt(c.km)+' · '+pl(c.n,'tienda','tiendas'))),
+        return h('div',{class:'row'},slogo(c.id),h('div',{class:'grow'},h('span',{class:'t'},CHAIN[c.id],KSTORES.some(([k])=>k===c.id)?h('span',{class:'tag tag-g',style:'margin-left:8px;vertical-align:2px'},'Con catálogo'):null),h('span',{class:'s'},'La más cercana a '+kmFmt(c.km)+' · '+pl(c.n,'tienda','tiendas'))),
           h('button',{class:'switch',type:'button',role:'switch','aria-checked':String(on),'aria-label':'Usar '+CHAIN[c.id],onclick(){on?Z.sel.delete(c.id):Z.sel.add(c.id);rZona()}}))})):
       h('div',{class:'group'},h('div',{class:'empty'},d.failed?'Sin datos de tiendas por ahora.':'No conocemos supermercados a menos de '+Z.radius+' km. Prueba con más distancia.')));
     const far=Object.keys(CHAIN).filter(id=>!ch.some(c=>c.id===id));
     if(far.length&&!d.failed)kids.push(h('p',{class:'foot-note'},'Lejos de ti, los ocultamos: '+far.map(id=>CHAIN[id]).join(', ')+'.'));
     kids.push(h('button',{class:'btn btn-p zsave',type:'button',onclick:saveZona},Z.onb?'Guardar y empezar':'Guardar mi zona'));
     const near=d.shops.filter(x=>x.km<=Z.radius&&Z.sel.has(x.store)).slice(0,8);
-    if(near.length)kids.push(h('p',{class:'gtitle'},'Las tiendas más cercanas'),h('div',{class:'group'},...near.map(x=>h('div',{class:'row'},h('span',{class:'slogo','data-s':x.store},CHAIN[x.store].slice(0,2)),
+    if(near.length)kids.push(h('p',{class:'gtitle'},'Las tiendas más cercanas'),h('div',{class:'group'},...near.map(x=>h('div',{class:'row'},slogo(x.store),
       h('div',{class:'grow'},h('span',{class:'t'},x.name),h('span',{class:'s'},[x.addr,x.hours?'Horario: '+x.hours:null].filter(Boolean).join(' · ')||CHAIN[x.store])),
       h('div',{class:'rp'},h('span',{class:'t num'},kmFmt(x.km)),h('a',{class:'s',href:dirUrl(x),target:'_blank',rel:'noopener',style:'color:var(--accent-ink);font-weight:700'},'Cómo llegar'))))));
     kids.push(h('p',{class:'foot-note'},'Tiendas: © colaboradores de OpenStreetMap (ODbL). Códigos postales: GeoNames (CC BY 4.0).'));
@@ -826,7 +843,7 @@ async function openGroup(gid){const root=$('#sheetRoot');
     sheet.replaceChildren(h('div',{class:'grab'}),
       h('div',{class:'sheet-head'},pic(img),h('div',{style:'min-width:0'},h('h2',null,g.name),h('div',{class:'sub'},pl(prods.length,'producto','productos')+' de '+pl(stores.filter(s=>s.n_products>0).length,'súper','súpers')+(CN[g.category_id]?' · '+CN[g.category_id]:''))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
       h('p',{class:'gtitle'},'El más barato de cada súper'),
-      h('div',{class:'group'},...stores.filter(s=>s.n_products>0||s.has).map(s=>h(s.has?'button':'div',{class:'row',type:s.has?'button':null,style:'width:100%;text-align:left',onclick:s.has?()=>openProduct(s.product_id):null},h('span',{class:'slogo','data-s':s.store_id},abbr(s.store_id)),
+      h('div',{class:'group'},...stores.filter(s=>s.n_products>0||s.has).map(s=>h(s.has?'button':'div',{class:'row',type:s.has?'button':null,style:'width:100%;text-align:left',onclick:s.has?()=>openProduct(s.product_id):null},slogo(s.store_id),
         h('div',{class:'grow'},h('span',{class:'t'},s.store_name),s.has?h('span',{class:'s'},s.product+(s.quantity_label?' · '+s.quantity_label:'')+' · '+fdate(s.seen_at)):h('span',{class:'s'},pl(s.n_products,'producto','productos')+', aún sin precio')),
         s.has?h('div',{class:'rp'},h('span',{class:'price num'+(s===best?' good':''),style:'display:block'},shownP(s.price,s.unit_price,s.unit,s.loose))):null))),
       withP.length>1?h('p',{class:'foot-note'},'Ordenado de más barato a más caro teniendo en cuenta el tamaño de cada paquete.'):null,
@@ -853,7 +870,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
     sheet.replaceChildren(h('div',{class:'grab'}),
       h('div',{class:'sheet-head'},pic(p.image_url),h('div',{style:'min-width:0'},h('h2',null,p.name),h('div',{class:'sub'},[p.brand,p.quantity_label,CN[p.category_id]].filter(Boolean).join(' · ')),p.own_brand_of?h('span',{class:'tag tag-n',style:'margin-top:4px'},'Marca propia de '+sName(p.own_brand_of)):null),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
       h('p',{class:'gtitle'},'Precio en cada supermercado'),
-      h('div',{class:'group'},...ps.map((x,k)=>h('div',{class:'row'},h('span',{class:'slogo','data-s':x.store_id},abbr(x.store_id)),
+      h('div',{class:'group'},...ps.map((x,k)=>h('div',{class:'row'},slogo(x.store_id),
         h('div',{class:'grow'},h('span',{class:'t'},x.store_name),x.price!=null?h('span',{class:'s'},SOURCE[x.source]+' · '+fdate(x.seen_at)+(x.location_name?' · '+x.location_name:'')):h('span',{class:'s'},'Aún no tenemos este precio'),
           x.url?h('a',{class:'s',href:x.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web'):null),
         x.price!=null?h('div',{class:'rp'},h('span',{class:'price num'+(k===0?' good':''),style:'display:block'},fmt(x.price)+(x.unit==='kg'?'/kg':x.unit==='l'?'/l':'')),null):null))),
@@ -890,7 +907,7 @@ async function kTree(){if(K.tree[K.store])return K.tree[K.store];
 async function rCatalog(){
   if(!kStores().some(([id])=>id===K.store))K.store=kStores()[0][0];
   $('#kSort').value=K.sort;$('#kOff').setAttribute('aria-pressed',String(K.off));
-  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{type:'button','aria-pressed':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},n)));
+  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{type:'button','aria-pressed':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},slogo(id),n)));
   $('#kq').placeholder='Buscar en '+kName(K.store);
   const tree=await kTree();
   $('#kTop').replaceChildren(h('button',{class:'chip',type:'button','aria-pressed':String(!K.top),onclick(){K.top=null;K.sub=null;rCatalog()}},'Todo'),
@@ -1012,7 +1029,7 @@ async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic||i.ci
   W.replaceChildren(h('div',{class:'winner'},
     h('div',null,h('div',{class:'k'},top.miss?'Más completo: '+top.s.name+' (faltan '+top.miss+')':'Tu compra sale más barata en'),h('div',{class:'v'},top.s.name+' · '+fmt(top.t))),
     h('div',null,h('div',{class:'k'},'Si compras cada cosa en su súper más barato'+(mixMiss?' (sin '+mixMiss+')':'')),h('div',{class:'v num'},fmt(mix)))));
-  R.replaceChildren(...tots.map((t,k)=>h('div',{class:'row'+(k===0&&!t.miss?' win':'')},h('span',{class:'slogo','data-s':t.s.id},abbr(t.s.id)),
+  R.replaceChildren(...tots.map((t,k)=>h('div',{class:'row'+(k===0&&!t.miss?' win':'')},slogo(t.s.id),
     h('div',{class:'grow'},h('span',{class:'t'},t.s.name),h('span',{class:'s'},t.miss===its.length?'Sin precios de tu lista':(t.miss?'Faltan '+t.miss+' de '+its.length+' precios':'Todos los precios')),h('div',{class:'bar'},h('i',{style:'width:'+(t.t/max*100)+'%'}))),
     h('span',{class:'price num'},t.miss===its.length?'—':fmt(t.t)))));
   // mejor combinación de 2 súpers que lo tenga todo
@@ -1025,7 +1042,7 @@ async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic||i.ci
   if(pair&&its.length>1&&Object.keys(pair.where).length===2&&(!single||pair.t<single.t-0.3)){
     P.replaceChildren(h('div',{class:'plan'},h('div',{class:'k'},single?'Ahorra yendo a 2 súpers':'Para tenerlo todo, ve a 2 súpers'),
       h('div',{class:'v num'},pair.a.name+' + '+pair.b.name+' · '+fmt(pair.t)+(single?' (ahorras '+fmt(r2(single.t-pair.t))+')':'')),
-      h('div',{class:'cols'},...[pair.a,pair.b].map(s=>h('div',{class:'col'},h('b',null,h('span',{class:'slogo','data-s':s.id,style:'width:28px;height:28px;font-size:11px;border-radius:8px'},abbr(s.id)),s.name),...(pair.where[s.id]||[]).map(n=>h('span',null,n)))))))}
+      h('div',{class:'cols'},...[pair.a,pair.b].map(s=>h('div',{class:'col'},h('b',null,slogo(s.id,'width:28px;height:28px;font-size:11px;border-radius:8px'),s.name),...(pair.where[s.id]||[]).map(n=>h('span',null,n)))))))}
   else P.replaceChildren();
   T.replaceChildren(h('thead',null,h('tr',null,h('th',null,'Producto'),...VS.map(s=>h('th',null,s.name)))),
     h('tbody',null,...its.map(i=>{const m=M[ik(i)]||{};return h('tr',null,h('td',null,h('b',null,i.name),i.qty>1?' ×'+i.qty:'',i.generic?h('span',{class:'gmeta',style:'display:block;font-size:12.5px;color:var(--ink-3);font-weight:400'},'cualquier marca'):null),...VS.map(s=>{const r=m[s.id];return h('td',{class:!r?'na':(best[i.id]&&best[i.id].store_id===s.id?'min':''),title:r?(r.approx?'Parecido: ':'')+(r.product_name?r.product_name+' · ':'')+fdate(r.seen_at):''},r?(r.approx?'≈ ':'')+fmt(r2(r.price*i.qty)):'—')}))})),
@@ -1082,7 +1099,7 @@ if(invite){if(SES&&SES.code!==invite)SES=null;$('#fJoin').code.value=prettyCode(
 /* ---------- Supermercados ---------- */
 async function rSupers(){const {data,error}=await sb.rpc('catalog_stats');if(error){netError(error);return}
   const why={web:'Precios desde su web',manual:'Su web no lo permite: precios a mano y de tickets',open_prices:'Precios de tickets (Open Prices)',blocked:'Su web no lo permite: precios de tickets (Open Prices)'};
-  $('#supersList').replaceChildren(...data.map(s=>h('div',{class:'row'},h('span',{class:'slogo','data-s':s.store_id},abbr(s.store_id)),h('div',{class:'grow'},h('span',{class:'t'},s.store_name),h('span',{class:'s'},why[s.price_source]||'')),
+  $('#supersList').replaceChildren(...data.map(s=>h('div',{class:'row'},slogo(s.store_id),h('div',{class:'grow'},h('span',{class:'t'},s.store_name),h('span',{class:'s'},why[s.price_source]||'')),
     h('div',{class:'rp'},h('span',{class:'t num'},pl(Number(s.products),'producto','productos')),h('span',{class:'s num'},pl(Number(s.priced),'precio real','precios reales')+(s.last_price?' · '+fdate(s.last_price):''))))))}
 
 /* ---------- Red ---------- */
