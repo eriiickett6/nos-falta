@@ -305,4 +305,61 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 .toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px) scale(.96);background:var(--ink);color:var(--surface);padding:12px 18px;border-radius:16px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s,transform .4s var(--spring);z-index:50;max-width:calc(100% - 32px);text-align:center;box-shadow:var(--sh-3)}
 @media (min-width:821px){.toast{bottom:32px}}
 .toast.show{opacity:1;transform:translate(-50%,0) scale(1)}
+
+/* ---------- Zona y mapa ---------- */
+.zform{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:6px 6px 6px 14px;box-shadow:var(--sh-1)}
+.zform>svg{color:var(--accent)}
+.zform input{flex:1;min-width:0;border:0;background:none;font-size:20px;font-weight:800;letter-spacing:.12em;outline:none;padding:8px 0;font-variant-numeric:tabular-nums}
+.zform input::placeholder{letter-spacing:0;font-weight:500;font-size:16px;color:var(--ink-3)}
+.zform:focus-within{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.zhead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:20px 4px 12px}
+.zhead .t{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.zrad{flex:none}.zrad button{padding:6px 12px;font-size:13px}
+.zmap{height:330px;border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--line);box-shadow:var(--sh-1);background:var(--fill);position:relative;z-index:0;animation:rise .5s var(--ease) both}
+@media (max-width:480px){.zmap{height:260px}}
+.zmap .leaflet-popup-content{font-family:var(--font);font-size:13px}
+.zmap .leaflet-popup-content a{color:var(--accent-ink);font-weight:700}
+.zsave{width:100%;margin-top:16px;padding:15px 18px;font-size:15.5px;border-radius:16px}
+.zstep{display:grid;gap:8px;margin:4px 0 18px}
+.zstep h2{font-size:28px;font-weight:800;letter-spacing:-.035em;line-height:1.1}
+.zchip{display:inline-flex;align-items:center;gap:6px;margin:0 0 14px;padding:6px 12px 6px 8px;border-radius:999px;background:rgba(255,255,255,.14);color:var(--on-hero);text-decoration:none;font-weight:700;font-size:13px;border:1px solid rgba(255,255,255,.18);transition:background .2s}
+.zchip:hover{background:rgba(255,255,255,.22)}
+.zchip svg.i{width:16px;height:16px}
+.zbanner{display:flex;align-items:center;gap:12px;background:var(--accent-soft);color:var(--accent-ink);border-radius:var(--r-lg);padding:14px 16px;margin-bottom:14px;text-decoration:none;font-weight:700;animation:rise .4s var(--ease) both}
+.zbanner .grow{flex:1}.zbanner small{display:block;font-weight:500;color:var(--ink-2)}
+
+/* ---------- Ofertas ---------- */
+.hscroll{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(168px,180px);gap:12px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 8px;scroll-snap-type:x mandatory}
+.hscroll::-webkit-scrollbar{display:none}
+.hscroll>.pcard{scroll-snap-align:start}
+.disc{position:absolute;top:16px;left:16px;background:linear-gradient(135deg,#EF4444,#F97316);color:#fff;font-weight:800;font-size:12px;padding:4px 8px;border-radius:999px;box-shadow:0 4px 10px rgba(239,68,68,.35);z-index:1}
+.ktools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.ktools select{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13.5px;color:var(--ink)}
+.ktools .chip[aria-pressed="true"]{background:linear-gradient(135deg,#EF4444,#F97316);border-color:transparent;color:#fff}
+
+/* ---------- Lista ---------- */
+.lsum{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:14px 16px;box-shadow:var(--sh-1);animation:rise .4s var(--ease) both}
+.lsum .grow{flex:1;min-width:140px}
+.lsum .big{font-size:24px;font-weight:800;letter-spacing:-.03em}
+.hab{margin-top:12px}
+.hab .chip{display:inline-flex;gap:6px;align-items:center}
+.hab .chip b{color:var(--accent)}
+.tag-u{background:#FEE2E2;color:#B91C1C}
+@media (prefers-color-scheme: dark){.tag-u{background:#3B1414;color:#FCA5A5}}
+.row.urg{box-shadow:inset 3px 0 0 #EF4444}
+@media (max-width:520px){#listBox .row{flex-wrap:wrap;row-gap:4px}#listBox .row>.open{flex:1 1 calc(100% - 52px)}#listBox .row>.rp{margin-left:40px;margin-right:auto;text-align:left}#listBox .row>.rp .price{font-size:16px}}
+.lsum .btn{flex:none}
+.dots{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--ink-3);flex:none;transition:background .15s}
+.dots:hover{background:var(--fill);color:var(--ink)}
+.checkline{display:flex;gap:10px;align-items:center;font-weight:700;font-size:15px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1.5px solid var(--line);cursor:pointer}
+.checkline input{width:20px;height:20px;accent-color:#EF4444}
+
+/* ---------- Comparar: plan ---------- */
+.plan{margin-top:12px;background:var(--surface);border:1.5px dashed color-mix(in srgb,var(--good) 45%,var(--line));border-radius:var(--r-lg);padding:16px 18px;animation:rise .5s var(--ease) both}
+.plan .k{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--good-ink)}
+.plan .v{font-size:22px;font-weight:800;letter-spacing:-.03em;margin:4px 0 8px}
+.plan .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.plan .col{background:var(--fill);border-radius:14px;padding:10px 12px}
+.plan .col b{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.plan .col span{display:block;font-size:13px;color:var(--ink-2)}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
