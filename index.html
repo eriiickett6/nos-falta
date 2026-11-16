@@ -105,18 +105,41 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .seg button{flex:1;padding:8px 12px;border-radius:10px;font-weight:700;font-size:14px;color:var(--ink-2);transition:background .25s var(--ease),color .2s,box-shadow .25s;white-space:nowrap}
 .seg button:hover{color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.06)}
-#kStore{overflow-x:auto;scrollbar-width:none;max-width:100%!important;display:flex;background:none;padding:2px 2px 4px;gap:8px}
-#kStore::-webkit-scrollbar{display:none}
-#kStore button{flex:none;padding:9px 16px 9px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;gap:8px}
-#kStore button::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--dot,var(--ink-3))}
-#kStore button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink);box-shadow:none}
-#kStore button:nth-child(1){--dot:#2563EB}#kStore button:nth-child(2){--dot:#DC2626}#kStore button:nth-child(3){--dot:#059669}#kStore button:nth-child(4){--dot:#E11D48}#kStore button:nth-child(5){--dot:#EAB308}
 .chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 4px}
 .chips::-webkit-scrollbar{display:none}
 .chip{flex:none;padding:8px 15px;border-radius:999px;background:var(--surface);border:1px solid var(--line);font-weight:700;font-size:13.5px;color:var(--ink-2);transition:background .2s,color .2s,border-color .2s,transform .15s var(--ease)}
 .chip:hover{border-color:var(--fill-2);color:var(--ink)}
 .chip:active{transform:scale(.96)}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+#kStore{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(112px,1fr);gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;margin:0 -2px}
+#kStore::-webkit-scrollbar{display:none}
+.stcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:14px 10px 12px;border-radius:18px;background:var(--surface);border:1.5px solid var(--line);cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s;font:inherit;color:inherit}
+.stcard:hover{transform:translateY(-1px);box-shadow:0 6px 18px -10px rgba(0,0,0,.25)}
+.stcard .slogo{width:46px;height:46px;border-radius:13px;font-size:14px;margin-bottom:2px}
+.stcard b{font-size:14.5px;line-height:1.2;white-space:nowrap}
+.stcard small{font-size:12px;color:var(--ink-3);white-space:nowrap}
+.stcard[aria-checked="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.stcard[aria-checked="true"]::after{content:"";position:absolute;top:8px;right:8px;width:16px;height:16px;border-radius:50%;background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 12.5l4 4L18 8' stroke='white' stroke-width='3.2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/12px no-repeat}
+.sthead{display:flex;align-items:center;gap:14px;margin:14px 2px 4px}
+.sthead h2{margin:0;font-size:20px}
+.sthead p{margin:2px 0 0;font-size:13px;color:var(--ink-3)}
+.sthead a{margin-left:auto}
+.sprices{padding:4px 0}
+.srow{padding:12px 14px 10px;border-bottom:1px solid var(--line)}
+.srow:last-child{border-bottom:0}
+.srow.best{background:linear-gradient(90deg,var(--good-soft),transparent 70%)}
+.shead{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.shead b{font-size:15px;flex:1}
+.shead .slogo{width:30px;height:30px}
+.srow .row{padding:6px 0 6px 40px;border:0;background:none;min-height:0}
+.srow .row.alt{padding-left:40px}
+.srow .row.alt .thumb{width:36px;height:36px}
+.srow .t2{display:block;font-weight:700;font-size:14px;line-height:1.3}
+.srow .row.tick{opacity:.85}
+.alts{border-top:1px dashed var(--line);margin:4px 0 0 40px}
+.alts .row.alt{padding-left:0}
+.linkb{background:none;border:0;color:var(--accent-ink);font:inherit;font-weight:700;font-size:13px;padding:4px 0 2px 40px;cursor:pointer}
+.alts .linkb{padding-left:0}
 .tag{display:inline-block;padding:3px 8px;border-radius:999px;font-size:11.5px;font-weight:800;white-space:nowrap;letter-spacing:.01em}
 .tag-a{background:var(--accent-soft);color:var(--accent-ink)}
 .tag-g{background:var(--good-soft);color:var(--good-ink)}
@@ -152,8 +175,6 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .slogo{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:13px;flex:none;background:var(--fill);color:var(--ink-2);letter-spacing:-.02em}
 .slogo.has{background:#fff!important;padding:5px;box-shadow:inset 0 0 0 1px var(--line);filter:none!important}
 .slogo img{width:100%;height:100%;object-fit:contain;border-radius:6px;display:block}
-#kStore .slogo{width:24px;height:24px;border-radius:7px;font-size:10px;padding:2px}
-#kStore button:has(.slogo)::before{display:none}
 .slogo[data-s="aldi"]{background:#E3ECFB;color:#1D4ED8}
 .slogo[data-s="mercadona"]{background:#DDF3E6;color:#047857}
 .slogo[data-s="lidl"]{background:#FFF4C2;color:#1E3A8A}
@@ -504,7 +525,8 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
       <!-- CATÁLOGO POR SÚPER -->
       <section class="screen" id="s-catalogo" data-title="Catálogo">
         <div class="page-title"><h1>Catálogo por supermercado</h1></div>
-        <div class="seg" id="kStore" style="max-width:420px" role="group" aria-label="Supermercado"></div>
+        <div class="stpick" id="kStore" role="radiogroup" aria-label="Supermercado"></div>
+        <div class="sthead" id="kHead"></div>
         <label class="searchbox" style="margin-top:12px"><svg class="i"><use href="#i-search"/></svg><span class="sr">Buscar en el catálogo</span><input id="kq" type="search" placeholder="Buscar"></label>
         <div class="chips" id="kTop" style="margin-top:12px"></div>
         <div class="chips sub" id="kSub" style="margin-top:8px"></div>
@@ -864,21 +886,45 @@ async function openProduct(pid){const root=$('#sheetRoot');
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
   const [pr,rows]=await Promise.all([sb.from('products').select('*').eq('id',pid).single(),sb.rpc('product_prices',{pid})]);
   if(pr.error||rows.error){netError(pr.error||rows.error);close();return}
-  const p=pr.data,ps=rows.data,priced=ps.filter(x=>x.price!=null),best=priced[0];
-  p.best_price=best?.price??null;p.best_store=best?.store_id??null;
-  function draw(){const it=inList(pid);
+  const p=pr.data,ps=rows.data;
+  const lk=await sb.rpc('c_like',{p_name:p.name,p_brand:p.brand||null,p_qty:p.quantity_label||null,p_stores:null,p_per:4});
+  const likes=lk.error?[]:(lk.data||[]);
+  const vis=visStores();const open=new Set();
+  const cands=vis.map(s=>{const t=ps.find(x=>x.store_id===s.id&&x.price!=null)||null;const L=(likes.find(x=>x.store===s.id)||{}).items||[];return {s,t,L}});
+  const val=m=>m.unit_price!=null?m.unit_price:m.price;
+  function draw(){const it=inList(pid);const strict=KMODE==='strict';
+    const rowsD=cands.map(c=>({...c,L:strict?c.L.filter(m=>m.kind!=='parecido'):c.L})).filter(c=>c.t||c.L.length);
+    const key=c=>c.L.length?val(c.L[0]):c.t.price;const loose=c=>!c.t&&c.L[0].kind==='parecido'?1:0;
+    rowsD.sort((a,b)=>loose(a)-loose(b)||key(a)-key(b));
+    const firm=rowsD.filter(c=>c.t||c.L[0].kind!=='parecido');const cheapest=firm[0];
+    const none=vis.filter(s=>!rowsD.some(c=>c.s.id===s.id)).map(s=>s.name);
+    const prices=[...rowsD.filter(c=>c.t).map(c=>c.t.price),...rowsD.filter(c=>c.L.length&&c.L[0].kind==='igual').map(c=>c.L[0].price)];
+    const best=prices.length?Math.min(...prices):null;p.best_price=best;p.best_store=cheapest?cheapest.s.id:null;
+    const KIND={igual:['Mismo producto','tag-g'],casi:['Casi igual','tag-a'],parecido:['Parecido','tag-n']};
+    const mline=(m,sub)=>h('button',{class:'row'+(sub?' alt':''),type:'button',style:'width:100%;text-align:left',onclick(){openItem(m.id)}},sub?pic(m.image_url):null,
+      h('div',{class:'grow'},h('span',{class:sub?'s':'t2'},m.name),h('span',{class:'s'},[m.brand,m.size_label].filter(Boolean).join(' · ')),h('span',{class:'tag '+KIND[m.kind][1],style:'margin-top:3px'},KIND[m.kind][0])),
+      h('div',{class:'rp'},h('span',{class:'price num',style:'display:block;text-align:right'},m.loose&&m.unit_price!=null?fmt(m.unit_price)+kUnit(m.unit):fmt(m.price)),
+        !m.loose&&m.unit_price!=null?h('span',{class:'s num',style:'display:block;text-align:right'},fmt(m.unit_price)+kUnit(m.unit)):null));
     sheet.replaceChildren(h('div',{class:'grab'}),
       h('div',{class:'sheet-head'},pic(p.image_url),h('div',{style:'min-width:0'},h('h2',null,p.name),h('div',{class:'sub'},[p.brand,p.quantity_label,CN[p.category_id]].filter(Boolean).join(' · ')),p.own_brand_of?h('span',{class:'tag tag-n',style:'margin-top:4px'},'Marca propia de '+sName(p.own_brand_of)):null),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
       h('p',{class:'gtitle'},'Precio en cada supermercado'),
-      h('div',{class:'group'},...ps.map((x,k)=>h('div',{class:'row'},slogo(x.store_id),
-        h('div',{class:'grow'},h('span',{class:'t'},x.store_name),x.price!=null?h('span',{class:'s'},SOURCE[x.source]+' · '+fdate(x.seen_at)+(x.location_name?' · '+x.location_name:'')):h('span',{class:'s'},'Aún no tenemos este precio'),
-          x.url?h('a',{class:'s',href:x.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web'):null),
-        x.price!=null?h('div',{class:'rp'},h('span',{class:'price num'+(k===0?' good':''),style:'display:block'},fmt(x.price)+(x.unit==='kg'?'/kg':x.unit==='l'?'/l':'')),null):null))),
-      priced.length>1?h('p',{class:'foot-note'},'Diferencia entre el más caro y el más barato: '+fmt(r2(priced[priced.length-1].price-priced[0].price))+'. Los precios pueden ser de días distintos.'):null,
+      h('div',{class:'seg',role:'group','aria-label':'Cómo de parecido',style:'margin-bottom:10px'},...[['strict','Iguales'],['rec','Iguales y parecidos']].map(([m,l])=>h('button',{type:'button','aria-pressed':String(KMODE===m),onclick(){KMODE=m;try{localStorage.setItem('nf-cmp',m)}catch(e){}draw()}},l))),
+      rowsD.length?h('div',{class:'group sprices'},...rowsD.map(c=>{const m=c.L[0],more=c.L.slice(1),isOpen=open.has(c.s.id);
+        return h('div',{class:'srow'+(c===cheapest?' best':'')},
+          h('div',{class:'shead'},slogo(c.s.id),h('b',null,c.s.name),c===cheapest?h('span',{class:'tag tag-g'},'El más barato'):null),
+          m?mline(m):null,
+          c.t?h('div',{class:'row tick'},h('div',{class:'grow'},h('span',{class:'s'},(SOURCE[c.t.source]||'Precio apuntado')+' · '+fdate(c.t.seen_at)+(c.t.location_name?' · '+c.t.location_name:'')),
+            c.t.url?h('a',{class:'s',href:c.t.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web'):null),
+            h('div',{class:'rp'},h('span',{class:'price num'},fmt(c.t.price)+(c.t.unit==='kg'?'/kg':c.t.unit==='l'?'/l':'')))):null,
+          more.length?(isOpen?h('div',{class:'alts'},...more.map(x=>mline(x,true)),h('button',{class:'linkb',type:'button',onclick(){open.delete(c.s.id);draw()}},'Ocultar')):
+            h('button',{class:'linkb',type:'button',onclick(){open.add(c.s.id);draw()}},pl(more.length,'opción más','opciones más')+' en '+c.s.name)):null)})):
+        h('div',{class:'group'},h('div',{class:'empty'},strict&&cands.some(c=>c.L.length)?'No hay uno igual. Prueba «Iguales y parecidos».':'Aún no lo hemos encontrado en ningún súper.')),
+      none.length?h('p',{class:'foot-note'},'Sin datos en '+none.join(', ')+'.'):null,
+      h('p',{class:'foot-note'},'Mismo producto: mismo nombre, marca y tamaño. Casi igual: mismo producto con otra marca o tamaño (compara el precio por kilo o litro). Parecido: de la misma familia.'),
       p.group_id?h('div',{class:'group',style:'margin-top:14px'},h('button',{class:'row',type:'button',style:'width:100%;text-align:left',onclick(){openGroup(p.group_id)}},h('span',{class:'thumb ph',style:'color:var(--good)'},ic('i-scale')),h('div',{class:'grow'},h('span',{class:'t'},'Comparar con otras marcas'),h('span',{class:'s'},'El más barato de este tipo en cada súper')),ic('i-chev'))):null,
       p.image_credit?h('p',{class:'foot-note'},'Foto: '+p.image_credit):null,
       h('div',{style:'display:flex;gap:10px;margin-top:14px'},
-        h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addProduct(p);draw()}},it?'Añadir otro ('+it.qty+' en la lista)':'Añadir a mi lista'+(best?' · desde '+fmt(best.price):''))));
+        h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addProduct(p);draw()}},it?'Añadir otro ('+it.qty+' en la lista)':'Añadir a mi lista'+(best!=null?' · desde '+fmt(best):''))));
     sheet.querySelector('.x').focus()}
   draw()}
 
@@ -902,12 +948,19 @@ function kcard(it){
       it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null),
     it.old_price&&it.old_price>it.price?h('span',{class:'disc'},'−'+Math.round((1-it.price/it.old_price)*100)+'%'):null,
     h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
+let KST=null;async function kStats(){if(KST)return KST;const {data}=await sb.rpc('c_store_stats');KST=data||{};return KST}
+const nf0=n=>Number(n).toLocaleString('es-ES',{useGrouping:'always'});
+const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es'};
 async function kTree(){if(K.tree[K.store])return K.tree[K.store];
   const {data,error}=await sb.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
 async function rCatalog(){
   if(!kStores().some(([id])=>id===K.store))K.store=kStores()[0][0];
   $('#kSort').value=K.sort;$('#kOff').setAttribute('aria-pressed',String(K.off));
-  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{type:'button','aria-pressed':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},slogo(id),n)));
+  const kst=await kStats();
+  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{class:'stcard',type:'button',role:'radio','aria-checked':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},slogo(id),h('b',null,n),h('small',{class:'num'},kst[id]?nf0(kst[id].n)+' productos':'—'))));
+  const cur=kst[K.store];
+  $('#kHead').replaceChildren(h('div',null,h('h2',null,kName(K.store)),h('p',null,cur?[nf0(cur.n)+' productos',cur.offers?nf0(cur.offers)+' en oferta':null,'actualizado '+fdate(cur.updated)].filter(Boolean).join(' · '):'Catálogo')),
+    SURL[K.store]?h('a',{class:'btn btn-s btn-sm',href:SURL[K.store],target:'_blank',rel:'noopener'},'Su web'):null);
   $('#kq').placeholder='Buscar en '+kName(K.store);
   const tree=await kTree();
   $('#kTop').replaceChildren(h('button',{class:'chip',type:'button','aria-pressed':String(!K.top),onclick(){K.top=null;K.sub=null;rCatalog()}},'Todo'),
@@ -942,6 +995,9 @@ async function openItem(id){const root=$('#sheetRoot');
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
   const {data,error}=await sb.rpc('c_item',{p_id:id});if(error||!data||!data.item){netError(error);close();return}
   const it=data.item,all=data.matches;let added=false;
+  const miss=visStores().map(s=>s.id).filter(id=>id!==it.store&&!all.some(m=>m.store===id));
+  if(miss.length){const r=await sb.rpc('c_like',{p_name:it.name,p_brand:null,p_qty:it.size_label||null,p_stores:miss,p_per:1});
+    for(const g of (r.data||[]))for(const m of g.items)if(m.kind!=='parecido'||m.score>=0.5)all.push({...m,store:g.store,strict:m.kind==='igual'})}
   function draw(){const ms=KMODE==='strict'?all.filter(m=>m.strict):all;
     sheet.replaceChildren(h('div',{class:'grab'}),
       h('div',{class:'sheet-head'},pic(it.image_url),h('div',{style:'min-width:0'},h('h2',null,it.name),h('div',{class:'sub'},[kName(it.store),it.brand,it.size_label].filter(Boolean).join(' · ')),h('div',{class:'sub'},[it.top_name,it.cat_name].filter(Boolean).join(' › '))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),

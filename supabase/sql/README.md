@@ -15,3 +15,11 @@ Están en la base de datos de Supabase (migraciones `condis_cat_map` y `lidl_cat
 - `hh_set_item(...)`: marca un producto de la lista como urgente y le pone una nota.
 - `c_list2(...)`: catálogo con orden (relevancia, precio, €/kg, descuento) y filtro de ofertas.
 - `c_offers(súpers, n)`: mejores ofertas de los súpers de la zona.
+
+## c_like(p_name, p_brand, p_qty, p_stores, p_per)
+Busca un producto por nombre en el catálogo de cada súper. Devuelve por súper hasta `p_per` opciones con `kind`:
+`igual` (mismo producto, marca y tamaño ±10%), `casi` (mismo producto con otra marca o tamaño) o `parecido`.
+Se usa en la ficha de producto y para rellenar los súpers que faltan en la ficha del catálogo.
+
+## c_store_stats()
+Productos, ofertas y última actualización de cada súper (selector de súper del Catálogo).
