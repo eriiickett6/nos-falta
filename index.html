@@ -453,7 +453,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
           <span class="tag tag-a" style="justify-self:start">Paso 1 de 2 · Tu casa</span>
           <h1>Lo que falta en casa, <em>en una sola lista</em></h1>
           <p class="sub">Apunta lo que se acaba, descubre en qué súper te sale más barato y reparte los gastos con quien vives.</p>
-          <div class="perks"><span>Lista compartida</span><span>5 supermercados</span><span>Gastos a medias</span></div>
+          <div class="perks"><span>Lista compartida</span><span>6 supermercados</span><span>Gastos a medias</span></div>
           <div class="seg" id="wSeg"><button type="button" aria-pressed="true" data-m="create">Crear mi casa</button><button type="button" aria-pressed="false" data-m="join">Tengo un código</button></div>
           <form class="group form" id="fCreate">
             <label class="field">Nombre de la casa<input name="house" required maxlength="60" placeholder="Piso de la calle Sants" autocomplete="off"></label>
@@ -534,7 +534,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
         <p class="count" id="kCount"></p>
         <div class="pgrid" id="kgrid"></div>
         <div class="more"><button class="btn btn-s" id="kMore" type="button" hidden>Ver más productos</button></div>
-        <p class="foot-note">Precios y fotos de la web de cada súper. Aldi, bonÀrea y Lidl se actualizan cada día; Condis y Mercadona, cada semana. De Lidl solo aparece lo que publica en su web (fresco, panadería y ofertas). Mercadona llega con el catálogo abierto de <a href="https://huggingface.co/datasets/datania/mercadona-catalog" target="_blank" rel="noopener" style="color:var(--accent-ink)">datania</a> (licencia MIT). Lo que se vende a peso aparece por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
+        <p class="foot-note">Precios y fotos de la web de cada súper. Aldi, bonÀrea y Lidl se actualizan cada día; Condis, Dia y Mercadona, cada semana. De Lidl solo aparece lo que publica en su web (fresco, panadería y ofertas). Mercadona llega con el catálogo abierto de <a href="https://huggingface.co/datasets/datania/mercadona-catalog" target="_blank" rel="noopener" style="color:var(--accent-ink)">datania</a> (licencia MIT). Lo que se vende a peso aparece por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
       </section>
 
       <!-- COMPARAR -->
@@ -588,14 +588,14 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
       <section class="screen" id="s-sobre" data-title="Sobre Nos Falta">
         <div class="page-title"><h1>Sobre Nos Falta</h1></div>
         <div class="prose">
-          <p><b>Nos Falta</b> es la lista de la compra compartida de tu casa. Cuando algo se acaba, lo apuntas y toda la casa lo ve al momento. La app compara tu lista en cinco supermercados y reparte el gasto entre los que vivís juntos.</p>
+          <p><b>Nos Falta</b> es la lista de la compra compartida de tu casa. Cuando algo se acaba, lo apuntas y toda la casa lo ve al momento. La app compara tu lista en seis supermercados y reparte el gasto entre los que vivís juntos.</p>
           <p>Proyecto de emprendeduría para iFest y FP Empren.</p>
         </div>
         <p class="gtitle">Fuentes de datos</p>
         <div class="prose">
           <p>Productos y fotos: <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, base de datos abierta (ODbL). Fotos con licencia CC BY-SA.</p>
           <p>Precios: <a href="https://prices.openfoodfacts.org" target="_blank" rel="noopener">Open Prices</a>, precios reales que la gente sube desde sus tickets (ODbL). Fruta y verdura: web de Bonpreu y Alcampo, consultada el 13/11/2026.</p>
-          <p>Catálogo por súper: fichas públicas de las webs de Aldi, bonÀrea, <a href="https://compraonline.condis.es" target="_blank" rel="noopener">Condis</a> y <a href="https://www.lidl.es" target="_blank" rel="noopener">Lidl</a> (permitido en su robots.txt), y el catálogo abierto de Mercadona de datania. Las fotos se enlazan desde la web de cada súper.</p>
+          <p>Catálogo por súper: fichas públicas de las webs de Aldi, bonÀrea, <a href="https://compraonline.condis.es" target="_blank" rel="noopener">Condis</a>, <a href="https://www.dia.es" target="_blank" rel="noopener">Dia</a> y <a href="https://www.lidl.es" target="_blank" rel="noopener">Lidl</a> (permitido en su robots.txt), y el catálogo abierto de Mercadona de datania. Las fotos se enlazan desde la web de cada súper.</p>
           <p>Los logotipos son marcas de sus propietarios y se cargan desde la web de cada supermercado; solo sirven para identificarlos.</p>
           <p>Fotos de fruta y verdura: <a href="https://github.com/fruits-360/fruits-360-100x100" target="_blank" rel="noopener">Fruits-360</a> de Mihai Oltean (CC BY-SA 4.0).</p>
         </div>
@@ -930,7 +930,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
 
 
 /* ---------- Catálogo por súper ---------- */
-const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea'],['mercadona','Mercadona'],['condis','Condis'],['lidl','Lidl']];
+const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea'],['mercadona','Mercadona'],['condis','Condis'],['dia','Dia'],['lidl','Lidl']];
 const kName=id=>(KSTORES.find(x=>x[0]===id)||[id,id])[1];
 let K={store:'aldi',top:null,sub:null,q:'',off:false,sort:'rel',pos:0,tree:{},seq:0};
 const kStores=()=>{const z=zStores();const l=z?KSTORES.filter(([id])=>z.includes(id)):KSTORES;return l.length?l:KSTORES};

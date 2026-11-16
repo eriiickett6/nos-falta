@@ -23,3 +23,7 @@ Se usa en la ficha de producto y para rellenar los súpers que faltan en la fich
 
 ## c_store_stats()
 Productos, ofertas y última actualización de cada súper (selector de súper del Catálogo).
+
+## Dia (catalog-dia)
+Fichas de www.dia.es (robots.txt las permite) desde su sitemap: unos 7.500 productos. Cron `catalogo-dia` cada 2 min (40 fichas, 1,2 s entre fichas) y `catalogo-dia-semanal` (lunes) que vuelve a sembrar la cola.
+`c_dia_cat(store_cat, name)` pasa la categoría de Dia (`categoria*subcategoria` de la URL) a la nuestra.
