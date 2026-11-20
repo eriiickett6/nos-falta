@@ -6,7 +6,11 @@
 <meta name="theme-color" content="#F6F4EF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0C0F12" media="(prefers-color-scheme: dark)">
 <title>Nos Falta</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='11' fill='%23F2652A'/%3E%3Cpath d='M11 21l6 6 12-13' stroke='white' stroke-width='4.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" sizes="64x64" href="img/brand/logo-64.png">
+<link rel="icon" type="image/png" sizes="32x32" href="img/brand/logo-32.png">
+<link rel="apple-touch-icon" href="img/brand/logo-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta property="og:image" content="img/brand/logo-512.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 :root{
@@ -46,7 +50,7 @@ svg.i{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
 .side{position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
 .logo{display:flex;align-items:center;gap:10px;padding:2px 10px 22px;text-decoration:none;color:inherit}
-.logo svg{width:34px;height:34px;filter:drop-shadow(0 4px 10px rgba(242,101,42,.35));transition:transform .4s var(--spring)}
+.logo svg{width:44px;height:44px;filter:drop-shadow(0 4px 10px rgba(15,61,46,.28));transition:transform .4s var(--spring)}
 .logo:hover svg{transform:rotate(-8deg) scale(1.06)}
 .logo b{font-weight:800;font-size:21px;letter-spacing:-.03em}
 .logo b span{color:var(--accent)}
@@ -335,7 +339,7 @@ tfoot td{font-weight:800;border-bottom:0;background:var(--fill)}
 .onb-card h2{font-size:26px;font-weight:800;letter-spacing:-.035em;line-height:1.12}
 .onb-card .sub{color:var(--ink-2);font-size:15.5px;line-height:1.55;margin-top:-6px}
 .onb-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;letter-spacing:-.02em}
-.onb-brand .lg{width:36px;height:36px;filter:drop-shadow(0 8px 16px rgba(242,101,42,.35));animation:bob 3.2s ease-in-out infinite}
+.onb-brand .lg{width:76px;height:76px;filter:drop-shadow(0 12px 22px rgba(15,61,46,.32));animation:bob 3.2s ease-in-out infinite}
 .onb-brand span{color:var(--accent)}
 .onb-feats{display:grid;gap:12px}
 .onb-feat{display:flex;gap:12px;align-items:center;font-weight:700;font-size:15px}
@@ -397,6 +401,7 @@ tfoot td{font-weight:800;border-bottom:0;background:var(--fill)}
 .ticket::after{content:"";position:absolute;left:0;right:0;bottom:-11px;height:12px;background:linear-gradient(-45deg,transparent 33%,#FFFDF7 33% 66%,transparent 66%),linear-gradient(45deg,transparent 33%,#FFFDF7 33% 66%,transparent 66%);background-size:16px 24px;background-position:0 -12px}
 @keyframes tk{from{opacity:0;transform:translateY(30px) rotate(-6deg)}}
 .ticket .th{display:grid;justify-items:center;gap:2px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px dashed #CFC9BB;font-size:12px;color:#6B6F76}
+.ticket .tlogo{width:46px;height:46px;margin-bottom:4px}
 .ticket .th b{font-size:18px;color:#23262B;letter-spacing:.2em}
 .tl{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #E1DBCE}
 .tl.done span:first-child{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:#F2652A;color:#8A8F98}
@@ -510,7 +515,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-  <symbol id="logo" viewBox="0 0 40 40"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF8A4C"/><stop offset="1" stop-color="#E8531A"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="url(#lg)"/><path d="M11 21l6 6 12-13" stroke="#fff" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="logo" viewBox="0 0 40 40"><image href="img/brand/logo-192.png" width="40" height="40"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></symbol>
   <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
@@ -544,7 +549,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 
   <div style="min-width:0">
     <header class="topbar">
-      <svg style="width:28px;height:28px;flex:none"><use href="#logo"/></svg>
+      <svg style="width:32px;height:32px;flex:none"><use href="#logo"/></svg>
       <h1 id="topTitle">Inicio</h1>
       <a href="#comparar" aria-label="Comparar precios"><svg class="i"><use href="#i-scale"/></svg></a>
       <a href="#zona" aria-label="Mi zona"><svg class="i"><use href="#i-pin"/></svg></a>
@@ -1252,7 +1257,7 @@ function ticket(){const done=STEPS.findIndex(s=>s[0]===O.step);const hola=O.step
   const lines=hola?[['Leche entera','0,96',true],['Pan de barra','0,65',true],['Huevos L ×12','2,39',false],['Lo que falte…','',false]]
     :STEPS.map(([k,l],i)=>[l,i<done?'✓':i===done?'ahora':'',i<done,i===done]);
   return h('aside',{class:'onb-art','aria-hidden':'true'},h('div',{class:'ticket'},
-    h('div',{class:'th'},h('b',null,'NOS FALTA'),h('span',null,hola?'Lista de la casa':'Ticket de bienvenida'),h('span',null,new Date().toLocaleDateString('es-ES'))),
+    h('div',{class:'th'},ic('logo','tlogo'),h('b',null,'NOS FALTA'),h('span',null,hola?'Lista de la casa':'Ticket de bienvenida'),h('span',null,new Date().toLocaleDateString('es-ES'))),
     ...lines.map(([a,b,d,now])=>h('div',{class:'tl'+(d?' done':'')+(now?' now':'')},h('span',null,a),h('span',null,b))),
     h('div',{class:'tot'},h('span',null,hola?'Ahorro esta semana':'Total'),h('span',null,hola?'−4,80 €':'0 € · es gratis')),
     h('div',{class:'bar'},'||| | || ||| | ||| || | |||| | ||')))}
@@ -1269,7 +1274,7 @@ function busyBtn(b,on,txt){b.disabled=on;if(on){b.dataset.t=b.textContent;b.text
 
 function rOnb(){const box=$('#onb');if(!box)return;const s=O.step;let card;
   if(s==='hola'){
-    card=[h('div',{class:'onb-brand'},ic('logo','lg'),'nos ',h('span',null,'falta')),
+    card=[h('div',{class:'onb-brand'},ic('logo','lg')),
       h('h1',null,'Lo que falta en casa, ',h('em',null,'apuntado entre todos')),
       h('p',{class:'sub'},'Una lista de la compra que compartes con tu familia o tus compis de piso, con los precios de los súpers de tu barrio.'),
       h('div',{class:'onb-feats'},...[['i-list','Una lista para toda la casa','Lo que apunta uno lo ven todos al momento'],['i-pin','Los súpers de tu barrio','Y en cuál te sale más barata la compra'],['i-users','Gastos repartidos','Sin cuentas raras ni discusiones']].map(([i,t,d])=>h('div',{class:'onb-feat'},h('span',{class:'ico'},ic(i)),h('span',null,t,h('small',null,d))))),

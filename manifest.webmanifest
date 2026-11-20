@@ -1,0 +1,29 @@
+{
+ "name": "Nos Falta",
+ "short_name": "Nos Falta",
+ "description": "La lista de la compra de tu casa, compartida y con los precios de los súpers de tu barrio.",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#F6F4EF",
+ "theme_color": "#0F3D2E",
+ "lang": "es",
+ "icons": [
+  {
+   "src": "img/brand/logo-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "img/brand/logo-512.png",
+   "sizes": "512x512",
+   "type": "image/png"
+  },
+  {
+   "src": "img/brand/logo-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  }
+ ]
+}
