@@ -113,6 +113,7 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
 #kStore{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(112px,1fr);gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;margin:0 -2px}
 #kStore::-webkit-scrollbar{display:none}
+@media (min-width:900px){#kStore{grid-auto-flow:row;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));overflow:visible}}
 .stcard{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:14px 10px 12px;border-radius:18px;background:var(--surface);border:1.5px solid var(--line);cursor:pointer;transition:border-color .2s,box-shadow .2s,transform .15s;font:inherit;color:inherit}
 .stcard:hover{transform:translateY(-1px);box-shadow:0 6px 18px -10px rgba(0,0,0,.25)}
 .stcard .slogo{width:46px;height:46px;border-radius:13px;font-size:14px;margin-bottom:2px}
@@ -453,7 +454,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
           <span class="tag tag-a" style="justify-self:start">Paso 1 de 2 · Tu casa</span>
           <h1>Lo que falta en casa, <em>en una sola lista</em></h1>
           <p class="sub">Apunta lo que se acaba, descubre en qué súper te sale más barato y reparte los gastos con quien vives.</p>
-          <div class="perks"><span>Lista compartida</span><span>6 supermercados</span><span>Gastos a medias</span></div>
+          <div class="perks"><span>Lista compartida</span><span>9 supermercados</span><span>Gastos a medias</span></div>
           <div class="seg" id="wSeg"><button type="button" aria-pressed="true" data-m="create">Crear mi casa</button><button type="button" aria-pressed="false" data-m="join">Tengo un código</button></div>
           <form class="group form" id="fCreate">
             <label class="field">Nombre de la casa<input name="house" required maxlength="60" placeholder="Piso de la calle Sants" autocomplete="off"></label>
@@ -534,7 +535,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
         <p class="count" id="kCount"></p>
         <div class="pgrid" id="kgrid"></div>
         <div class="more"><button class="btn btn-s" id="kMore" type="button" hidden>Ver más productos</button></div>
-        <p class="foot-note">Precios y fotos de la web de cada súper. Aldi, bonÀrea y Lidl se actualizan cada día; Condis, Dia y Mercadona, cada semana. De Lidl solo aparece lo que publica en su web (fresco, panadería y ofertas). Mercadona llega con el catálogo abierto de <a href="https://huggingface.co/datasets/datania/mercadona-catalog" target="_blank" rel="noopener" style="color:var(--accent-ink)">datania</a> (licencia MIT). Lo que se vende a peso aparece por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
+        <p class="foot-note">Precios y fotos de la web de cada súper. Aldi, bonÀrea y Lidl se actualizan cada día; el resto, cada semana. Ametller Origen, Ahorramas y Gadis se están cargando y tendrán todo su catálogo en unas horas. De Lidl solo aparece lo que publica en su web (fresco, panadería y ofertas). Mercadona llega con el catálogo abierto de <a href="https://huggingface.co/datasets/datania/mercadona-catalog" target="_blank" rel="noopener" style="color:var(--accent-ink)">datania</a> (licencia MIT). Lo que se vende a peso aparece por kilo. <a href="#productos" style="color:var(--accent-ink)">Ver el catálogo antiguo (Open Food Facts)</a></p>
       </section>
 
       <!-- COMPARAR -->
@@ -588,14 +589,14 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
       <section class="screen" id="s-sobre" data-title="Sobre Nos Falta">
         <div class="page-title"><h1>Sobre Nos Falta</h1></div>
         <div class="prose">
-          <p><b>Nos Falta</b> es la lista de la compra compartida de tu casa. Cuando algo se acaba, lo apuntas y toda la casa lo ve al momento. La app compara tu lista en seis supermercados y reparte el gasto entre los que vivís juntos.</p>
+          <p><b>Nos Falta</b> es la lista de la compra compartida de tu casa. Cuando algo se acaba, lo apuntas y toda la casa lo ve al momento. La app compara tu lista en nueve supermercados y reparte el gasto entre los que vivís juntos.</p>
           <p>Proyecto de emprendeduría para iFest y FP Empren.</p>
         </div>
         <p class="gtitle">Fuentes de datos</p>
         <div class="prose">
           <p>Productos y fotos: <a href="https://world.openfoodfacts.org" target="_blank" rel="noopener">Open Food Facts</a>, base de datos abierta (ODbL). Fotos con licencia CC BY-SA.</p>
           <p>Precios: <a href="https://prices.openfoodfacts.org" target="_blank" rel="noopener">Open Prices</a>, precios reales que la gente sube desde sus tickets (ODbL). Fruta y verdura: web de Bonpreu y Alcampo, consultada el 13/11/2026.</p>
-          <p>Catálogo por súper: fichas públicas de las webs de Aldi, bonÀrea, <a href="https://compraonline.condis.es" target="_blank" rel="noopener">Condis</a>, <a href="https://www.dia.es" target="_blank" rel="noopener">Dia</a> y <a href="https://www.lidl.es" target="_blank" rel="noopener">Lidl</a> (permitido en su robots.txt), y el catálogo abierto de Mercadona de datania. Las fotos se enlazan desde la web de cada súper.</p>
+          <p>Catálogo por súper: fichas públicas de producto de las webs de Aldi, Ametller Origen, Ahorramas, bonÀrea, <a href="https://compraonline.condis.es" target="_blank" rel="noopener">Condis</a>, <a href="https://www.dia.es" target="_blank" rel="noopener">Dia</a>, Gadis y <a href="https://www.lidl.es" target="_blank" rel="noopener">Lidl</a> (permitido en su robots.txt), y el catálogo abierto de Mercadona de datania. Solo comida, bebida, higiene, limpieza, bebé y mascotas. Las fotos se enlazan desde la web de cada súper.</p>
           <p>Los logotipos son marcas de sus propietarios y se cargan desde la web de cada supermercado; solo sirven para identificarlos.</p>
           <p>Fotos de fruta y verdura: <a href="https://github.com/fruits-360/fruits-360-100x100" target="_blank" rel="noopener">Fruits-360</a> de Mihai Oltean (CC BY-SA 4.0).</p>
         </div>
@@ -646,7 +647,7 @@ async function loadStatic(){
 const sName=id=>SM[id]?.name||id;
 const abbr=id=>sName(id).slice(0,2);
 // icono oficial de cada súper, cargado desde su propia web (vía el servicio de iconos de Google, 128 px)
-const SDOM={aldi:'aldi.es',lidl:'lidl.es',mercadona:'mercadona.es',bonarea:'bonarea.com',condis:'condis.es',carrefour:'carrefour.es',dia:'dia.es',alcampo:'alcampo.es',bonpreu:'bonpreuesclat.cat'};
+const SDOM={aldi:'aldi.es',lidl:'lidl.es',mercadona:'mercadona.es',bonarea:'bonarea.com',condis:'condis.es',carrefour:'carrefour.es',dia:'dia.es',alcampo:'alcampo.es',bonpreu:'bonpreuesclat.cat',ahorramas:'ahorramas.com',gadis:'gadis.es',ametller:'ametllerorigen.com',consum:'consum.es'};
 const logoUrl=id=>SDOM[id]?'https://www.google.com/s2/favicons?domain='+SDOM[id]+'&sz=128':null;
 function slogo(id,style){const sp=h('span',{class:'slogo','data-s':id,style});const u=logoUrl(id);const txt=()=>(SM[id]?SM[id].name:id).slice(0,2);
   if(!u){sp.textContent=txt();return sp}
@@ -694,9 +695,9 @@ function rHab(){const box=$('#hab');const pendN=new Set(pend().map(i=>nrm(i.name
     if(r.t==='c')addCItem({id:r.id,name:o.name});else if(r.t==='p')addProduct({id:r.id,name:o.name});else if(r.t==='g')addGroup({id:r.id,name:o.name});else addCustom(o.name)}},h('b',null,'+'),o.name)))}
 
 /* ---------- Zona: código postal, súpers cercanos y mapa ---------- */
-const CHAIN={mercadona:'Mercadona',lidl:'Lidl',aldi:'Aldi',bonarea:'bonÀrea',condis:'Condis',carrefour:'Carrefour',dia:'Dia',alcampo:'Alcampo',bonpreu:'Bonpreu i Esclat'};
-const CCOL={aldi:'#2563EB',bonarea:'#DC2626',mercadona:'#059669',condis:'#E11D48',lidl:'#EAB308',carrefour:'#4F46E5',dia:'#EF4444',alcampo:'#DB2777',bonpreu:'#EA580C'};
-const BRANDRE=[['mercadona',/mercadona/i],['lidl',/\blidl\b/i],['aldi',/\baldi\b/i],['bonarea',/bon\s*[àa]rea/i],['condis',/condis/i],['carrefour',/carrefour/i],['dia',/^(dia|dia\s*%|dia market|dia maxi|la plaza de dia|cl[aà]rel)\b/i],['alcampo',/alcampo|simply|sabeco/i],['bonpreu',/bonpreu|esclat/i]];
+const CHAIN={mercadona:'Mercadona',lidl:'Lidl',aldi:'Aldi',bonarea:'bonÀrea',condis:'Condis',carrefour:'Carrefour',dia:'Dia',alcampo:'Alcampo',bonpreu:'Bonpreu i Esclat',ahorramas:'Ahorramas',gadis:'Gadis',ametller:'Ametller Origen'};
+const CCOL={aldi:'#2563EB',bonarea:'#DC2626',mercadona:'#059669',condis:'#E11D48',lidl:'#EAB308',carrefour:'#4F46E5',dia:'#EF4444',alcampo:'#DB2777',bonpreu:'#EA580C',ahorramas:'#16A34A',gadis:'#F59E0B',ametller:'#65A30D'};
+const BRANDRE=[['mercadona',/mercadona/i],['lidl',/\blidl\b/i],['aldi',/\baldi\b/i],['bonarea',/bon\s*[àa]rea/i],['condis',/condis/i],['carrefour',/carrefour/i],['dia',/^(dia|dia\s*%|dia market|dia maxi|la plaza de dia|cl[aà]rel)\b/i],['alcampo',/alcampo|simply|sabeco/i],['bonpreu',/bonpreu|esclat/i],['ahorramas',/ahorramas/i],['gadis',/\bgadis\b/i],['ametller',/ametller/i]];
 const ADMIN_CP='00000';
 const zStores=()=>{const hh=ST.household;if(!hh||hh.admin||!hh.stores||!hh.stores.length)return null;return hh.stores};
 const visStores=()=>{const z=zStores();const l=z?STORES.filter(s=>z.includes(s.id)):STORES;return l.length?l:STORES};
@@ -709,7 +710,7 @@ async function nearData(cp){
   if(data.shops)return data;
   // primera vez con este código postal: lo pregunta el navegador a OpenStreetMap y lo guardamos para los demás
   // solo las cadenas que nos interesan (por marca o por nombre): la consulta es pequeña y rápida
-  const A='(around:10000,'+data.lat+','+data.lon+')',RE='mercadona|lidl|aldi|bon ?[àa]rea|condis|carrefour|^dia|dia %|cl[aà]rel|alcampo|simply|sabeco|bonpreu|esclat';
+  const A='(around:10000,'+data.lat+','+data.lon+')',RE='mercadona|lidl|aldi|bon ?[àa]rea|condis|carrefour|^dia|dia %|cl[aà]rel|alcampo|simply|sabeco|bonpreu|esclat|ahorramas|gadis|ametller';
   const q='[out:json][timeout:20];(nwr["shop"]["brand"~"'+RE+'",i]'+A+';nwr["shop"~"^(supermarket|convenience|department_store)$"]["name"~"'+RE+'",i]'+A+';);out center tags 600;';
   // preguntamos a varios servidores a la vez y nos quedamos con el primero que conteste bien
   const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),20000);
@@ -930,7 +931,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
 
 
 /* ---------- Catálogo por súper ---------- */
-const KSTORES=[['aldi','Aldi'],['bonarea','bonÀrea'],['mercadona','Mercadona'],['condis','Condis'],['dia','Dia'],['lidl','Lidl']];
+const KSTORES=[['mercadona','Mercadona'],['aldi','Aldi'],['dia','Dia'],['condis','Condis'],['bonarea','bonÀrea'],['ametller','Ametller Origen'],['ahorramas','Ahorramas'],['gadis','Gadis'],['lidl','Lidl']];
 const kName=id=>(KSTORES.find(x=>x[0]===id)||[id,id])[1];
 let K={store:'aldi',top:null,sub:null,q:'',off:false,sort:'rel',pos:0,tree:{},seq:0};
 const kStores=()=>{const z=zStores();const l=z?KSTORES.filter(([id])=>z.includes(id)):KSTORES;return l.length?l:KSTORES};
@@ -950,7 +951,7 @@ function kcard(it){
     h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
 let KST=null;async function kStats(){if(KST)return KST;const {data}=await sb.rpc('c_store_stats');KST=data||{};return KST}
 const nf0=n=>Number(n).toLocaleString('es-ES',{useGrouping:'always'});
-const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es'};
+const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es',alcampo:'https://www.compraonline.alcampo.es',bonpreu:'https://www.compraonline.bonpreuesclat.cat',ahorramas:'https://www.ahorramas.com',gadis:'https://www.gadisline.com',ametller:'https://www.ametllerorigen.com'};
 async function kTree(){if(K.tree[K.store])return K.tree[K.store];
   const {data,error}=await sb.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
 async function rCatalog(){
