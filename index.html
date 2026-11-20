@@ -323,6 +323,103 @@ tfoot td{font-weight:800;border-bottom:0;background:var(--fill)}
 .field{display:grid;gap:6px;font-weight:700;font-size:13.5px;color:var(--ink-2)}
 .field input,.field select{border:1.5px solid var(--line);background:var(--bg);border-radius:14px;padding:13px 14px;font-size:16px;color:var(--ink);font-weight:500;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
 .field input:focus,.field select:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent)}
+/* ---------- Bienvenida, cuenta y tutorial ---------- */
+.onb{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;max-width:1040px;margin:1vh auto 0;align-items:start}
+@media (min-width:900px){.onb{grid-template-columns:minmax(0,.85fr) minmax(0,1fr);gap:56px;margin-top:5vh;align-items:center}}
+.onb-art{display:none}
+@media (min-width:900px){.onb-art{display:block}}
+.onb-card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:24px 20px;box-shadow:var(--sh-2);display:grid;gap:16px;animation:rise .5s var(--ease) both;max-width:520px;width:100%;margin:0 auto}
+@media (min-width:600px){.onb-card{padding:34px}}
+.onb-card h1{font-size:clamp(30px,6vw,40px);font-weight:800;letter-spacing:-.045em;line-height:1.05}
+.onb-card h1 em{font-style:normal;background:linear-gradient(120deg,var(--accent),#F59E0B);-webkit-background-clip:text;background-clip:text;color:transparent}
+.onb-card h2{font-size:26px;font-weight:800;letter-spacing:-.035em;line-height:1.12}
+.onb-card .sub{color:var(--ink-2);font-size:15.5px;line-height:1.55;margin-top:-6px}
+.onb-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;letter-spacing:-.02em}
+.onb-brand .lg{width:36px;height:36px;filter:drop-shadow(0 8px 16px rgba(242,101,42,.35));animation:bob 3.2s ease-in-out infinite}
+.onb-brand span{color:var(--accent)}
+.onb-feats{display:grid;gap:12px}
+.onb-feat{display:flex;gap:12px;align-items:center;font-weight:700;font-size:15px}
+.onb-feat small{display:block;font-weight:500;color:var(--ink-3);font-size:13px}
+.onb-feat .ico,.opt .ico{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-ink);flex:none}
+.onb-feat:nth-child(2) .ico{background:var(--good-soft);color:var(--good-ink)}
+.onb-feat:nth-child(3) .ico{background:#E8E6FB;color:#4338CA}
+@media (prefers-color-scheme: dark){.onb-feat:nth-child(3) .ico{background:#22213F;color:#A5B4FC}}
+.onb-actions{display:grid;gap:10px}
+.onb-actions .btn,.onb-form>.btn{padding:15px 18px;font-size:16px;border-radius:16px;width:100%}
+.onb-form{display:grid;gap:14px}
+.linkbtn{color:var(--accent-ink);font-weight:800;text-decoration:underline;text-underline-offset:3px}
+.back{justify-self:start;color:var(--ink-3);font-weight:700;font-size:14px}
+.back:hover{color:var(--ink)}
+.ferr{background:#FEE2E2;color:#991B1B;border-radius:12px;padding:10px 12px;font-weight:600;font-size:14px;animation:shake .35s ease}
+@media (prefers-color-scheme: dark){.ferr{background:#3B1414;color:#FCA5A5}}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.pw{position:relative}.pw input{padding-right:78px}
+.pw .eye{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:13px;font-weight:800;color:var(--ink-2);background:var(--fill);border-radius:9px;padding:6px 10px}
+.meter{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;margin-top:2px}
+.meter i{height:5px;border-radius:3px;background:var(--fill-2);transition:background .25s}
+.meter[data-l="1"] i:nth-child(1){background:#F59E0B}
+.meter[data-l="2"] i:nth-child(-n+2){background:#84CC16}
+.meter[data-l="3"] i{background:var(--good)}
+.field .s{font-weight:500}
+.steps-wrap{display:grid;gap:6px}
+.steps{display:flex;gap:5px}.steps i{flex:1;height:5px;border-radius:3px;background:var(--fill-2);transition:background .4s var(--ease)}.steps i.on{background:var(--accent)}
+.idcard{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,var(--accent-soft),var(--surface) 80%);border:1.5px dashed color-mix(in srgb,var(--accent) 45%,transparent)}
+.idcard .avatar{width:50px;height:50px;font-size:21px;flex:none}
+.idcard b{font-size:19px}.idcard small{display:block;color:var(--ink-2);font-size:13px;line-height:1.4;margin-top:2px}
+.tagn{color:var(--accent-ink);font-weight:800;font-variant-numeric:tabular-nums}
+.cpbox input{font-size:34px;letter-spacing:.32em;text-align:center;font-weight:800;font-variant-numeric:tabular-nums;border:1.5px solid var(--line);background:var(--bg);border-radius:18px;padding:16px 10px 16px 22px;width:100%;color:var(--ink)}
+.cpbox input:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent)}
+.cpres{display:grid;gap:10px;min-height:34px;justify-items:start}
+.place{display:inline-flex;gap:6px;align-items:center;font-weight:800;background:var(--good-soft);color:var(--good-ink);padding:7px 12px;border-radius:999px;animation:pop .35s var(--spring) both}
+.place .i{width:16px;height:16px}
+.near{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.near .slogo{width:30px;height:30px;animation:pop .35s var(--spring) both}
+.choice{display:grid;gap:10px}
+.opt{border:1.5px solid var(--line);border-radius:18px;background:var(--bg);transition:border-color .2s,box-shadow .2s,background .2s;overflow:hidden}
+.opt>.oh{display:flex;gap:12px;align-items:center;font-weight:800;width:100%;text-align:left;padding:14px 16px}
+.opt>.oh small{display:block;color:var(--ink-3);font-weight:500;font-size:13px}
+.opt>.oh>.i{color:var(--ink-3);transition:transform .25s var(--ease)}
+.opt[aria-expanded="true"]{border-color:var(--accent);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent);background:var(--surface)}
+.opt[aria-expanded="true"]>.oh>.i{transform:rotate(90deg)}
+.opt .onb-form{padding:0 16px 16px;animation:rise .35s var(--ease) both}
+.invcard{display:flex;gap:10px 12px;align-items:center;padding:14px;border-radius:18px;background:var(--good-soft);color:var(--ink);flex-wrap:wrap}
+.invcard>.i{color:var(--good-ink);flex:none}
+.invcard small{color:var(--ink-2)}
+.bigcode{display:grid;gap:6px;justify-items:center;text-align:center;padding:18px;border-radius:20px;background:linear-gradient(135deg,var(--accent-soft),var(--surface));border:1.5px dashed color-mix(in srgb,var(--accent) 45%,transparent)}
+.bigcode b{font-size:34px;font-weight:800;letter-spacing:.12em;color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.bigcode .row2{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:4px}
+.idform{display:flex;gap:8px}
+.idform input{flex:1;min-width:0;border:1.5px solid var(--line);background:var(--bg);border-radius:14px;padding:12px 14px;font-size:16px;font-weight:600;color:var(--ink)}
+.idform input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.sentlist{display:flex;gap:6px;flex-wrap:wrap}
+/* ticket de papel (escritorio) */
+.ticket{position:relative;background:#FFFDF7;color:#23262B;border-radius:4px 4px 0 0;padding:24px 24px 18px;box-shadow:0 30px 60px -25px rgba(20,24,31,.35),0 2px 6px rgba(20,24,31,.08);max-width:330px;margin:0 auto;font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;font-size:14px;transform:rotate(-2.5deg);animation:tk .9s var(--ease) both}
+.ticket::after{content:"";position:absolute;left:0;right:0;bottom:-11px;height:12px;background:linear-gradient(-45deg,transparent 33%,#FFFDF7 33% 66%,transparent 66%),linear-gradient(45deg,transparent 33%,#FFFDF7 33% 66%,transparent 66%);background-size:16px 24px;background-position:0 -12px}
+@keyframes tk{from{opacity:0;transform:translateY(30px) rotate(-6deg)}}
+.ticket .th{display:grid;justify-items:center;gap:2px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px dashed #CFC9BB;font-size:12px;color:#6B6F76}
+.ticket .th b{font-size:18px;color:#23262B;letter-spacing:.2em}
+.tl{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #E1DBCE}
+.tl.done span:first-child{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:#F2652A;color:#8A8F98}
+.tl.done span:last-child{color:#0E9F6E;font-weight:700}
+.tl.now{font-weight:800}.tl.now span:last-child{color:#F2652A;animation:blink 1.4s ease-in-out infinite}
+@keyframes blink{50%{opacity:.35}}
+.ticket .tot{display:flex;justify-content:space-between;font-weight:800;margin-top:12px;padding-top:10px;border-top:2px dashed #CFC9BB}
+.ticket .bar{margin-top:14px;text-align:center;letter-spacing:-1px;font-size:22px;color:#23262B;overflow:hidden;white-space:nowrap}
+/* tutorial */
+#coach{position:fixed;inset:0;z-index:70}
+.coach-block{position:fixed;inset:0}
+.coach .spot,#coach .spot{position:fixed;border-radius:16px;box-shadow:0 0 0 9999px rgba(8,12,16,.6),0 0 0 3px var(--accent);transition:all .45s var(--ease);pointer-events:none;animation:fade .3s ease both}
+.coach-card{position:fixed;width:min(340px,calc(100vw - 32px));background:var(--surface);border-radius:22px;padding:18px;box-shadow:var(--sh-3);display:grid;gap:8px;animation:pop .4s var(--spring) both}
+.coach-card h3{font-size:19px;font-weight:800;letter-spacing:-.02em}
+.coach-card p{color:var(--ink-2);font-size:14.5px;line-height:1.5}
+.coach-foot{display:flex;align-items:center;gap:8px;margin-top:4px}
+.cdots{display:flex;gap:5px;flex:1;align-items:center}.cdots i{width:7px;height:7px;border-radius:4px;background:var(--fill-2);transition:width .3s var(--ease),background .3s}.cdots i.on{background:var(--accent);width:20px}
+@media (max-width:899px){body.nohouse .topbar{display:none}body.nohouse .view{padding-top:14px}}
+.acct{display:flex;gap:12px 14px;align-items:center;padding:16px;flex-wrap:wrap}
+.acct .avatar{width:46px;height:46px;font-size:19px}
+.acct .grow{min-width:160px}
+.acct-actions{display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.house-chips{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 16px}
 .welcome{max-width:480px;margin:6vh auto 0;display:grid;gap:18px;animation:rise .6s var(--ease) both}
 .welcome .big{width:68px;height:68px;filter:drop-shadow(0 10px 22px rgba(242,101,42,.4));animation:bob 3.2s ease-in-out infinite}
 @keyframes bob{50%{transform:translateY(-6px) rotate(-4deg)}}
@@ -449,25 +546,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 
       <!-- BIENVENIDA -->
       <section class="screen" id="s-bienvenida" data-title="Nos Falta">
-        <div class="welcome">
-          <svg class="big"><use href="#logo"/></svg>
-          <span class="tag tag-a" style="justify-self:start">Paso 1 de 2 · Tu casa</span>
-          <h1>Lo que falta en casa, <em>en una sola lista</em></h1>
-          <p class="sub">Apunta lo que se acaba, descubre en qué súper te sale más barato y reparte los gastos con quien vives.</p>
-          <div class="perks"><span>Lista compartida</span><span>9 supermercados</span><span>Gastos a medias</span></div>
-          <div class="seg" id="wSeg"><button type="button" aria-pressed="true" data-m="create">Crear mi casa</button><button type="button" aria-pressed="false" data-m="join">Tengo un código</button></div>
-          <form class="group form" id="fCreate">
-            <label class="field">Nombre de la casa<input name="house" required maxlength="60" placeholder="Piso de la calle Sants" autocomplete="off"></label>
-            <label class="field">Tu nombre<input name="me" required maxlength="30" placeholder="Eric" autocomplete="given-name"></label>
-            <button class="btn btn-p" type="submit">Crear mi casa</button>
-          </form>
-          <form class="group form" id="fJoin" hidden>
-            <label class="field">Código de la casa<input name="code" required maxlength="12" placeholder="ABCD-1234" autocomplete="off" autocapitalize="characters" style="text-transform:uppercase;letter-spacing:.08em"></label>
-            <label class="field">Tu nombre<input name="me" required maxlength="30" placeholder="Marc" autocomplete="given-name"></label>
-            <button class="btn btn-p" type="submit">Unirme a la casa</button>
-          </form>
-          <p class="foot-note">El código abre la casa: compártelo solo con quien vive contigo. Si tu nombre ya está en la casa, entras como esa persona.</p>
-        </div>
+        <div id="onb"></div>
       </section>
 
       <!-- PRINCIPAL -->
@@ -565,9 +644,8 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
         <div class="group" id="bal"></div>
         <p class="gtitle">Gastos <button type="button" id="addExpense">+ Añadir gasto</button></p>
         <div class="group" id="hist"></div>
-        <p class="gtitle">¿Quién eres en este móvil?</p>
-        <div class="group" style="padding:14px"><div class="turn" id="asMe"></div></div>
-        <div style="margin-top:18px"><button class="btn btn-s btn-sm" type="button" id="leave">Salir de esta casa en este móvil</button></div>
+        <p class="gtitle">Tu cuenta</p>
+        <div class="group" id="acct"></div>
         <p class="foot-note">Al marcar algo como comprado se apunta el gasto con su mejor precio conocido. Todo se reparte a partes iguales y lo ve toda la casa.</p>
       </section>
 
@@ -614,6 +692,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 </nav>
 <div id="sheetRoot"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="coach" hidden></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -664,10 +743,10 @@ const meName=()=>SES&&SES.member?nameOf(SES.member):'';
 const pend=()=>ST.items.filter(i=>!i.done);
 const inList=pid=>ST.items.find(i=>!i.done&&i.pid===pid);
 const normCode=c=>(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-const ERR={cp_no_valido:'Escribe un código postal de 5 cifras',datos_no_validos:'Datos no válidos',casa_no_encontrada:'No existe ninguna casa con ese código',miembro_no_valido:'Primero elige quién eres en Familia',faltan_datos:'Rellena todos los campos',importe_no_valido:'Pon un importe mayor que 0'};
+const ERR={cp_no_valido:'Escribe un código postal de 5 cifras',datos_no_validos:'Datos no válidos',casa_no_encontrada:'No existe ninguna casa con ese código',miembro_no_valido:'Primero elige quién eres en Familia',faltan_datos:'Rellena todos los campos',importe_no_valido:'Pon un importe mayor que 0',sin_sesion:'Tu sesión ha caducado. Vuelve a entrar.',falta_perfil:'Primero dinos cómo te llamas',nombre_no_valido:'El nombre no puede llevar # ni < >',cp_no_encontrado:'No encontramos ese código postal',id_no_valido:'Escribe el ID así: Laura #4821',id_no_encontrado:'No hay nadie con ese ID. Revisa el nombre y el número',ya_en_casa:'Esa persona ya está en tu casa'};
 async function call(fn,args){const {data,error}=await sb.rpc(fn,args);
   if(error){const k=Object.keys(ERR).find(k=>(error.message||'').includes(k));
-    if(k){toast(ERR[k]);if(k==='casa_no_encontrada'&&fn!=='hh_join'){SES=null;ST=EMPTY;saveSes();route()}else if(k==='miembro_no_valido'&&location.hash!=='#familia')location.hash='familia'}
+    if(k){toast(ERR[k]);if(k==='sin_sesion'){signOut();throw error}if(k==='casa_no_encontrada'&&!/join|hh_join/.test(fn)){SES=null;ST=EMPTY;saveSes();route()}else if(k==='miembro_no_valido'&&location.hash!=='#familia')location.hash='familia'}
     else netError(error);throw error}
   $('#offline').hidden=true;return data}
 async function refresh(){if(!SES)return;try{ST=await call('hh_state',{p_code:SES.code});
@@ -1116,9 +1195,9 @@ function rFamily(){if(!ST.household||!SES)return;const me=SES.member,turn=ST.hou
   const c=v=>Math.round(v*100);const totC=H.reduce((a,x)=>a+c(x.total),0),n=Math.max(ST.members.length,1),sh=Math.floor(totC/n),rem=totC-sh*n;
   const rows=ST.members.map((m,k)=>{const paid=H.filter(x=>x.who===m.id).reduce((a,x)=>a+c(x.total),0);return{m,paid:paid/100,diff:(paid-sh-(k<rem?1:0))/100}});
   $('#hhName').textContent=ST.household.name;$('#hhCode').textContent=prettyCode(ST.household.code);
-  $('#members').replaceChildren(...rows.map(r=>h('div',{class:'row'},av(r.m.name),h('div',{class:'grow'},h('span',{class:'t'},r.m.name+(r.m.id===me?' (tú)':'')),h('span',{class:'s'},'Ha pagado '+fmt(r.paid)+' desde el último ajuste')),turn===r.m.id?h('span',{class:'tag tag-a'},'Compra esta semana'):null)));
+  $('#members').replaceChildren(...rows.map(r=>h('div',{class:'row'},av(r.m.name),h('div',{class:'grow'},h('span',{class:'t'},r.m.name,r.m.tag?h('span',{class:'tagn',style:'font-size:13px;margin-left:5px'},'#'+r.m.tag):null,r.m.id===me?' (tú)':''),h('span',{class:'s'},(r.m.app===false?'Sin la app · ':'')+'Ha pagado '+fmt(r.paid)+' desde el último ajuste')),turn===r.m.id?h('span',{class:'tag tag-a'},'Compra esta semana'):null)));
   $('#turn').replaceChildren(...ST.members.map(m=>h('button',{type:'button','aria-pressed':String(turn===m.id),async onclick(){ST.household.turn=m.id;update();try{await call('hh_set_turn',{p_code:SES.code,p_member:m.id})}catch(e){}refresh()}},av(m.name),m.name)));
-  $('#asMe').replaceChildren(...ST.members.map(m=>h('button',{type:'button','aria-pressed':String(me===m.id),onclick(){SES.member=m.id;saveSes();update();toast('En este móvil eres '+m.name)}},av(m.name),m.name)));
+  rAcct();
   $('#bal').replaceChildren(...(totC?[h('div',{class:'row'},h('div',{class:'grow'},h('span',{class:'t'},'Gastado desde el último ajuste'),h('span',{class:'s'},'Toca a cada uno '+fmt(sh/100))),h('span',{class:'price num'},fmt(totC/100))),
     ...rows.map(r=>h('div',{class:'row'},av(r.m.name),h('div',{class:'grow t'},r.m.name),Math.abs(r.diff)<0.01?h('span',{class:'tag tag-n'},'En paz'):r.diff>0?h('span',{class:'tag tag-g num'},'Le deben '+fmt(r.diff)):h('span',{class:'tag tag-a num'},'Debe '+fmt(-r.diff))))]:[h('div',{class:'empty'},'Cuentas al día: no hay nada pendiente.')]));
   $('#hist').replaceChildren(...(ST.expenses.length?ST.expenses.slice(0,40).map(x=>h('div',{class:'row'},pic(x.img),h('div',{class:'grow'},h('span',{class:'t'},x.note||'Compra'),h('span',{class:'s'},(SES&&x.who===SES.member?'Pagaste tú':'Pagó '+nameOf(x.who))+(x.store?' · '+sName(x.store):'')+' · '+new Date(x.at).toLocaleDateString('es-ES')+(new Date(x.at).getTime()<=since?' · saldado':''))),
@@ -1129,29 +1208,219 @@ function sheetForm(title,fields,submitLabel,onsubmit){const root=$('#sheetRoot')
     h('div',{class:'grab'}),h('h2',{style:'font-size:20px;margin-bottom:12px'},title),h('div',{style:'display:grid;gap:12px'},...fields),h('button',{class:'btn btn-p',type:'submit',style:'width:100%;margin-top:14px'},submitLabel));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},f));const first=f.querySelector('input');if(first)first.focus()}
 $('#settle').addEventListener('click',async()=>{try{await call('hh_settle',{p_code:SES.code});toast('Cuentas saldadas');refresh()}catch(e){}});
-$('#addMember').addEventListener('click',()=>sheetForm('Añadir a la casa',[h('label',{class:'field'},'Nombre',h('input',{name:'n',required:true,maxlength:30}))],'Añadir',async fd=>{const v=String(fd.get('n')).trim();await call('hh_add_member',{p_code:SES.code,p_name:v});toast(v+' añadido a la casa');refresh()}));
+$('#addMember').addEventListener('click',()=>sheetForm('Añadir a alguien sin la app',[h('p',{class:'s',style:'margin:-6px 0 0'},'Para un peque o alguien que no usa el móvil: aparecerá en la casa y en las cuentas. Si tiene la app, mejor invítale.'),h('label',{class:'field'},'Nombre',h('input',{name:'n',required:true,maxlength:30}))],'Añadir',async fd=>{const v=String(fd.get('n')).trim();await call('hh_add_member',{p_code:SES.code,p_name:v});toast(v+' añadido a la casa');refresh()}));
 $('#addExpense').addEventListener('click',()=>sheetForm('Añadir gasto',[
   h('label',{class:'field'},'Importe (€)',h('input',{name:'t',required:true,type:'number',step:'0.01',min:'0.01',inputmode:'decimal',placeholder:'23,40'})),
   h('label',{class:'field'},'Qué es',h('input',{name:'n',maxlength:80,placeholder:'Ticket del súper, bombonas…'})),
   h('label',{class:'field'},'Supermercado',h('select',{name:'s'},h('option',{value:''},'Otro'),...visStores().map(s=>h('option',{value:s.id},s.name)))),
   h('label',{class:'field'},'Lo pagó',h('select',{name:'w'},...ST.members.map(m=>h('option',{value:m.id,selected:m.id===SES.member},m.name))))],'Apuntar gasto',async fd=>{
     await call('hh_add_expense',{p_code:SES.code,p_member:fd.get('w'),p_total:Number(String(fd.get('t')).replace(',','.')),p_store:fd.get('s')||null,p_note:String(fd.get('n')||'')});toast('Gasto apuntado');refresh()}));
-$('#invite').addEventListener('click',async()=>{const code=prettyCode(ST.household.code);const url=location.href.split(/[?#]/)[0]+'?casa='+ST.household.code;
-  const text='Únete a «'+ST.household.name+'» en Nos Falta. Código: '+code;
-  try{if(navigator.share){await navigator.share({title:'Nos Falta',text,url});return}}catch(e){if(e&&e.name==='AbortError')return}
-  try{await navigator.clipboard.writeText(text+'\n'+url);toast('Enlace copiado. Pégalo en el grupo de la casa')}catch(e){toast('Código: '+code)}});
-$('#leave').addEventListener('click',()=>{SES=null;ST=EMPTY;saveSes();location.hash='';route();toast('Has salido de la casa en este móvil')});
+$('#invite').addEventListener('click',()=>{O.sent=[];O.err='';openInvite()});
 
-/* ---------- Bienvenida ---------- */
+/* ---------- Cuenta y bienvenida ---------- */
+const FN_URL=SUPABASE_URL+'/functions/v1/';
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}},lsSet=(k,v)=>{try{v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}};
+let ME=null; // {profile,email,houses,invites}
+const LKEY='nf-casa-actual';
+// quien ya usaba la app sin cuenta en este móvil: al crear la cuenta se queda con su casa
+if(SES&&!SES.uid){lsSet('nf-legacy',JSON.stringify(SES))}
+let LEGACY=null;try{LEGACY=JSON.parse(lsGet('nf-legacy')||'null')}catch(e){}
 const invite=normCode(new URLSearchParams(location.search).get('casa'));
-function wMode(m){$$('#wSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.m===m)));$('#fCreate').hidden=m!=='create';$('#fJoin').hidden=m!=='join'}
-$$('#wSeg button').forEach(b=>b.addEventListener('click',()=>wMode(b.dataset.m)));
-async function enter(d,go){SES={code:d.code,member:d.member_id};saveSes();history.replaceState(null,'',location.pathname+'#'+go);await refresh();route()}
-$('#fCreate').addEventListener('submit',async e=>{e.preventDefault();const f=e.target,b=f.querySelector('button');b.disabled=true;
-  try{const d=await call('hh_create',{p_name:f.house.value.trim(),p_member:f.me.value.trim()});Z.onb=true;Z.loaded=false;Z.d=null;Z.admin=false;await enter(d,'zona');toast('¡Casa creada! Ahora dinos dónde compras')}catch(err){}b.disabled=false});
-$('#fJoin').addEventListener('submit',async e=>{e.preventDefault();const f=e.target,b=f.querySelector('button');b.disabled=true;
-  try{const d=await call('hh_join',{p_code:f.code.value,p_member:f.me.value.trim()});Z.loaded=false;Z.d=null;await enter(d,'lista');if(ST.household&&!ST.household.postcode){Z.onb=true;location.hash='zona'}toast('¡Bienvenido a '+ST.household.name+'!')}catch(err){}b.disabled=false});
-if(invite){if(SES&&SES.code!==invite)SES=null;$('#fJoin').code.value=prettyCode(invite);wMode('join')}
+const O={step:'hola',active:false,busy:false,err:'',email:'',cp:'',place:null,near:null,open:null,sent:[]};
+const STEPS=[['cuenta','Tu cuenta'],['nombre','Tu nombre'],['cp','Tu barrio'],['casa','Tu casa'],['invitar','Tu gente']];
+const handleOf=p=>p?p.name+' #'+p.tag:'';
+const inOnb=()=>!SES||O.active;
+async function meLoad(){ME=await call('me_get');return ME}
+function nextStep(){if(!ME)return 'hola';const p=ME.profile;if(!p)return 'nombre';if(!p.postcode)return 'cp';if(!ME.houses.length)return 'casa';return null}
+function go(step){O.step=step;O.err='';O.busy=false;if(location.hash!=='#bienvenida')history.replaceState(null,'',location.pathname+location.search+'#bienvenida');route()}
+async function afterAuth(){await meLoad();const s=nextStep();if(s){SES=null;go(s);return}await enterHouse()}
+async function enterHouse(code){const hs=ME.houses;const pick=hs.find(x=>x.code===code)||hs.find(x=>x.code===lsGet(LKEY))||hs[0];
+  SES={code:pick.code,member:pick.member_id,uid:true};saveSes();lsSet(LKEY,pick.code);O.active=false;
+  history.replaceState(null,'',location.pathname+'#inicio');
+  Z.loaded=false;Z.d=null;cmpKey='';loaded={};await refresh();route();rOffers();
+  if(ME.profile&&!ME.profile.tutorial_done)setTimeout(startCoach,600)}
+async function signOut(){try{await sb.auth.signOut()}catch(e){}ME=null;SES=null;saveSes();ST=EMPTY;O.active=false;update();go('hola');toast('Has cerrado sesión')}
+const AUTHERR={email_no_valido:'Ese email no parece correcto.',pass_corta:'La contraseña necesita al menos 8 caracteres.',pass_debil:'Esa contraseña es demasiado fácil. Prueba con otra más larga.',
+  email_ya_existe:'Ya hay una cuenta con ese email. Escribe tu contraseña para entrar.',demasiados_intentos:'Demasiados intentos seguidos. Espera un rato y vuelve a probar.',
+  'Invalid login credentials':'Email o contraseña incorrectos.',no_se_pudo:'No hemos podido crear la cuenta. Prueba de nuevo en un momento.'};
+const errTxt=k=>AUTHERR[k]||'Algo ha fallado. Revisa tu conexión y prueba otra vez.';
+
+function ticket(){const done=STEPS.findIndex(s=>s[0]===O.step);const hola=O.step==='hola'||O.step==='entrar';
+  const lines=hola?[['Leche entera','0,96',true],['Pan de barra','0,65',true],['Huevos L ×12','2,39',false],['Lo que falte…','',false]]
+    :STEPS.map(([k,l],i)=>[l,i<done?'✓':i===done?'ahora':'',i<done,i===done]);
+  return h('aside',{class:'onb-art','aria-hidden':'true'},h('div',{class:'ticket'},
+    h('div',{class:'th'},h('b',null,'NOS FALTA'),h('span',null,hola?'Lista de la casa':'Ticket de bienvenida'),h('span',null,new Date().toLocaleDateString('es-ES'))),
+    ...lines.map(([a,b,d,now])=>h('div',{class:'tl'+(d?' done':'')+(now?' now':'')},h('span',null,a),h('span',null,b))),
+    h('div',{class:'tot'},h('span',null,hola?'Ahorro esta semana':'Total'),h('span',null,hola?'−4,80 €':'0 € · es gratis')),
+    h('div',{class:'bar'},'||| | || ||| | ||| || | |||| | ||')))}
+function stepsBar(){const i=STEPS.findIndex(s=>s[0]===O.step);if(i<0)return null;
+  return h('div',{class:'steps-wrap'},h('div',{class:'steps'},...STEPS.map((s,k)=>h('i',{class:k<=i?'on':''}))),h('span',{class:'s'},'Paso '+(i+1)+' de '+STEPS.length+' · '+STEPS[i][1]))}
+function ferr(){return O.err?h('div',{class:'ferr',role:'alert'},O.err):null}
+function pwField(name,ac,meter){const inp=h('input',{name,type:'password',required:true,minlength:'8',maxlength:'72',autocomplete:ac,placeholder:'Mínimo 8 caracteres'});
+  const eye=h('button',{type:'button',class:'eye','aria-label':'Mostrar contraseña',onclick(){const s=inp.type==='password';inp.type=s?'text':'password';eye.textContent=s?'Ocultar':'Ver'}},'Ver');
+  const m=meter?h('div',{class:'meter','data-l':'0'},h('i'),h('i'),h('i')):null;const mt=meter?h('span',{class:'s'},'Usa 8 caracteres o más. Mejor si mezclas letras y números.'):null;
+  if(meter)inp.addEventListener('input',()=>{const v=inp.value;let l=v.length>=8?1:0;if(l&&/\d/.test(v)&&/[a-zA-Z]/.test(v))l=2;if(l===2&&(v.length>=12||/[^a-zA-Z0-9]/.test(v)))l=3;m.dataset.l=l;
+    mt.textContent=['Usa 8 caracteres o más.','Vale, aunque puede ser más segura.','Bien. Una frase larga es aún mejor.','¡Muy segura!'][l]});
+  return h('label',{class:'field'},'Contraseña',h('div',{class:'pw'},inp,eye),m,mt)}
+function busyBtn(b,on,txt){b.disabled=on;if(on){b.dataset.t=b.textContent;b.textContent=txt||'Un momento…'}else if(b.dataset.t)b.textContent=b.dataset.t}
+
+function rOnb(){const box=$('#onb');if(!box)return;const s=O.step;let card;
+  if(s==='hola'){
+    card=[h('div',{class:'onb-brand'},ic('logo','lg'),'nos ',h('span',null,'falta')),
+      h('h1',null,'Lo que falta en casa, ',h('em',null,'apuntado entre todos')),
+      h('p',{class:'sub'},'Una lista de la compra que compartes con tu familia o tus compis de piso, con los precios de los súpers de tu barrio.'),
+      h('div',{class:'onb-feats'},...[['i-list','Una lista para toda la casa','Lo que apunta uno lo ven todos al momento'],['i-pin','Los súpers de tu barrio','Y en cuál te sale más barata la compra'],['i-users','Gastos repartidos','Sin cuentas raras ni discusiones']].map(([i,t,d])=>h('div',{class:'onb-feat'},h('span',{class:'ico'},ic(i)),h('span',null,t,h('small',null,d))))),
+      invite?h('div',{class:'invcard'},ic('i-users'),h('span',{class:'grow'},h('b',null,'Te han invitado a una casa'),h('small',{style:'display:block'},'Crea tu cuenta (o entra) y te unes en un paso.'))):null,
+      LEGACY&&!invite?h('div',{class:'invcard'},ic('i-home'),h('span',{class:'grow'},h('b',null,'Ya usabas Nos Falta en este móvil'),h('small',{style:'display:block'},'Crea tu cuenta y conservarás tu casa y tu lista.'))):null,
+      h('div',{class:'onb-actions'},h('button',{class:'btn btn-p',type:'button',onclick(){go('cuenta')}},'Crear mi cuenta'),h('button',{class:'btn btn-s',type:'button',onclick(){go('entrar')}},'Ya tengo cuenta')),
+      h('p',{class:'foot-note',style:'margin:0;text-align:center'},'Gratis. Sin anuncios en tu lista.')];
+  }else if(s==='cuenta'||s==='entrar'){const up=s==='cuenta';
+    const f=h('form',{class:'onb-form',novalidate:true,async onsubmit(e){e.preventDefault();const b=f.querySelector('[type=submit]');const email=f.email.value.trim(),pass=f.pass.value;O.email=email;
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){O.err=AUTHERR.email_no_valido;rOnb();return}
+      if(up&&pass.length<8){O.err=AUTHERR.pass_corta;rOnb();return}
+      busyBtn(b,true,up?'Creando tu cuenta…':'Entrando…');
+      try{if(up){const r=await fetch(FN_URL+'auth-signup',{method:'POST',headers:{'Content-Type':'application/json',apikey:SUPABASE_KEY},body:JSON.stringify({email,password:pass})});
+          const j=await r.json().catch(()=>({}));
+          if(!r.ok){if(j.error==='email_ya_existe'){O.step='entrar'}O.err=errTxt(j.error);busyBtn(b,false);rOnb();return}}
+        const {error}=await sb.auth.signInWithPassword({email,password:pass});
+        if(error){O.err=errTxt(error.message);busyBtn(b,false);rOnb();return}
+        if(up)toast('¡Cuenta creada!');await afterAuth()}catch(err){O.err=errTxt('');busyBtn(b,false);rOnb()}}},
+      h('label',{class:'field'},'Email',h('input',{name:'email',type:'email',required:true,autocomplete:'email',inputmode:'email',placeholder:'tu@email.com',value:O.email})),
+      pwField('pass',up?'new-password':'current-password',up),ferr(),
+      h('button',{class:'btn btn-p',type:'submit'},up?'Crear cuenta':'Entrar'));
+    card=[stepsBar(),h('h2',null,up?'Crea tu cuenta':'¡Hola otra vez!'),h('p',{class:'sub'},up?'Con tu cuenta, tu lista te sigue en cualquier móvil y nadie más puede entrar en tu casa.':'Entra con tu email y tu contraseña.'),f,
+      h('p',{class:'s',style:'text-align:center'},up?'¿Ya tienes cuenta? ':'¿Aún no tienes cuenta? ',h('button',{type:'button',class:'linkbtn',onclick(){go(up?'entrar':'cuenta')}},up?'Entra':'Créala en un minuto')),
+      up?h('p',{class:'foot-note',style:'margin:0'},'Pronto te llegará un correo para confirmar tu email.'):null,
+      h('button',{type:'button',class:'back',onclick(){go('hola')}},'← Volver')];
+    setTimeout(()=>{const i=f.querySelector(O.email?'[name=pass]':'[name=email]');if(i)i.focus()},50);
+  }else if(s==='nombre'){const p=ME&&ME.profile;
+    const name=h('input',{name:'n',required:true,maxlength:'30',autocomplete:'given-name',placeholder:'Por ejemplo, Laura',value:p?p.name:''});
+    const prev=h('b',null,p?p.name:'Tu nombre');const tag=h('span',{class:'tagn'},p?'#'+p.tag:'#····');const avb=h('span',{class:'avatar',style:'background:'+avc(p?p.name:'?')},(p?p.name:'?')[0].toUpperCase());
+    name.addEventListener('input',()=>{const v=name.value.trim()||'Tu nombre';prev.textContent=v;avb.textContent=v[0].toUpperCase();avb.style.background=avc(v);tag.textContent=p&&v===p.name?'#'+p.tag:'#····'});
+    const f=h('form',{class:'onb-form',async onsubmit(e){e.preventDefault();const v=name.value.trim();if(!v){O.err='Escribe cómo quieres que te llamen.';rOnb();return}
+      if(/[#<>]/.test(v)){O.err='El nombre no puede llevar # ni < >.';rOnb();return}
+      const b=f.querySelector('[type=submit]');busyBtn(b,true);try{ME=await call('me_save',{p_name:v,p_cp:null});toast('Tu ID es '+handleOf(ME.profile));go(nextStep()||'casa')}catch(err){busyBtn(b,false)}}},
+      h('label',{class:'field'},'Tu nombre',name),
+      h('div',{class:'idcard'},avb,h('div',null,h('div',null,prev,' ',tag),h('small',null,'Este es tu ID. El número es para que nadie te confunda con otra persona que se llame igual.'))),
+      ferr(),h('button',{class:'btn btn-p',type:'submit'},'Seguir'));
+    card=[stepsBar(),h('h2',null,'¿Cómo quieres que te llamen?'),h('p',{class:'sub'},'Pon el nombre que quieras: tu nombre, un mote… Es lo que verá tu familia en la lista.'),f];
+    setTimeout(()=>name.focus(),50);
+  }else if(s==='cp'){
+    const inp=h('input',{type:'text',inputmode:'numeric',autocomplete:'postal-code',maxlength:'5',placeholder:'08014',value:O.cp,'aria-label':'Código postal'});
+    const res=h('div',{class:'cpres','aria-live':'polite'});const btn=h('button',{class:'btn btn-p',type:'submit',disabled:!O.place},'Aquí vivo');
+    const paint=()=>{res.replaceChildren();if(O.cp==='00000'){res.append(h('span',{class:'place'},'Modo admin: verás todos los súpers'));return}
+      if(O.place===false)res.append(h('span',{class:'s',style:'color:var(--warn)'},'No encontramos ese código postal. Revísalo.'));
+      else if(O.place){res.append(h('span',{class:'place'},ic('i-pin'),O.place));
+        if(O.near&&O.near.shops){const ch=chainsIn(O.near,5);res.append(h('div',{class:'near'},ch.length?h('span',{class:'s'},'Cerca de casa:'):h('span',{class:'s'},'No vemos súpers a menos de 5 km; te enseñaremos todos.'),...ch.slice(0,8).map(c=>slogo(c.id))))}
+        else res.append(h('span',{class:'s'},'Buscando súpers cerca…'))}};
+    let seq=0;const look=async()=>{const cp=inp.value.replace(/\D/g,'');inp.value=cp;O.cp=cp;O.place=null;O.near=null;btn.disabled=true;
+      if(cp==='00000'){btn.disabled=false;paint();return}if(cp.length<5){paint();return}const my=++seq;
+      const {data}=await sb.rpc('near_get',{p_cp:cp});if(my!==seq)return;
+      if(!data){O.place=false;paint();return}O.place=data.place;btn.disabled=false;paint();
+      try{const d=await nearData(cp);if(my!==seq)return;O.near=d;paint()}catch(e){}};
+    inp.addEventListener('input',look);
+    const f=h('form',{class:'onb-form cpbox',async onsubmit(e){e.preventDefault();if(btn.disabled)return;busyBtn(btn,true);
+      try{ME=await call('me_save',{p_name:null,p_cp:O.cp});go(nextStep()||'casa')}catch(err){busyBtn(btn,false)}}},
+      inp,res,ferr(),btn);
+    card=[stepsBar(),h('h2',null,'¿Dónde vives?'),h('p',{class:'sub'},'Con el código postal de tu casa te enseñamos los supermercados que tienes al lado. Si un día estás fuera, lo cambias en «Mi zona».'),f];
+    setTimeout(()=>{inp.focus();if(O.cp.length===5&&O.place==null)look();else paint()},50);
+  }else if(s==='casa'){const p=ME.profile;const opts=[];
+    for(const iv of ME.invites||[])opts.push(h('div',{class:'invcard'},ic('i-users'),h('span',{class:'grow'},h('b',null,iv.from+' te invita a «'+iv.house+'»'),h('small',{style:'display:block'},pl(Number(iv.n),'persona','personas')+' en esa casa')),
+      h('button',{class:'btn btn-p btn-sm',type:'button',async onclick(){busyBtn(this,true);try{const d=await call('invite_answer',{p_id:iv.id,p_accept:true});await meLoad();toast('¡Ya estás en «'+iv.house+'»!');await enterHouse(d.code)}catch(e){busyBtn(this,false)}}},'Unirme'),
+      h('button',{class:'btn btn-s btn-sm',type:'button',async onclick(){try{await call('invite_answer',{p_id:iv.id,p_accept:false});await meLoad();rOnb()}catch(e){}}},'No, gracias')));
+    if(LEGACY)opts.push(h('div',{class:'invcard'},ic('i-home'),h('span',{class:'grow'},h('b',null,'En este móvil ya tenías una casa'),h('small',{style:'display:block'},'Sigue en ella con tu cuenta y conserva tu lista y tus gastos.')),
+      h('button',{class:'btn btn-p btn-sm',type:'button',async onclick(){busyBtn(this,true);try{const d=await call('casa_join',{p_code:LEGACY.code,p_member:LEGACY.member||null});lsSet('nf-legacy',null);LEGACY=null;await meLoad();toast('¡Bienvenido de vuelta!');await enterHouse(d.code)}catch(e){busyBtn(this,false)}}},'Seguir en esa casa')));
+    const opt=(key,icon,title,desc,body)=>{const open=O.open===key;return h('div',{class:'opt','aria-expanded':String(open)},
+      h('button',{type:'button',class:'oh',onclick(){O.open=open?null:key;O.err='';rOnb()}},h('span',{class:'ico'},ic(icon)),h('span',{class:'grow'},title,h('small',null,desc)),ic('i-chev')),open?body():null)};
+    const createBody=()=>{const f=h('form',{class:'onb-form',async onsubmit(e){e.preventDefault();const v=f.n.value.trim();if(!v){O.err='Ponle un nombre a tu casa.';rOnb();return}const b=f.querySelector('[type=submit]');busyBtn(b,true,'Creando tu casa…');
+      try{const d=await call('casa_create',{p_name:v});SES={code:d.code,member:d.member_id,uid:true};saveSes();lsSet(LKEY,d.code);await zoneFromOnb();await meLoad();O.active=true;await refresh();go('invitar')}catch(err){busyBtn(b,false)}}},
+      h('label',{class:'field'},'Nombre de la casa',h('input',{name:'n',required:true,maxlength:'60',value:'Casa de '+p.name})),ferr(),h('button',{class:'btn btn-p',type:'submit'},'Crear mi casa'));return f};
+    const joinBody=()=>{const f=h('form',{class:'onb-form',async onsubmit(e){e.preventDefault();const c=normCode(f.c.value);if(c.length<6){O.err='Escribe el código que te han pasado (8 letras y números).';rOnb();return}const b=f.querySelector('[type=submit]');busyBtn(b,true);
+      try{const d=await call('casa_join',{p_code:c,p_member:null});await meLoad();toast('¡Ya estás dentro!');await enterHouse(d.code)}catch(err){busyBtn(b,false)}}},
+      h('label',{class:'field'},'Código de la casa',h('input',{name:'c',required:true,maxlength:'12',autocapitalize:'characters',placeholder:'ABCD-1234',value:invite?prettyCode(invite):'',style:'text-transform:uppercase;letter-spacing:.08em'})),
+      h('p',{class:'s'},'Te lo pasa quien creó la casa: lo tiene en «Casa y gastos».'),ferr(),h('button',{class:'btn btn-p',type:'submit'},'Unirme'));return f};
+    if(invite&&O.open==null)O.open='join';
+    card=[stepsBar(),h('h2',null,'Tu casa'),h('p',{class:'sub'},'Una casa es la lista que compartes con la gente con la que vives. Puedes crear la tuya o entrar en la de tu familia.'),
+      ...opts,h('div',{class:'choice'},opt('create','i-home','Crear una casa nueva','Y luego invitas a los demás',createBody),opt('join','i-users','Tengo un código','Entra en la casa de tu familia',joinBody))];
+  }else if(s==='invitar'){const code=SES?SES.code:'';const url=location.origin+location.pathname+'?casa='+code;
+    const text='¡Únete a nuestra casa en Nos Falta para hacer la lista de la compra juntos! Código: '+prettyCode(code);
+    const idInp=h('input',{name:'id',placeholder:'Nombre #1234',autocomplete:'off','aria-label':'ID de la persona'});
+    const f=h('form',{class:'idform',async onsubmit(e){e.preventDefault();const v=idInp.value.trim();if(!/#\s*\d{4}$/.test(v)){O.err='Escribe el nombre y el número, así: Laura #4821';rOnb();return}
+      try{const r=await call('casa_invite',{p_code:code,p_handle:v});O.sent.push(r.name);O.err='';toast('Invitación enviada a '+r.name);rOnb()}catch(err){}}},idInp,h('button',{class:'btn btn-s',type:'submit'},'Invitar'));
+    card=[stepsBar(),h('h2',null,'Invita a tu gente'),h('p',{class:'sub'},'La lista funciona mejor cuando está toda la casa. Mándales el enlace o añádelos por su ID.'),
+      h('div',{class:'bigcode'},h('span',{class:'s'},'Código de tu casa'),h('b',null,prettyCode(code)),
+        h('div',{class:'row2'},h('button',{class:'btn btn-p btn-sm',type:'button',async onclick(){try{if(navigator.share){await navigator.share({title:'Nos Falta',text,url});return}}catch(e){if(e&&e.name==='AbortError')return}
+            try{await navigator.clipboard.writeText(text+'\n'+url);toast('Enlace copiado')}catch(e){toast('Código: '+prettyCode(code))}}},ic('i-share'),'Compartir enlace'),
+          h('a',{class:'btn btn-s btn-sm',href:'https://wa.me/?text='+encodeURIComponent(text+' '+url),target:'_blank',rel:'noopener'},'WhatsApp'))),
+      h('div',{class:'field'},'¿Ya tiene la app? Invítale por su ID',f,h('span',{class:'s'},'Su ID lo ve en «Casa y gastos», por ejemplo: Laura #4821.')),
+      O.sent.length?h('div',{class:'sentlist'},...O.sent.map(n=>h('span',{class:'tag tag-g'},'✓ '+n))):null,ferr(),
+      h('div',{class:'onb-actions'},h('button',{class:'btn btn-p',type:'button',async onclick(){O.active=false;O.sent=[];await enterHouse(code)}},'Entrar en mi casa'),
+        h('button',{class:'btn btn-s',type:'button',async onclick(){O.active=false;O.sent=[];await enterHouse(code)}},'Lo haré más tarde'))];
+  }
+  box.replaceChildren(h('div',{class:'onb'},ticket(),h('div',{class:'onb-card'},...card.filter(Boolean))))}
+async function zoneFromOnb(){if(!SES)return;
+  try{if(O.cp==='00000'){await call('hh_set_zone',{p_code:SES.code,p_cp:'00000',p_place:'Modo admin',p_lat:null,p_lon:null,p_radius:5,p_stores:null,p_admin:true});return}
+    const d=O.near;if(!d||d.failed||!d.shops)return;const ids=chainsIn(d,5).map(c=>c.id);if(!ids.length)return;
+    await call('hh_set_zone',{p_code:SES.code,p_cp:d.cp,p_place:d.place,p_lat:d.lat,p_lon:d.lon,p_radius:5,p_stores:ids,p_admin:false})}catch(e){}}
+
+
+/* ---------- Tu cuenta (en Casa y gastos) ---------- */
+function rAcct(){const box=$('#acct');if(!box)return;const p=ME&&ME.profile;if(!p){box.replaceChildren();return}
+  const hs=(ME.houses||[]);
+  box.replaceChildren(h('div',{class:'acct'},h('span',{class:'avatar',style:'background:'+avc(p.name)},p.name[0].toUpperCase()),
+    h('div',{class:'grow'},h('span',{class:'t',style:'display:block;font-weight:800;font-size:17px'},p.name,' ',h('span',{class:'tagn'},'#'+p.tag)),
+      h('span',{class:'s'},'Tu ID para que te inviten: ',h('b',null,handleOf(p))),h('span',{class:'s',style:'display:block'},ME.email||'')),
+    h('div',{class:'acct-actions'},
+      h('button',{class:'btn btn-s btn-sm',type:'button',async onclick(){try{await navigator.clipboard.writeText(handleOf(p));toast('ID copiado: '+handleOf(p))}catch(e){toast('Tu ID: '+handleOf(p))}}},'Copiar mi ID'),
+      h('button',{class:'btn btn-s btn-sm',type:'button',onclick(){sheetForm('Cambiar tu nombre',[h('label',{class:'field'},'Nombre',h('input',{name:'n',required:true,maxlength:30,value:p.name})),h('p',{class:'s',style:'margin:0'},'Si cambias el nombre, tu número también cambia.')],'Guardar',async fd=>{ME=await call('me_save',{p_name:String(fd.get('n')).trim(),p_cp:null});toast('Ahora eres '+handleOf(ME.profile));refresh()})}},'Cambiar nombre'),
+      h('button',{class:'btn btn-s btn-sm',type:'button',onclick(){startCoach()}},'Ver el tutorial'),
+      h('button',{class:'btn btn-s btn-sm',type:'button',onclick(){sheetForm('Unirme a otra casa',[h('label',{class:'field'},'Código de la casa',h('input',{name:'c',required:true,maxlength:12,placeholder:'ABCD-1234',style:'text-transform:uppercase;letter-spacing:.08em'}))],'Unirme',async fd=>{const d=await call('casa_join',{p_code:normCode(fd.get('c')),p_member:null});await meLoad();toast('¡Ya estás dentro!');await enterHouse(d.code)})}},'Unirme a otra casa'),
+      h('button',{class:'btn btn-s btn-sm',type:'button',onclick:signOut},'Cerrar sesión'))),
+    hs.length>1?h('div',{class:'house-chips'},h('span',{class:'s',style:'align-self:center;font-weight:700'},'Tus casas:'),...hs.map(x=>h('button',{class:'chip',type:'button','aria-pressed':String(SES&&x.code===SES.code),async onclick(){if(SES&&x.code===SES.code)return;await enterHouse(x.code);toast('Ahora estás en «'+x.name+'»')}},x.name))):null)}
+function openInvite(){if(!SES||!ST.household)return;const root=$('#sheetRoot');const close=()=>root.replaceChildren();const code=SES.code;
+  const url=location.origin+location.pathname+'?casa='+code;const text='¡Únete a «'+ST.household.name+'» en Nos Falta para hacer la lista de la compra juntos! Código: '+prettyCode(code);
+  const idInp=h('input',{name:'id',placeholder:'Nombre #1234',autocomplete:'off','aria-label':'ID de la persona'});const msg=h('div',{'aria-live':'polite'});
+  const f=h('form',{class:'idform',async onsubmit(e){e.preventDefault();const v=idInp.value.trim();if(!/#\s*\d{4}$/.test(v)){msg.replaceChildren(h('div',{class:'ferr'},'Escribe el nombre y el número, así: Laura #4821'));return}
+    try{const r=await call('casa_invite',{p_code:code,p_handle:v});idInp.value='';msg.replaceChildren(h('span',{class:'tag tag-g'},'✓ Invitación enviada a '+r.name+'. La verá al abrir la app.'))}catch(err){}}},idInp,h('button',{class:'btn btn-s',type:'submit'},'Invitar'));
+  const sheet=h('div',{class:'sheet',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('h2',{style:'font-size:21px;margin-bottom:6px'},'Invita a tu gente'),
+    h('p',{class:'s',style:'margin:0 0 14px'},'Mándales el enlace o, si ya tienen la app, invítales por su ID.'),
+    h('div',{class:'bigcode'},h('span',{class:'s'},'Código de «'+ST.household.name+'»'),h('b',null,prettyCode(code)),
+      h('div',{class:'row2'},h('button',{class:'btn btn-p btn-sm',type:'button',async onclick(){try{if(navigator.share){await navigator.share({title:'Nos Falta',text,url});return}}catch(e){if(e&&e.name==='AbortError')return}
+          try{await navigator.clipboard.writeText(text+'\n'+url);toast('Enlace copiado')}catch(e){toast('Código: '+prettyCode(code))}}},ic('i-share'),'Compartir enlace'),
+        h('a',{class:'btn btn-s btn-sm',href:'https://wa.me/?text='+encodeURIComponent(text+' '+url),target:'_blank',rel:'noopener'},'WhatsApp'))),
+    h('div',{class:'field',style:'margin-top:16px'},'Invitar por ID',f,h('span',{class:'s'},'Cada persona ve su ID en «Casa y gastos», por ejemplo: Laura #4821.')),msg);
+  root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));idInp.focus()}
+
+/* ---------- Tutorial guiado ---------- */
+const COACH=[
+  {sel:['#homeQ'],route:'inicio',t:'Busca lo que falta',d:'Escribe lo que se ha acabado y te decimos en qué súper de tu barrio sale más barato.'},
+  {sel:['.tabbar a[href="#lista"]','.side a[href="#lista"]'],t:'La lista de toda la casa',d:'Lo que apunta cualquiera aparece al momento en el móvil de los demás. Al marcarlo como comprado, se apunta el gasto.'},
+  {sel:['.tabbar a[href="#catalogo"]','.side a[href="#catalogo"]'],t:'Catálogo con precios reales',d:'Los productos de cada súper con su precio de hoy. Toca uno y lo verás en los demás súpers.'},
+  {sel:['.tabbar a[href="#comparar"]','.side a[href="#comparar"]'],t:'¿Dónde sale más barato?',d:'Comparamos tu lista entera en los súpers de tu zona y te decimos cuál conviene.'},
+  {sel:['.tabbar a[href="#familia"]','.side a[href="#familia"]'],t:'Tu casa y las cuentas',d:'Invita a tu familia, mira a quién le toca comprar y quién debe qué. Aquí también está tu ID.'},
+  {sel:['.topbar a[href="#zona"]','.side a[href="#zona"]'],t:'¿Estás fuera de casa?',d:'Cambia tu zona y verás los súpers que tienes cerca en ese momento. Tu casa sigue guardada.'}];
+let CO=null;
+function startCoach(){if(inOnb())return;coachOn();if(location.hash!=='#inicio'){location.hash='inicio'}CO={i:0};setTimeout(drawCoach,250)}
+function endCoach(done){const r=$('#coach');r.replaceChildren();r.hidden=true;CO=null;document.removeEventListener('keydown',coachKey);window.removeEventListener('resize',drawCoach);
+  if(ME&&ME.profile){ME.profile.tutorial_done=true;call('me_tutorial',{p_done:true}).catch(()=>{})}if(done)toast('¡Listo! Empieza apuntando lo que falta')}
+function coachKey(e){if(e.key==='Escape')endCoach(false);if(e.key==='ArrowRight'&&CO)nextCoach()}
+function nextCoach(){if(!CO)return;CO.i++;if(CO.i>=COACH.length)endCoach(true);else drawCoach()}
+function drawCoach(){if(!CO)return;const st=COACH[CO.i];const el=st.sel.map(s=>$(s)).find(e=>e&&e.getClientRects().length&&e.getBoundingClientRect().width>0);
+  if(!el){nextCoach();return}
+  el.scrollIntoView({block:'center',behavior:'smooth'});
+  setTimeout(()=>{if(!CO)return;const r=el.getBoundingClientRect(),pad=6,root=$('#coach');root.hidden=false;
+    const spot=h('div',{class:'spot',style:`top:${r.top-pad}px;left:${r.left-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px`});
+    const last=CO.i===COACH.length-1;
+    const card=h('div',{class:'coach-card',role:'dialog','aria-modal':'true','aria-labelledby':'coachT'},
+      h('span',{class:'tag tag-a',style:'justify-self:start'},(CO.i+1)+' de '+COACH.length),h('h3',{id:'coachT'},st.t),h('p',null,st.d),
+      h('div',{class:'coach-foot'},h('div',{class:'cdots'},...COACH.map((x,k)=>h('i',{class:k===CO.i?'on':''}))),
+        h('button',{class:'btn btn-s btn-sm',type:'button',onclick(){endCoach(false)}},'Saltar'),h('button',{class:'btn btn-p btn-sm',type:'button',onclick:nextCoach},last?'¡A comprar!':'Siguiente')));
+    root.replaceChildren(h('div',{class:'coach-block',onclick(e){e.stopPropagation()}}),spot,card);
+    const cw=Math.min(340,innerWidth-32),below=r.bottom+14+200<innerHeight;
+    card.style.left=Math.max(16,Math.min(innerWidth-cw-16,r.left+r.width/2-cw/2))+'px';
+    if(below)card.style.top=(r.bottom+14)+'px';else card.style.bottom=(innerHeight-r.top+14)+'px';
+    card.querySelector('.btn-p').focus()},CO.i===0?350:250)}
+function coachOn(){document.addEventListener('keydown',coachKey);window.addEventListener('resize',drawCoach)}
 
 /* ---------- Supermercados ---------- */
 async function rSupers(){const {data,error}=await sb.rpc('catalog_stats');if(error){netError(error);return}
@@ -1166,8 +1435,9 @@ function netError(e){console.error(e);$('#offline').hidden=false}
 function update(){rHome();rList();rFamily();const n=pend().length;$$('[data-count]').forEach(e=>{e.textContent=n;e.hidden=!n});if(location.hash==='#comparar')rCompare()}
 const ROUTES=['inicio','lista','catalogo','productos','comparar','familia','zona','supers','sobre','bienvenida'];let loaded={};
 function route(){let r=location.hash.slice(1);if(!ROUTES.includes(r))r='inicio';
-  const noHouse=!SES;document.body.classList.toggle('nohouse',noHouse);
+  const noHouse=inOnb();document.body.classList.toggle('nohouse',noHouse);
   if(noHouse&&r!=='sobre')r='bienvenida';if(!noHouse&&r==='bienvenida')r='inicio';
+  if(r==='bienvenida')rOnb();if(CO&&r!=='inicio'&&CO.i===0)endCoach(false);
   let title='';for(const s of $$('.screen')){const o=s.id==='s-'+r;s.classList.toggle('on',o);if(o)title=s.dataset.title}
   $('#topTitle').textContent=title;
   for(const a of $$('.side a.nl,.tabbar a')){if(a.getAttribute('href')==='#'+r)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')}
@@ -1182,7 +1452,11 @@ window.addEventListener('hashchange',route);
 (async()=>{
   try{await loadStatic()}catch(e){netError(e)}
   $('#pStore').append(...STORES.map(s=>h('option',{value:s.id},s.name)));
-  rMode();update();route();rHomeStats();await refresh();rOffers();if(location.hash==='#zona')rZona();
+  rMode();rHomeStats();
+  let session=null;try{session=(await sb.auth.getSession()).data.session}catch(e){}
+  if(session){try{await afterAuth()}catch(e){SES=null;go('hola')}}else{SES=null;go(invite?'hola':'hola')}
+  update();route();if(location.hash==='#zona')rZona();
+  sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&ME){ME=null;SES=null;ST=EMPTY;update();go('hola')}});
   setInterval(()=>{if(!document.hidden&&SES&&!$('#sheetRoot').children.length)refresh()},8000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
