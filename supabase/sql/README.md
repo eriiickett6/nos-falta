@@ -58,3 +58,7 @@ Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio med
 - Se aplica en el trigger `c_items_prep` y al final de `c_refresh()` a todos los súpers.
 - Si la web lo tiene dentro de una sección de congelados → va a Congelados (pizzas, helados, marisco, pescado, carne, verdura o platos, según `c_frozen_cat(nombre)`).
 - Además: arroz a Arroz, quesos rallados y de untar a su sitio, cremas de cacao/untables a "Cremas para untar", cápsulas de café a Café y fuet/salchichón a Embutido curado.
+- Productos que solo tenían la sección (p. ej. "bebidas" sin subcategoría): `c_fix_cat` les busca subcategoría por el nombre (vinos, kombuchas, bollería, parafarmacia, barritas, semillas o lo que diga `c_kw_cat`).
+- `c_kw_cat`: "tableta" de chocolate ya no se confunde con una tablet, los insecticidas de "Casa y jardín" no se excluyen y la "nutrición y deporte" (barritas, batidos) sí entra.
+- HiperDino agrupa mucho sus categorías: si el nombre apunta a otra subcategoría de la misma sección, manda el nombre (en `c_items_prep`).
+- Los trabajadores de Ahorramas, Ametller y Gadis pasan a cada 15 min (ya tienen todo cargado; así no saturan las llamadas de pg_net).
