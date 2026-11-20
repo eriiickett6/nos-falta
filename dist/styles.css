@@ -545,7 +545,9 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 .dk .btn-out{color:#FCA5A5}
 body.nohouse .shell{background:none}
 .themerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-top:1px solid var(--line)}
-.themerow .seg{flex:1;min-width:240px}
+.themerow .seg{flex:1 1 100%;min-width:0}
+.themerow .seg button{min-width:0;padding:9px 6px}
+@media (min-width:600px){.themerow .seg{flex:1 1 0}}
 .themerow .seg button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
 .themerow .seg .i{width:16px;height:16px}
 /* ---------- Escritorio: aprovechar la pantalla ---------- */
