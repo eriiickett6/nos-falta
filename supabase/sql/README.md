@@ -34,7 +34,7 @@ Una sola función lee las fichas públicas de producto (sitemap + JSON-LD de sch
 Alcampo y Bonpreu i Esclat responden con un reto anti-robots (AWS WAF, HTTP 202): no lo saltamos y sus crons están quitados. Carrefour, El Corte Inglés, Eroski, Familia y Supermercados MAS también bloquean; Consum solo da datos por /api/, que su robots.txt prohíbe.
 
 ## Cuentas (email y contraseña)
-- Alta con la función `auth-signup` (crea la cuenta ya confirmada; el correo de confirmación llegará cuando haya servidor de correo). Máx. 5 altas por hora por conexión (`signup_log`).
+- Alta con la función `auth-signup` (crea la cuenta ya confirmada; el correo de confirmación llegará cuando haya servidor de correo).
 - `profiles`: nombre libre + número de 4 cifras (ID tipo «Laura #4821», único por nombre), código postal de casa y si ya vio el tutorial.
 - Funciones (solo con sesión): `me_get`, `me_save(nombre, cp)`, `me_tutorial`, `casa_create`, `casa_join(código, miembro_sin_cuenta)`, `casa_invite(código, 'Nombre #1234')`, `invite_answer`, `casa_free_members`.
 - `members.user_id` une a cada persona de la casa con su cuenta; quien usaba la app sin cuenta conserva su casa al registrarse.

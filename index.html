@@ -324,8 +324,8 @@ tfoot td{font-weight:800;border-bottom:0;background:var(--fill)}
 .field input,.field select{border:1.5px solid var(--line);background:var(--bg);border-radius:14px;padding:13px 14px;font-size:16px;color:var(--ink);font-weight:500;width:100%;transition:border-color .2s,box-shadow .2s,background .2s}
 .field input:focus,.field select:focus{outline:none;border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent)}
 /* ---------- Bienvenida, cuenta y tutorial ---------- */
-.onb{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;max-width:1040px;margin:1vh auto 0;align-items:start}
-@media (min-width:900px){.onb{grid-template-columns:minmax(0,.85fr) minmax(0,1fr);gap:56px;margin-top:5vh;align-items:center}}
+.onb{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;max-width:1040px;margin:0 auto;align-items:center;align-content:center;min-height:calc(100dvh - 60px)}
+@media (min-width:900px){.onb{grid-template-columns:minmax(0,.85fr) minmax(0,1fr);gap:56px;min-height:calc(100dvh - 120px)}}
 .onb-art{display:none}
 @media (min-width:900px){.onb-art{display:block}}
 .onb-card{background:var(--surface);border:1px solid var(--line);border-radius:28px;padding:24px 20px;box-shadow:var(--sh-2);display:grid;gap:16px;animation:rise .5s var(--ease) both;max-width:520px;width:100%;margin:0 auto}
@@ -786,7 +786,9 @@ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const dirUrl=x=>'https://www.google.com/maps/dir/?api=1&destination='+x.lat+','+x.lon;
 async function nearData(cp){
   const {data,error}=await sb.rpc('near_get',{p_cp:cp});if(error)throw error;if(!data)return null;
-  if(data.shops)return data;
+  if(data.shops){if(data.stale)fetchShops(Object.assign({},data,{shops:null}),cp).catch(()=>{});return data}
+  return fetchShops(data,cp)}
+async function fetchShops(data,cp){
   // primera vez con este código postal: lo pregunta el navegador a OpenStreetMap y lo guardamos para los demás
   // solo las cadenas que nos interesan (por marca o por nombre): la consulta es pequeña y rápida
   const A='(around:10000,'+data.lat+','+data.lon+')',RE='mercadona|lidl|aldi|bon ?[àa]rea|condis|carrefour|^dia|dia %|cl[aà]rel|alcampo|simply|sabeco|bonpreu|esclat|ahorramas|gadis|ametller';
@@ -803,7 +805,7 @@ async function nearData(cp){
     const la=e.lat??(e.center&&e.center.lat),lo=e.lon??(e.center&&e.center.lon);if(la==null)continue;
     shops.push({store:m[0],name:t.name||t.brand||CHAIN[m[0]],lat:+la.toFixed(6),lon:+lo.toFixed(6),addr:[[t['addr:street'],t['addr:housenumber']].filter(Boolean).join(', '),t['addr:city']].filter(Boolean).join(' · ')||null,hours:t.opening_hours||null,km:+hav(data.lat,data.lon,la,lo).toFixed(2)})}
   shops.sort((a,b)=>a.km-b.km);const per={};data.shops=shops.filter(x=>(per[x.store]=(per[x.store]||0)+1)<=12);
-  try{await sb.rpc('near_save',{p_cp:cp,p_shops:data.shops})}catch(e){}
+  if(data.shops.length)try{await sb.rpc('near_save',{p_cp:cp,p_shops:data.shops})}catch(e){}
   return data}
 function chainsIn(d,r){const by={};for(const x of (d&&d.shops)||[]){if(x.km>r)continue;const b=by[x.store]||(by[x.store]={id:x.store,n:0,km:x.km});b.n++;b.km=Math.min(b.km,x.km)}return Object.values(by).sort((a,b)=>a.km-b.km)}
 let LP=null,MAP=null;
@@ -1295,13 +1297,10 @@ function rOnb(){const box=$('#onb');if(!box)return;const s=O.step;let card;
     setTimeout(()=>{const i=f.querySelector(O.email?'[name=pass]':'[name=email]');if(i)i.focus()},50);
   }else if(s==='nombre'){const p=ME&&ME.profile;
     const name=h('input',{name:'n',required:true,maxlength:'30',autocomplete:'given-name',placeholder:'Por ejemplo, Laura',value:p?p.name:''});
-    const prev=h('b',null,p?p.name:'Tu nombre');const tag=h('span',{class:'tagn'},p?'#'+p.tag:'#····');const avb=h('span',{class:'avatar',style:'background:'+avc(p?p.name:'?')},(p?p.name:'?')[0].toUpperCase());
-    name.addEventListener('input',()=>{const v=name.value.trim()||'Tu nombre';prev.textContent=v;avb.textContent=v[0].toUpperCase();avb.style.background=avc(v);tag.textContent=p&&v===p.name?'#'+p.tag:'#····'});
     const f=h('form',{class:'onb-form',async onsubmit(e){e.preventDefault();const v=name.value.trim();if(!v){O.err='Escribe cómo quieres que te llamen.';rOnb();return}
       if(/[#<>]/.test(v)){O.err='El nombre no puede llevar # ni < >.';rOnb();return}
-      const b=f.querySelector('[type=submit]');busyBtn(b,true);try{ME=await call('me_save',{p_name:v,p_cp:null});toast('Tu ID es '+handleOf(ME.profile));go(nextStep()||'casa')}catch(err){busyBtn(b,false)}}},
+      const b=f.querySelector('[type=submit]');busyBtn(b,true);try{ME=await call('me_save',{p_name:v,p_cp:null});go(nextStep()||'casa')}catch(err){busyBtn(b,false)}}},
       h('label',{class:'field'},'Tu nombre',name),
-      h('div',{class:'idcard'},avb,h('div',null,h('div',null,prev,' ',tag),h('small',null,'Este es tu ID. El número es para que nadie te confunda con otra persona que se llame igual.'))),
       ferr(),h('button',{class:'btn btn-p',type:'submit'},'Seguir'));
     card=[stepsBar(),h('h2',null,'¿Cómo quieres que te llamen?'),h('p',{class:'sub'},'Pon el nombre que quieras: tu nombre, un mote… Es lo que verá tu familia en la lista.'),f];
     setTimeout(()=>name.focus(),50);
@@ -1311,7 +1310,8 @@ function rOnb(){const box=$('#onb');if(!box)return;const s=O.step;let card;
     const paint=()=>{res.replaceChildren();if(O.cp==='00000'){res.append(h('span',{class:'place'},'Modo admin: verás todos los súpers'));return}
       if(O.place===false)res.append(h('span',{class:'s',style:'color:var(--warn)'},'No encontramos ese código postal. Revísalo.'));
       else if(O.place){res.append(h('span',{class:'place'},ic('i-pin'),O.place));
-        if(O.near&&O.near.shops){const ch=chainsIn(O.near,5);res.append(h('div',{class:'near'},ch.length?h('span',{class:'s'},'Cerca de casa:'):h('span',{class:'s'},'No vemos súpers a menos de 5 km; te enseñaremos todos.'),...ch.slice(0,8).map(c=>slogo(c.id))))}
+        if(O.near&&O.near.failed){res.append(h('span',{class:'s'},'Ahora no podemos mirar los súpers de tu zona. Los buscamos cuando entres; puedes seguir.'))}
+        else if(O.near&&O.near.shops){const ch=chainsIn(O.near,5);res.append(h('div',{class:'near'},ch.length?h('span',{class:'s'},'Cerca de casa:'):h('span',{class:'s'},'No vemos súpers a menos de 5 km; te enseñaremos todos.'),...ch.slice(0,8).map(c=>slogo(c.id))))}
         else res.append(h('span',{class:'s'},'Buscando súpers cerca…'))}};
     let seq=0;const look=async()=>{const cp=inp.value.replace(/\D/g,'');inp.value=cp;O.cp=cp;O.place=null;O.near=null;btn.disabled=true;
       if(cp==='00000'){btn.disabled=false;paint();return}if(cp.length<5){paint();return}const my=++seq;
