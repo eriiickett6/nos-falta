@@ -11,6 +11,7 @@ const BRANDS: [string, RegExp][] = [
   ['mercadona', /mercadona/i], ['lidl', /\blidl\b/i], ['aldi', /\baldi\b/i], ['bonarea', /bon\s*[àa]rea/i],
   ['condis', /condis/i], ['carrefour', /carrefour/i], ['dia', /^(dia|dia\s*%|dia market|dia maxi|la plaza de dia|cl[aà]rel)\b/i],
   ['alcampo', /alcampo|simply|sabeco/i], ['bonpreu', /bonpreu|esclat/i],
+  ['ahorramas', /ahorramas/i], ['gadis', /\bgadis\b/i], ['ametller', /ametller/i], ['froiz', /froiz/i],
 ];
 const H = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*' };
 const J = (o: unknown, s = 200) => new Response(JSON.stringify(o), { status: s, headers: H });

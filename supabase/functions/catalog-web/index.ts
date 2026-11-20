@@ -1,10 +1,11 @@
 // Catálogo de varios súpers desde sus fichas públicas de producto (sitemap + JSON-LD de schema.org).
 // Solo se leen páginas que su robots.txt permite. Una ficha por segundo y por súper; si el servidor
 // responde con 403/429/503 o un reto, paramos ese súper y no insistimos.
-// Súpers: Alcampo y Bonpreu i Esclat (misma plataforma), Ahorramas, Gadis y Ametller Origen.
+// Súpers: Alcampo y Bonpreu i Esclat (misma plataforma), Ahorramas, Gadis, Ametller Origen y Froiz.
+// Froiz no lleva JSON-LD: su ficha viene renderizada en el servidor y se lee del HTML (ruta, nombre, precio e imagen).
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
-type Cfg = { base: string, maps: string[], index?: string, re: RegExp, kind: 'ocado' | 'sfcc' | 'gadis', headers?: Record<string, string> };
+type Cfg = { base: string, maps: string[], index?: string, re: RegExp, kind: 'ocado' | 'sfcc' | 'gadis' | 'froiz', headers?: Record<string, string> };
 const S: Record<string, Cfg> = {
   alcampo: { base: 'https://www.compraonline.alcampo.es', kind: 'ocado', re: /\/products\/[^\/<\s]+\/(\d+)$/,
     maps: ['https://www.compraonline.alcampo.es/sitemaps/sitemap-products-part1.xml', 'https://www.compraonline.alcampo.es/sitemaps/sitemap-products-part2.xml'] },
@@ -16,6 +17,8 @@ const S: Record<string, Cfg> = {
     maps: ['https://www.gadisline.com/sitemaps/sitemap_productos.xml'] },
   ametller: { base: 'https://www.ametllerorigen.com', kind: 'sfcc', re: /ametllerorigen\.com\/es\/[^\/<\s]+\/(\d+)\.html$/,
     maps: [], index: 'https://www.ametllerorigen.com/sitemap_index.xml' },
+  froiz: { base: 'https://supermercado.froiz.com', kind: 'froiz', re: /supermercado\.froiz\.com\/product\/(\d+)-/,
+    maps: ['https://supermercado.froiz.com/sitemap.xml'] },
 };
 // palabras del enlace que delatan que no es comida, bebida, higiene ni limpieza (para no visitar esas fichas)
 const SKIP = new Set(('pantalon pantalones camiseta camisetas calcetines calcetin zapatilla zapatillas zapato zapatos sudadera pijama chaqueta abrigo vestido falda bolso mochila maleta ' +
@@ -61,7 +64,44 @@ function objAt(s: string, start: number): any {
   return null;
 }
 
+const txt = (s: string) => unent(s.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim();
+const eur = (s: string | undefined) => s ? num(s.replace(/\./g, '').replace(',', '.')) : null;
+
+function parseFroiz(store: string, html: string, url: string, id: string) {
+  const crumbs = [...html.matchAll(/<span class="level(\d)[^"]*"[^>]*>([\s\S]*?)<\/span>/g)].map(m => ({ l: +m[1], t: txt(m[2]) })).filter(x => x.t);
+  const prodCrumb = crumbs.find(x => x.l === 5);
+  const k = html.indexOf('class="name mt-2');
+  let name = prodCrumb?.t || '';
+  if (k >= 0) { const m = html.slice(k, k + 600).match(/>([^<]+)</); if (m && m[1].trim()) name = txt(m[1]); }
+  if (!name) return null;
+  const blk = k >= 0 ? html.slice(k, k + 4000) : '';
+  const pm = blk.match(/class="price"[\s\S]*?<\/div>\s*<\/div>/);
+  const pb = pm ? pm[0] : blk;
+  const old = eur((pb.match(/line-through[^>]*>\s*([\d.,]+)\s*€/) || [])[1]);
+  const price = eur((pb.match(/class="text-primary"[^>]*>\s*([\d.,]+)\s*€/) || pb.match(/>\s*([\d.,]+)\s*€\s*</) || [])[1]);
+  const perKg = /class="units"[^>]*>\s*<span[^>]*>\s*\/\s*(kg|l)\b/i.exec(pb);
+  const img = (html.match(/src="(https:\/\/[^"]+)"\s+class="imageDetail/) || [])[1] || null;
+  const path = crumbs.filter(x => x.l < 5).map(x => x.t).join(' > ') || null;
+  return { name, price, old, img, path, unitPrice: perKg ? price : null, unit: perKg ? perKg[1].toLowerCase() : null, perKg: !!perKg };
+}
+
 function parse(store: string, cfg: Cfg, html: string, url: string, id: string) {
+  if (cfg.kind === 'froiz') {
+    const f = parseFroiz(store, html, url, id);
+    if (!f) return null;
+    const net = parseNet(f.name);
+    let net_qty = net.q, net_unit = net.u;
+    if (f.perKg) { net_qty = 1; net_unit = f.unit; }
+    return {
+      store, ext_id: id, url, name: f.name, brand: null, image_url: f.img,
+      size_label: f.perKg ? null : (net_qty && net_unit ? (net.n > 1 ? net.n + ' x ' + fmt(net_qty / net.n, net_unit) : fmt(net_qty, net_unit)) : null),
+      net_qty, net_unit, pack_n: net.n > 1 ? net.n : null,
+      price: f.price, unit_price: f.unitPrice ?? (f.price && net_qty && net_unit ? +(f.price / net_qty).toFixed(2) : null), unit: f.unit ?? net_unit, loose: f.perKg,
+      old_price: f.old && f.price && f.old > f.price ? f.old : null, promo_until: null,
+      store_cat: f.path ? f.path.toLowerCase().replace(/\s*>\s*/g, '*').slice(0, 300) : null, store_cat_path: f.path,
+      active: f.price != null,
+    };
+  }
   const lds = ldAll(html);
   const ld = lds.find(x => x && x['@type'] === 'Product');
   if (!ld?.name) return null;
@@ -193,7 +233,7 @@ Deno.serve(async (req) => {
         else if (r.status !== 200) { status = 'error'; err = 'HTTP ' + r.status; if ([202, 403, 405, 429, 503].includes(r.status)) blocked = true; }
         else {
           const html = await r.text();
-          if (/challenge|captcha/i.test(html.slice(0, 3000)) && !/application\/ld\+json/.test(html)) { status = 'error'; err = 'reto'; blocked = true; }
+          if (/challenge|captcha/i.test(html.slice(0, 3000)) && !/application\/ld\+json/.test(html) && !(cfg.kind === 'froiz' && /class="level5/.test(html))) { status = 'error'; err = 'reto'; blocked = true; }
           else {
             const it = parse(store, cfg, html, job.url, job.ext_id);
             if (!it) { status = 'error'; err = 'sin datos'; }

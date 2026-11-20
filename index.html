@@ -827,7 +827,7 @@ async function loadStatic(){
 const sName=id=>SM[id]?.name||id;
 const abbr=id=>sName(id).slice(0,2);
 // icono oficial de cada súper, cargado desde su propia web (vía el servicio de iconos de Google, 128 px)
-const SDOM={aldi:'aldi.es',lidl:'lidl.es',mercadona:'mercadona.es',bonarea:'bonarea.com',condis:'condis.es',carrefour:'carrefour.es',dia:'dia.es',alcampo:'alcampo.es',bonpreu:'bonpreuesclat.cat',ahorramas:'ahorramas.com',gadis:'gadis.es',ametller:'ametllerorigen.com',consum:'consum.es'};
+const SDOM={aldi:'aldi.es',lidl:'lidl.es',mercadona:'mercadona.es',bonarea:'bonarea.com',condis:'condis.es',carrefour:'carrefour.es',dia:'dia.es',alcampo:'alcampo.es',bonpreu:'bonpreuesclat.cat',ahorramas:'ahorramas.com',gadis:'gadis.es',ametller:'ametllerorigen.com',froiz:'froiz.com',consum:'consum.es'};
 const logoUrl=id=>SDOM[id]?'https://www.google.com/s2/favicons?domain='+SDOM[id]+'&sz=128':null;
 function slogo(id,style){const sp=h('span',{class:'slogo','data-s':id,style});const u=logoUrl(id);const txt=()=>(SM[id]?SM[id].name:id).slice(0,2);
   if(!u){sp.textContent=txt();return sp}
@@ -875,9 +875,9 @@ function rHab(){const box=$('#hab');const pendN=new Set(pend().map(i=>nrm(i.name
     if(r.t==='c')addCItem({id:r.id,name:o.name});else if(r.t==='p')addProduct({id:r.id,name:o.name});else if(r.t==='g')addGroup({id:r.id,name:o.name});else addCustom(o.name)}},h('b',null,'+'),o.name)))}
 
 /* ---------- Zona: código postal, súpers cercanos y mapa ---------- */
-const CHAIN={mercadona:'Mercadona',lidl:'Lidl',aldi:'Aldi',bonarea:'bonÀrea',condis:'Condis',carrefour:'Carrefour',dia:'Dia',alcampo:'Alcampo',bonpreu:'Bonpreu i Esclat',ahorramas:'Ahorramas',gadis:'Gadis',ametller:'Ametller Origen'};
-const CCOL={aldi:'#2563EB',bonarea:'#DC2626',mercadona:'#059669',condis:'#E11D48',lidl:'#EAB308',carrefour:'#4F46E5',dia:'#EF4444',alcampo:'#DB2777',bonpreu:'#EA580C',ahorramas:'#16A34A',gadis:'#F59E0B',ametller:'#65A30D'};
-const BRANDRE=[['mercadona',/mercadona/i],['lidl',/\blidl\b/i],['aldi',/\baldi\b/i],['bonarea',/bon\s*[àa]rea/i],['condis',/condis/i],['carrefour',/carrefour/i],['dia',/^(dia|dia\s*%|dia market|dia maxi|la plaza de dia|cl[aà]rel)\b/i],['alcampo',/alcampo|simply|sabeco/i],['bonpreu',/bonpreu|esclat/i],['ahorramas',/ahorramas/i],['gadis',/\bgadis\b/i],['ametller',/ametller/i]];
+const CHAIN={mercadona:'Mercadona',lidl:'Lidl',aldi:'Aldi',bonarea:'bonÀrea',condis:'Condis',carrefour:'Carrefour',dia:'Dia',alcampo:'Alcampo',bonpreu:'Bonpreu i Esclat',ahorramas:'Ahorramas',gadis:'Gadis',ametller:'Ametller Origen',froiz:'Froiz'};
+const CCOL={aldi:'#2563EB',bonarea:'#DC2626',mercadona:'#059669',condis:'#E11D48',lidl:'#EAB308',carrefour:'#4F46E5',dia:'#EF4444',alcampo:'#DB2777',bonpreu:'#EA580C',ahorramas:'#16A34A',gadis:'#F59E0B',ametller:'#65A30D',froiz:'#C62D2D'};
+const BRANDRE=[['mercadona',/mercadona/i],['lidl',/\blidl\b/i],['aldi',/\baldi\b/i],['bonarea',/bon\s*[àa]rea/i],['condis',/condis/i],['carrefour',/carrefour/i],['dia',/^(dia|dia\s*%|dia market|dia maxi|la plaza de dia|cl[aà]rel)\b/i],['alcampo',/alcampo|simply|sabeco/i],['bonpreu',/bonpreu|esclat/i],['ahorramas',/ahorramas/i],['gadis',/\bgadis\b/i],['ametller',/ametller/i],['froiz',/froiz/i]];
 const ADMIN_CP='00000';
 const zStores=()=>{const hh=ST.household;if(!hh||hh.admin||!hh.stores||!hh.stores.length)return null;return hh.stores};
 const visStores=()=>{const z=zStores();const l=z?STORES.filter(s=>z.includes(s.id)):STORES;return l.length?l:STORES};
@@ -892,7 +892,7 @@ async function nearData(cp){
 async function fetchShops(data,cp){
   // primera vez con este código postal: lo pregunta el navegador a OpenStreetMap y lo guardamos para los demás
   // solo las cadenas que nos interesan (por marca o por nombre): la consulta es pequeña y rápida
-  const A='(around:10000,'+data.lat+','+data.lon+')',RE='mercadona|lidl|aldi|bon ?[àa]rea|condis|carrefour|^dia|dia %|cl[aà]rel|alcampo|simply|sabeco|bonpreu|esclat|ahorramas|gadis|ametller';
+  const A='(around:10000,'+data.lat+','+data.lon+')',RE='mercadona|lidl|aldi|bon ?[àa]rea|condis|carrefour|^dia|dia %|cl[aà]rel|alcampo|simply|sabeco|bonpreu|esclat|ahorramas|gadis|ametller|froiz';
   const q='[out:json][timeout:20];(nwr["shop"]["brand"~"'+RE+'",i]'+A+';nwr["shop"~"^(supermarket|convenience|department_store)$"]["name"~"'+RE+'",i]'+A+';);out center tags 600;';
   // preguntamos a varios servidores a la vez y nos quedamos con el primero que conteste bien
   const ctl=new AbortController();const tm=setTimeout(()=>ctl.abort(),20000);
@@ -1103,7 +1103,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
 
 
 /* ---------- Catálogo por súper ---------- */
-const KSTORES=[['mercadona','Mercadona'],['aldi','Aldi'],['dia','Dia'],['condis','Condis'],['bonarea','bonÀrea'],['ametller','Ametller Origen'],['ahorramas','Ahorramas'],['gadis','Gadis'],['lidl','Lidl']];
+const KSTORES=[['mercadona','Mercadona'],['aldi','Aldi'],['dia','Dia'],['condis','Condis'],['bonarea','bonÀrea'],['ametller','Ametller Origen'],['ahorramas','Ahorramas'],['gadis','Gadis'],['froiz','Froiz'],['lidl','Lidl']];
 const kName=id=>(KSTORES.find(x=>x[0]===id)||[id,id])[1];
 let K={store:'aldi',top:null,sub:null,q:'',off:false,sort:'rel',pos:0,tree:{},seq:0};
 const kStores=()=>{const z=zStores();const l=z?KSTORES.filter(([id])=>z.includes(id)):KSTORES;return l.length?l:KSTORES};
@@ -1123,7 +1123,7 @@ function kcard(it){
     h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
 let KST=null;async function kStats(){if(KST)return KST;const {data}=await sb.rpc('c_store_stats');KST=data||{};return KST}
 const nf0=n=>Number(n).toLocaleString('es-ES',{useGrouping:'always'});
-const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es',alcampo:'https://www.compraonline.alcampo.es',bonpreu:'https://www.compraonline.bonpreuesclat.cat',ahorramas:'https://www.ahorramas.com',gadis:'https://www.gadisline.com',ametller:'https://www.ametllerorigen.com'};
+const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es',alcampo:'https://www.compraonline.alcampo.es',bonpreu:'https://www.compraonline.bonpreuesclat.cat',ahorramas:'https://www.ahorramas.com',gadis:'https://www.gadisline.com',ametller:'https://www.ametllerorigen.com',froiz:'https://supermercado.froiz.com'};
 async function kTree(){if(K.tree[K.store])return K.tree[K.store];
   const {data,error}=await sb.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
 async function rCatalog(){
