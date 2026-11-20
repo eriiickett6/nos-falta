@@ -178,7 +178,11 @@ Deno.serve(async (req) => {
 
   if (body.action === 'crawl') {
     const t0 = Date.now(); const budget = body.ms ?? 110000; const pause = body.pause ?? 900;
-    const { data: q } = await sb.from('c_queue').select('*').eq('store', store).eq('status', 'new').limit(body.n ?? 60);
+    let qq = sb.from('c_queue').select('*').eq('store', store).eq('status', 'new');
+    // varios trabajadores a la vez: cada uno coge las fichas cuyo id acaba en sus caracteres
+    if (body.sfx) qq = qq.or(String(body.sfx).split('').map((c: string) => 'ext_id.like.*' + c).join(','));
+    if (body.pfx) qq = qq.or(String(body.pfx).split('').map((c: string) => 'ext_id.like.' + c + '*').join(','));
+    const { data: q } = await qq.limit(body.n ?? 60);
     let saved = 0, bad = 0, blocked = false, skipped = 0;
     for (const job of q || []) {
       if (Date.now() - t0 > budget) break;
