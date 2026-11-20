@@ -48,3 +48,13 @@ Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio med
 ### Emparejado horario (`catalogo-emparejar` → `c_refresh()`)
 - Corre con `set statement_timeout = '15min'` (con los catálogos nuevos tarda ~1-2 min y el límite por defecto de 2 min se quedaba corto).
 - Ya no recalcula la categoría de todos los productos de Ahorramas, Gadis, Ametller, Alcampo y Bonpreu cada hora: el trigger `c_items_prep` ya la pone al insertar o al cambiar el nombre. `c_refresh()` solo rellena los que se hayan quedado sin categoría. Si cambias las reglas de `c_web_cat`, recalcula a mano.
+
+### Súpers nuevos (noviembre 2026)
+- **Froiz** (Galicia, Asturias, Castilla y León): `catalog-web` kind `froiz`, fichas del sitemap de supermercado.froiz.com (HTML renderizado en servidor). Crons `catalogo-froiz-w1..w3` y `catalogo-froiz-semanal`.
+- **HiperDino** (Canarias): `catalog-web` kind `hiperdino`, sin sitemap de productos: se leen sus páginas de categoría (30 productos por página, `?p=N`). Cron `catalogo-hiperdino` y `catalogo-hiperdino-semanal`.
+- Revisados y descartados (respetamos sus normas): Consum, BM y Masymas (misma plataforma; los datos solo salen por `/api/`, prohibido en su robots.txt), Carrefour (reto de Cloudflare), Eroski y Caprabo (captcha), El Corte Inglés/Hipercor (Akamai 403), Alcampo y Bonpreu (reto AWS WAF), Alimerka (los productos solo se cargan por una ruta prohibida en su robots.txt).
+
+### Categorías: retoques comunes (`c_fix_cat`)
+- Se aplica en el trigger `c_items_prep` y al final de `c_refresh()` a todos los súpers.
+- Si la web lo tiene dentro de una sección de congelados → va a Congelados (pizzas, helados, marisco, pescado, carne, verdura o platos, según `c_frozen_cat(nombre)`).
+- Además: arroz a Arroz, quesos rallados y de untar a su sitio, cremas de cacao/untables a "Cremas para untar", cápsulas de café a Café y fuet/salchichón a Embutido curado.

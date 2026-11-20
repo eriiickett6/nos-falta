@@ -1,11 +1,12 @@
 // Catálogo de varios súpers desde sus fichas públicas de producto (sitemap + JSON-LD de schema.org).
 // Solo se leen páginas que su robots.txt permite. Una ficha por segundo y por súper; si el servidor
 // responde con 403/429/503 o un reto, paramos ese súper y no insistimos.
-// Súpers: Alcampo y Bonpreu i Esclat (misma plataforma), Ahorramas, Gadis, Ametller Origen y Froiz.
+// Súpers: Alcampo y Bonpreu i Esclat (misma plataforma), Ahorramas, Gadis, Ametller Origen, Froiz e HiperDino.
+// HiperDino (Canarias) no tiene sitemap de productos: se leen sus páginas de categoría (30 productos por página).
 // Froiz no lleva JSON-LD: su ficha viene renderizada en el servidor y se lee del HTML (ruta, nombre, precio e imagen).
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
-type Cfg = { base: string, maps: string[], index?: string, re: RegExp, kind: 'ocado' | 'sfcc' | 'gadis' | 'froiz', headers?: Record<string, string> };
+type Cfg = { base: string, maps: string[], index?: string, re: RegExp, kind: 'ocado' | 'sfcc' | 'gadis' | 'froiz' | 'hiperdino', headers?: Record<string, string>, roots?: Record<string, string> };
 const S: Record<string, Cfg> = {
   alcampo: { base: 'https://www.compraonline.alcampo.es', kind: 'ocado', re: /\/products\/[^\/<\s]+\/(\d+)$/,
     maps: ['https://www.compraonline.alcampo.es/sitemaps/sitemap-products-part1.xml', 'https://www.compraonline.alcampo.es/sitemaps/sitemap-products-part2.xml'] },
@@ -19,7 +20,39 @@ const S: Record<string, Cfg> = {
     maps: [], index: 'https://www.ametllerorigen.com/sitemap_index.xml' },
   froiz: { base: 'https://supermercado.froiz.com', kind: 'froiz', re: /supermercado\.froiz\.com\/product\/(\d+)-/,
     maps: ['https://supermercado.froiz.com/sitemap.xml'] },
+  hiperdino: { base: 'https://www.hiperdino.es/c9495', kind: 'hiperdino', re: /hiperdino\.es\/c9495\/([a-z0-9-]+\/[a-z0-9-]+)\.html/, maps: [],
+    roots: { alimentacion: 'Alimentación', bebidas: 'Bebidas', bodega: 'Bodega', congelados: 'Congelados', frescos: 'Frescos', 'drogueria-y-limpieza': 'Droguería y limpieza',
+      'higiene-y-perfumeria': 'Higiene y perfumería', infantil: 'Infantil', mascotas: 'Mascotas' } },
 };
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+// HiperDino: todos los productos de una página de categoría
+function parseHiperdino(html: string, sub: string, roots: Record<string, string>) {
+  const [r, c] = sub.split('/');
+  const path = (roots[r] || cap(r.replace(/-/g, ' '))) + ' > ' + cap(c.replace(/-/g, ' '));
+  const out: any[] = [];
+  for (const blk of html.split('<li class="product-list-item').slice(1)) {
+    const id = (blk.match(/data-id="(\d+)"/) || [])[1]; if (!id) continue;
+    const url = (blk.match(/data-url="([^"]+)"/) || [])[1] || null;
+    const name = txt((blk.match(/class="description__text name">([\s\S]*?)<\/div>/) || [])[1] || '');
+    if (!name) continue;
+    const price = eur((blk.match(/price--final[\s\S]*?class="price__text[^"]*">\s*([\d.,]+)/) || [])[1]);
+    const old = eur((blk.match(/price--previous[\s\S]*?class="price__text[^"]*">\s*([\d.,]+)/) || [])[1]);
+    const img = (blk.match(/data-src="(https:\/\/cdn\.hiperdino\.es\/catalog\/product\/[^"]+)"/) || [])[1] || null;
+    let brand: string | null = null; try { brand = JSON.parse(unent((blk.match(/data-filters='([^']+)'/) || [])[1] || '{}'))?.brand?.label || null; } catch { /* */ }
+    const net = parseNet(name);
+    const loose = /\bkg\b$|al peso|granel/i.test(name) && !net.q;
+    const nq = loose ? 1 : net.q, nu = loose ? 'kg' : net.u;
+    out.push({
+      store: 'hiperdino', ext_id: id, url, name, brand: brand ? cap(brand.toLowerCase()) : null, image_url: img,
+      size_label: !loose && nq && nu ? (net.n > 1 ? net.n + ' x ' + fmt(nq / net.n, nu) : fmt(nq, nu)) : null,
+      net_qty: nq, net_unit: nu, pack_n: net.n > 1 ? net.n : null,
+      price, unit_price: price && nq && nu ? +(price / nq).toFixed(2) : null, unit: nu, loose,
+      old_price: old && price && old > price ? old : null, promo_until: null,
+      store_cat: path.toLowerCase().replace(/\s*>\s*/g, '*'), store_cat_path: path, active: price != null,
+    });
+  }
+  return out;
+}
 // palabras del enlace que delatan que no es comida, bebida, higiene ni limpieza (para no visitar esas fichas)
 const SKIP = new Set(('pantalon pantalones camiseta camisetas calcetines calcetin zapatilla zapatillas zapato zapatos sudadera pijama chaqueta abrigo vestido falda bolso mochila maleta ' +
   'juguete juguetes muneca puzzle lego consola playstation nintendo xbox televisor tv smart movil smartphone tablet portatil ordenador monitor impresora auricular auriculares altavoz cable cargador ' +
@@ -189,7 +222,23 @@ Deno.serve(async (req) => {
     const r = await get(body.url); const html = await r.text();
     const dbg: any = {};
     if (body.grep) { const rx = new RegExp(body.grep, 'g'); let m; const a: string[] = []; while ((m = rx.exec(html)) && a.length < 5) a.push(html.slice(Math.max(0, m.index - 200), m.index + 400)); dbg.grep = a; }
+    if (cfg.kind === 'hiperdino') { const its = parseHiperdino(html, idOf(body.url) || '', cfg.roots || {}); return J({ status: r.status, len: html.length, n: its.length, items: its.slice(0, 4), next: (html.match(/<link rel="next" href="([^"]+)"/) || [])[1] || null, ...dbg }); }
     return J({ status: r.status, len: html.length, item: parse(store, cfg, html, body.url, idOf(body.url) || ''), ...dbg });
+  }
+
+  if (body.action === 'seed' && cfg.kind === 'hiperdino') {
+    // subcategorías que enlaza cada sección principal
+    const subs = new Set<string>();
+    for (const r of Object.keys(cfg.roots || {})) {
+      const res = await get(cfg.base + '/' + r + '.html'); if (!res.ok) continue;
+      const h = await res.text();
+      for (const m of h.matchAll(new RegExp('c9495\\/(' + r + '\\/[a-z0-9-]+)\\.html', 'g'))) subs.add(m[1]);
+      await sleep(1500);
+    }
+    if (body.reset) await sb.from('c_queue').update({ status: 'new' }).eq('store', store);
+    const rows = [...subs].map(sub => ({ store, ext_id: 'L:' + sub + ':1', url: cfg.base + '/' + sub + '.html', status: 'new' }));
+    const { error } = await sb.from('c_queue').upsert(rows, { onConflict: 'store,ext_id', ignoreDuplicates: !body.reset });
+    return J({ ok: !error, error: error?.message, subcategorias: rows.length });
   }
 
   if (body.action === 'seed') {
@@ -233,6 +282,22 @@ Deno.serve(async (req) => {
         else if (r.status !== 200) { status = 'error'; err = 'HTTP ' + r.status; if ([202, 403, 405, 429, 503].includes(r.status)) blocked = true; }
         else {
           const html = await r.text();
+          if (cfg.kind === 'hiperdino') {
+            const sub = (job.url.match(cfg.re) || [])[1] || '';
+            const its = parseHiperdino(html, sub, cfg.roots || {});
+            if (its.length) {
+              const now = new Date().toISOString();
+              const { data: rows, error } = await sb.from('c_items').upsert(its.map(x => ({ ...x, updated_at: now })), { onConflict: 'store,ext_id' }).select('id,price,unit_price,excluded');
+              if (error) { status = 'error'; err = error.message.slice(0, 200); bad++; }
+              else {
+                const ok = (rows || []).filter((x: any) => x.price != null && !x.excluded);
+                saved += ok.length; skipped += (rows || []).length - ok.length;
+                if (ok.length) await sb.from('c_price_hist').upsert(ok.map((x: any) => ({ item_id: x.id, price: x.price, unit_price: x.unit_price })), { onConflict: 'item_id,seen_on' });
+              }
+            }
+            const nx = html.match(/<link rel="next" href="([^"]+\?p=(\d+))"/);
+            if (nx && its.length) await sb.from('c_queue').upsert({ store, ext_id: 'L:' + sub + ':' + nx[2], url: unent(nx[1]), status: 'new' }, { onConflict: 'store,ext_id' });
+          } else
           if (/challenge|captcha/i.test(html.slice(0, 3000)) && !/application\/ld\+json/.test(html) && !(cfg.kind === 'froiz' && /class="level5/.test(html))) { status = 'error'; err = 'reto'; blocked = true; }
           else {
             const it = parse(store, cfg, html, job.url, job.ext_id);
