@@ -44,3 +44,7 @@ Alcampo y Bonpreu i Esclat responden con un reto anti-robots (AWS WAF, HTTP 202)
 
 ## Ahorro real
 Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio medio de ese mismo producto (o uno casi idéntico, `c_matches.strict`, ajustado por tamaño) en los otros súpers de la zona de la casa, menos lo que se pagó. Se guarda en el gasto (`receipts.raw`: saved, ref, n, paid_unit). Si ningún otro súper lo tiene, no cuenta. `hh_savings(código)` da el total, el del mes y el detalle.
+
+### Emparejado horario (`catalogo-emparejar` → `c_refresh()`)
+- Corre con `set statement_timeout = '15min'` (con los catálogos nuevos tarda ~1-2 min y el límite por defecto de 2 min se quedaba corto).
+- Ya no recalcula la categoría de todos los productos de Ahorramas, Gadis, Ametller, Alcampo y Bonpreu cada hora: el trigger `c_items_prep` ya la pone al insertar o al cambiar el nombre. `c_refresh()` solo rellena los que se hayan quedado sin categoría. Si cambias las reglas de `c_web_cat`, recalcula a mano.
