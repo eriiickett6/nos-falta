@@ -462,6 +462,12 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 .zbanner .grow{flex:1}.zbanner small{display:block;font-weight:500;color:var(--ink-2)}
 
 /* ---------- Ofertas ---------- */
+.tile .ts{font-size:12px;color:var(--ink-3);font-weight:600;margin-top:-4px}
+.tile.tdrop .v{color:var(--good-ink)}
+.dnote{color:var(--ink-3);font-size:13px;margin:-4px 6px 10px;line-height:1.45}
+.dsince{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--good-ink);margin-top:2px}
+.dsince .slogo{width:18px;height:18px;border-radius:5px;font-size:8px;padding:1px}
+.dcard .disc{background:linear-gradient(135deg,#10B981,#059669)}
 .hscroll{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(168px,180px);gap:12px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 8px;scroll-snap-type:x mandatory}
 .hscroll::-webkit-scrollbar{display:none}
 .hscroll>.pcard{scroll-snap-align:start}
@@ -560,16 +566,17 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
         </div>
         <div class="tiles">
           <a class="tile" href="#lista"><span class="k">Falta en casa</span><span class="v num" id="tFaltan">0</span></a>
-          <a class="tile" href="#productos"><span class="k">Productos comparados</span><span class="v num" id="tProds">…</span></a>
-          <a class="tile" href="#supers"><span class="k">Precios reales</span><span class="v num" id="tPrices">…</span></a>
+          <a class="tile tdrop" href="#inicio" id="tDropsT"><span class="k">Bajadas de precio</span><span class="v num" id="tDrops">…</span><span class="ts">en los últimos 30 días</span></a>
+          <a class="tile" href="#catalogo" id="tOffT"><span class="k">Ofertas en tu zona</span><span class="v num" id="tOffers">…</span><span class="ts">productos rebajados hoy</span></a>
           <a class="tile dark" href="#familia"><span class="k">Esta semana compra</span><span class="v" id="tTurn"></span></a>
         </div>
+        <p class="gtitle" id="dropsT">Bajadas de precio <button type="button" id="dropAll">Ver todas</button></p>
+        <p class="dnote">Productos que hoy cuestan menos que hace unos días. Lo comprobamos nosotros cada día: no es el «antes» que pone el súper.</p>
+        <div class="hscroll" id="drops"></div>
         <p class="gtitle">Ofertas cerca de ti <a href="#catalogo" id="offAll">Ver todas</a></p>
         <div class="hscroll" id="offers"></div>
         <p class="gtitle">Explora por categoría</p>
         <div class="cats" id="homeCats"></div>
-        <p class="gtitle">Precios recién llegados</p>
-        <div class="group" id="latest"><div class="empty">Cargando…</div></div>
       </section>
 
       <!-- LISTA -->
@@ -869,24 +876,14 @@ function rZona(){const hh=ST.household||{};const box=$('#zonaBox');if(!box)retur
   box.replaceChildren(...kids)}
 
 /* ---------- Principal ---------- */
-async function rHomeStats(){
-  try{
-    const [p,pr,lat]=await Promise.all([
-      sb.from('products').select('id',{count:'exact',head:true}),
-      sb.from('prices').select('id',{count:'exact',head:true}),
-      sb.from('prices').select('price,unit,source,seen_at,location_name,store_products(store_id,product_id,products(id,name,brand,image_url,net_quantity,net_unit,category_id))').order('id',{ascending:false}).limit(8)]);
-    $('#tProds').textContent=(p.count??0).toLocaleString('es-ES');$('#tPrices').textContent=(pr.count??0).toLocaleString('es-ES');
-    const rows=(lat.data||[]).filter(x=>x.store_products&&x.store_products.products);
-    $('#latest').replaceChildren(...(rows.length?rows.map(x=>{const prod=x.store_products.products;return h('button',{class:'row',type:'button',style:'width:100%;text-align:left',onclick(){openProduct(prod.id)}},pic(prod.image_url),
-      h('div',{class:'grow'},h('span',{class:'t'},prod.name),h('span',{class:'s'},sName(x.store_products.store_id)+' · '+fdate(x.seen_at)+(x.location_name?' · '+x.location_name:''))),h('span',{class:'price num'},fmt(x.price)+(x.unit==='kg'?'/kg':'')))}):[h('div',{class:'empty'},'Todavía no hay precios nuevos.')]));
-  }catch(e){netError(e)}
-}
+function rHomeStats(){}
 function rZChip(){const hh=ST.household;const c=$('#zChip');if(!c)return;
   $('#zBanner').hidden=!hh||!!hh.postcode;
   c.replaceChildren(ic('i-pin'),!hh||!hh.postcode?'Elige tu zona':hh.admin?'Modo admin · todos los súpers':(hh.place||hh.postcode)+' · '+pl(visStores().length,'súper','súpers')+' cerca')}
 let offKey='';
 async function rOffers(){const ids=kStores().map(([id])=>id);const key=ids.join(',');if(key===offKey)return;offKey=key;
   const box=$('#offers');box.replaceChildren(...Array.from({length:4},()=>h('div',{class:'skel',style:'height:250px'})));
+  rDrops(ids);sb.rpc('home_stats',{p_stores:ids}).then(({data})=>{if(!data)return;$('#tDrops').textContent=nf0(data.drops);$('#tOffers').textContent=nf0(data.offers)});
   const {data,error}=await sb.rpc('c_offers',{p_stores:ids,p_lim:14});if(error){netError(error);return}
   box.replaceChildren(...((data||[]).length?data.map(kcard):[h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Hoy no hay ofertas en tus súpers.'))]))}
 $('#offAll').addEventListener('click',()=>{K.off=true;K.sort='offer';K.top=null;K.sub=null;loaded.k=0});
@@ -1421,6 +1418,38 @@ function drawCoach(){if(!CO)return;const st=COACH[CO.i];const el=st.sel.map(s=>$
     if(below)card.style.top=(r.bottom+14)+'px';else card.style.bottom=(innerHeight-r.top+14)+'px';
     card.querySelector('.btn-p').focus()},CO.i===0?350:250)}
 function coachOn(){document.addEventListener('keydown',coachKey);window.addEventListener('resize',drawCoach)}
+
+
+/* ---------- Bajadas de precio ---------- */
+const dShort=d=>new Date(d).toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+const dWhen=d=>{const n=Math.round((new Date().setHours(0,0,0,0)-new Date(d).setHours(0,0,0,0))/864e5);return n<=0?'hoy':n===1?'ayer':'el '+dShort(d)};
+function dcard(x){const c=kcard({...x,old_price:x.prev,nm:0});c.classList.add('dcard');
+  c.querySelector('.pcard-open').append(h('span',{class:'dsince'},slogo(x.store),'Bajó '+dWhen(x.since)));return c}
+async function rDrops(ids){const box=$('#drops');box.replaceChildren(...Array.from({length:4},()=>h('div',{class:'skel',style:'height:250px'})));
+  const {data,error}=await sb.rpc('c_drops',{p_stores:ids,p_lim:14,p_off:0,p_sort:'pct'});if(error){netError(error);return}
+  const it=(data&&data.items)||[];$('#dropAll').hidden=!it.length;
+  box.replaceChildren(...(it.length?it.map(dcard):[h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Esta semana no ha bajado nada en tus súpers. Lo miramos cada día.'))]))}
+function openDrops(){const root=$('#sheetRoot');const close=()=>root.replaceChildren();const ids=kStores().map(([id])=>id);
+  const D={sort:'pct',store:null,pos:0,items:[],total:0};
+  const list=h('div',{class:'group'}),more=h('button',{class:'btn btn-s btn-sm',type:'button',onclick(){load(false)}},'Ver más'),count=h('p',{class:'s',style:'margin:8px 2px'});
+  const row=x=>h('button',{class:'row',type:'button',style:'width:100%;text-align:left',onclick(){close();openItem(x.id)}},pic(x.image_url),
+    h('div',{class:'grow'},h('span',{class:'t'},x.name),h('span',{class:'s'},[sName(x.store),x.size_label,'bajó '+dWhen(x.since)].filter(Boolean).join(' · '))),
+    h('div',{class:'rp'},h('span',{class:'tag tag-g',style:'display:inline-block;margin-bottom:3px'},'−'+x.pct+'%'),h('span',{class:'price num',style:'display:block;text-align:right'},fmt(x.price)),h('s',{class:'s num',style:'display:block;text-align:right'},fmt(x.prev))));
+  async function load(reset){if(reset){D.pos=0;D.items=[];list.replaceChildren(h('div',{class:'empty'},'Cargando…'))}
+    const {data,error}=await sb.rpc('c_drops',{p_stores:D.store?[D.store]:ids,p_lim:40,p_off:D.pos,p_sort:D.sort});if(error){netError(error);return}
+    if(reset)list.replaceChildren();D.total=data.total;D.items.push(...data.items);D.pos+=data.items.length;list.append(...data.items.map(row));
+    if(!D.total)list.replaceChildren(h('div',{class:'empty'},'No hay bajadas en este súper ahora mismo.'));
+    count.textContent=pl(D.total,'producto ha bajado','productos han bajado')+' de precio en los últimos 30 días';more.hidden=D.pos>=D.total}
+  const sortSeg=h('div',{class:'seg',role:'group','aria-label':'Ordenar'},...[['pct','Más rebajado'],['new','Lo último']].map(([k,l])=>h('button',{type:'button','aria-pressed':String(D.sort===k),onclick(){D.sort=k;$$('.dsort button').forEach(b=>b.setAttribute('aria-pressed',String(b===this)));load(true)}},l)));sortSeg.classList.add('dsort');
+  const chips=h('div',{class:'chips',style:'margin:10px 0 4px'},h('button',{class:'chip',type:'button','aria-pressed':'true',onclick(){D.store=null;chips.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b===this)));load(true)}},'Todos'),
+    ...ids.map(id=>h('button',{class:'chip',type:'button','aria-pressed':'false',onclick(){D.store=id;chips.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',String(b===this)));load(true)}},slogo(id,'width:20px;height:20px;border-radius:6px;font-size:9px'),kName(id))));
+  const sheet=h('div',{class:'sheet',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),
+    h('div',{class:'sheet-head'},h('div',{style:'min-width:0'},h('h2',null,'Bajadas de precio'),h('div',{class:'sub'},'Hoy cuestan menos que hace unos días en tus súpers')),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
+    sortSeg,chips,count,list,h('div',{class:'more'},more),h('p',{class:'foot-note'},'Comparamos el precio de hoy con el más alto que hemos visto en ese mismo súper en los últimos 30 días. No contamos el «antes» que anuncia el súper.'));
+  root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));load(true)}
+$('#dropAll').addEventListener('click',openDrops);
+$('#tDropsT').addEventListener('click',e=>{e.preventDefault();$('#dropsT').scrollIntoView({behavior:'smooth',block:'start'})});
+$('#tOffT').addEventListener('click',()=>{K.off=true;K.sort='offer';K.top=null;K.sub=null;loaded.k=0});
 
 /* ---------- Supermercados ---------- */
 async function rSupers(){const {data,error}=await sb.rpc('catalog_stats');if(error){netError(error);return}

@@ -38,3 +38,6 @@ Alcampo y Bonpreu i Esclat responden con un reto anti-robots (AWS WAF, HTTP 202)
 - `profiles`: nombre libre + número de 4 cifras (ID tipo «Laura #4821», único por nombre), código postal de casa y si ya vio el tutorial.
 - Funciones (solo con sesión): `me_get`, `me_save(nombre, cp)`, `me_tutorial`, `casa_create`, `casa_join(código, miembro_sin_cuenta)`, `casa_invite(código, 'Nombre #1234')`, `invite_answer`, `casa_free_members`.
 - `members.user_id` une a cada persona de la casa con su cuenta; quien usaba la app sin cuenta conserva su casa al registrarse.
+
+## Bajadas de precio
+`c_drops_mv` (vista materializada, se recalcula cada hora con el cron `bajadas-de-precio`): productos cuyo precio de hoy es al menos un 3 % más bajo que el más alto que vimos en ese súper en los últimos 30 días (`c_price_hist`). No usa el «antes» que anuncia el súper. `c_drops(súpers, límite, desde, orden)` y `home_stats(súpers)` (bajadas y ofertas) para Inicio.
