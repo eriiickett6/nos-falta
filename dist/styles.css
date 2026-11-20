@@ -36,7 +36,7 @@ svg.i{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-widt
 .shell{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
 .side{position:sticky;top:0;height:100vh;background:var(--surface);border-right:1px solid var(--line);padding:22px 14px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
 .logo{display:flex;align-items:center;gap:10px;padding:2px 10px 22px;text-decoration:none;color:inherit}
-.logo svg{width:34px;height:34px;filter:drop-shadow(0 4px 10px rgba(242,101,42,.35));transition:transform .4s var(--spring)}
+.logo svg{width:44px;height:44px;filter:drop-shadow(0 4px 10px rgba(15,61,46,.28));transition:transform .4s var(--spring)}
 .logo:hover svg{transform:rotate(-8deg) scale(1.06)}
 .logo b{font-weight:800;font-size:21px;letter-spacing:-.03em}
 .logo b span{color:var(--accent)}
@@ -325,7 +325,7 @@ tfoot td{font-weight:800;border-bottom:0;background:var(--fill)}
 .onb-card h2{font-size:26px;font-weight:800;letter-spacing:-.035em;line-height:1.12}
 .onb-card .sub{color:var(--ink-2);font-size:15.5px;line-height:1.55;margin-top:-6px}
 .onb-brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:19px;letter-spacing:-.02em}
-.onb-brand .lg{width:36px;height:36px;filter:drop-shadow(0 8px 16px rgba(242,101,42,.35));animation:bob 3.2s ease-in-out infinite}
+.onb-brand .lg{width:76px;height:76px;filter:drop-shadow(0 12px 22px rgba(15,61,46,.32));animation:bob 3.2s ease-in-out infinite}
 .onb-brand span{color:var(--accent)}
 .onb-feats{display:grid;gap:12px}
 .onb-feat{display:flex;gap:12px;align-items:center;font-weight:700;font-size:15px}
@@ -387,6 +387,7 @@ tfoot td{font-weight:800;border-bottom:0;background:var(--fill)}
 .ticket::after{content:"";position:absolute;left:0;right:0;bottom:-11px;height:12px;background:linear-gradient(-45deg,transparent 33%,#FFFDF7 33% 66%,transparent 66%),linear-gradient(45deg,transparent 33%,#FFFDF7 33% 66%,transparent 66%);background-size:16px 24px;background-position:0 -12px}
 @keyframes tk{from{opacity:0;transform:translateY(30px) rotate(-6deg)}}
 .ticket .th{display:grid;justify-items:center;gap:2px;margin-bottom:14px;padding-bottom:12px;border-bottom:2px dashed #CFC9BB;font-size:12px;color:#6B6F76}
+.ticket .tlogo{width:46px;height:46px;margin-bottom:4px}
 .ticket .th b{font-size:18px;color:#23262B;letter-spacing:.2em}
 .tl{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px dashed #E1DBCE}
 .tl.done span:first-child{text-decoration:line-through;text-decoration-thickness:2px;text-decoration-color:#F2652A;color:#8A8F98}
@@ -458,7 +459,15 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 .savebig{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .savebig>div{background:var(--good-soft);border-radius:16px;padding:14px;display:grid;gap:2px}
 .savebig b{font-size:26px;font-weight:800;color:var(--good-ink);letter-spacing:-.03em}
-.dnote{color:var(--ink-3);font-size:13px;margin:-4px 6px 10px;line-height:1.45}
+.hist{margin-top:12px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:12px 14px;display:grid;gap:8px}
+.hist .hk{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
+.hdrop{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:14.5px}
+.hdrop s{color:var(--ink-3)}.hdrop b{color:var(--good-ink)}
+.hchart{width:100%;height:auto;color:var(--good)}
+.hchart .hl{font-size:10px;fill:var(--ink-3);font-family:var(--font)}
+.dnote .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--good);margin-right:7px;vertical-align:1px;box-shadow:0 0 0 0 color-mix(in srgb,var(--good) 60%,transparent);animation:livepulse 2s infinite}
+@keyframes livepulse{70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.dnote{color:var(--ink-2);font-size:13px;font-weight:600;margin:-4px 6px 10px;line-height:1.45}
 .dsince{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--good-ink);margin-top:2px}
 .dsince .slogo{width:18px;height:18px;border-radius:5px;font-size:8px;padding:1px}
 .dcard .disc{background:linear-gradient(135deg,#10B981,#059669)}

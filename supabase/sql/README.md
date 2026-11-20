@@ -40,7 +40,7 @@ Alcampo y Bonpreu i Esclat responden con un reto anti-robots (AWS WAF, HTTP 202)
 - `members.user_id` une a cada persona de la casa con su cuenta; quien usaba la app sin cuenta conserva su casa al registrarse.
 
 ## Bajadas de precio
-`c_drops_mv` (vista materializada, se recalcula cada hora con el cron `bajadas-de-precio`): productos cuyo precio de hoy es al menos un 3 % más bajo que el más alto que vimos en ese súper en los últimos 30 días (`c_price_hist`). No usa el «antes» que anuncia el súper. `c_drops(súpers, límite, desde, orden)` y `home_stats(súpers)` (bajadas y ofertas) para Inicio.
+`c_drops_mv` (vista materializada, se recalcula cada hora con el cron `bajadas-de-precio`): el precio de hoy es al menos un 3 % más bajo que el precio anterior en ese súper (`c_price_hist`), ese precio anterior duró al menos 3 días (no cuenta un pico de un día) y el precio bajo sigue vigente hoy (si vuelve a subir, sale de la lista en el siguiente recálculo). No usa el «antes» que anuncia el súper. `c_hist(id)` da el historial de 60 días para la ficha. `c_drops(súpers, límite, desde, orden)` y `home_stats(súpers)` (bajadas y ofertas) para Inicio.
 
 ## Ahorro real
 Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio medio de ese mismo producto (o uno casi idéntico, `c_matches.strict`, ajustado por tamaño) en los otros súpers de la zona de la casa, menos lo que se pagó. Se guarda en el gasto (`receipts.raw`: saved, ref, n, paid_unit). Si ningún otro súper lo tiene, no cuenta. `hh_savings(código)` da el total, el del mes y el detalle.
