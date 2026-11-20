@@ -454,6 +454,10 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 /* ---------- Ofertas ---------- */
 .tile .ts{font-size:12px;color:var(--ink-3);font-weight:600;margin-top:-4px}
 .tile.tdrop .v{color:var(--good-ink)}
+.tile.tsave .v{color:var(--good-ink)}
+.savebig{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.savebig>div{background:var(--good-soft);border-radius:16px;padding:14px;display:grid;gap:2px}
+.savebig b{font-size:26px;font-weight:800;color:var(--good-ink);letter-spacing:-.03em}
 .dnote{color:var(--ink-3);font-size:13px;margin:-4px 6px 10px;line-height:1.45}
 .dsince{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--good-ink);margin-top:2px}
 .dsince .slogo{width:18px;height:18px;border-radius:5px;font-size:8px;padding:1px}
