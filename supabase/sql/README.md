@@ -63,3 +63,10 @@ Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio med
 - HiperDino agrupa mucho sus categorías: si el nombre apunta a otra subcategoría de la misma sección, manda el nombre (en `c_items_prep`).
 - Los trabajadores de Ahorramas, Ametller y Gadis pasan a cada 15 min (ya tienen todo cargado; así no saturan las llamadas de pg_net).
 - `c_fix_cat` también: comida de mascotas que la web deja en una sección genérica va a Gato/Perro/Otros, y los "platos" de congelados que son pizzas o helados pasan a su sitio. HiperDino: lo que no encaja en "Frescos > Cárnicos envasados" va a Carne elaborada.
+
+### Revisión de categorías (21/11/2026)
+- **Solo comida, bebida, higiene, limpieza, bebé y mascotas**: `c_nonfood(cat)` marca como excluido todo lo de ropa, bricolaje, jardín, juguetes, papelería, automoción, granja y hogar (menaje, textil, decoración). Se aplica en el trigger `c_items_prep` y al final de `c_refresh()`.
+- **El nombre manda** (`c_fix_cat`): si el nombre empieza por el tipo de producto (yogur, pasta de dientes, champú, gel, desodorante, detergente, cerveza, vino, refresco, agua mineral, patatas fritas, arroz, zumo, leche, pizza, fideos orientales, galletas) va a su apartado aunque la web del súper lo tenga mal puesto.
+- **Pizzas**: nevera (Pizzas y masas refrigeradas) o congelador (Congelados > Pizzas) según la sección del súper o si el nombre dice congelada/ultracongelada.
+- `c_kw_cat`: arreglados falsos positivos ("sabores" ya no es jabón, "perrito" no es perro, "gelatina" no es helado, las cápsulas de vitaminas no son café, "Animals" no es mascota, "limpieza facial" no es limpieza del hogar, "pasta de dientes" no es pasta).
+- `c_refresh()` aplica `c_fix_cat` a todos los productos (antes solo a algunas secciones).
