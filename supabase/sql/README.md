@@ -62,3 +62,4 @@ Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio med
 - `c_kw_cat`: "tableta" de chocolate ya no se confunde con una tablet, los insecticidas de "Casa y jardín" no se excluyen y la "nutrición y deporte" (barritas, batidos) sí entra.
 - HiperDino agrupa mucho sus categorías: si el nombre apunta a otra subcategoría de la misma sección, manda el nombre (en `c_items_prep`).
 - Los trabajadores de Ahorramas, Ametller y Gadis pasan a cada 15 min (ya tienen todo cargado; así no saturan las llamadas de pg_net).
+- `c_fix_cat` también: comida de mascotas que la web deja en una sección genérica va a Gato/Perro/Otros, y los "platos" de congelados que son pizzas o helados pasan a su sitio. HiperDino: lo que no encaja en "Frescos > Cárnicos envasados" va a Carne elaborada.
