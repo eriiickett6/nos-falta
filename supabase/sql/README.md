@@ -70,3 +70,4 @@ Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio med
 - **Pizzas**: nevera (Pizzas y masas refrigeradas) o congelador (Congelados > Pizzas) según la sección del súper o si el nombre dice congelada/ultracongelada.
 - `c_kw_cat`: arreglados falsos positivos ("sabores" ya no es jabón, "perrito" no es perro, "gelatina" no es helado, las cápsulas de vitaminas no son café, "Animals" no es mascota, "limpieza facial" no es limpieza del hogar, "pasta de dientes" no es pasta).
 - `c_refresh()` aplica `c_fix_cat` a todos los productos (antes solo a algunas secciones).
+- Segunda pasada (21/11): quesos que algunas webs dejan en Leche van a Quesos; fiambres de pavo/pollo (lonchas, chopped, mortadela) van a Charcutería cocida y no a carne fresca (salvo si la web lo tiene en carnicería); tónicos, geles faciales y agua micelar salen de Limpieza; el membrillo sale de Higiene; helados y galletas saladas por el nombre.
