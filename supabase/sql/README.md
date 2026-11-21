@@ -71,3 +71,7 @@ Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio med
 - `c_kw_cat`: arreglados falsos positivos ("sabores" ya no es jabón, "perrito" no es perro, "gelatina" no es helado, las cápsulas de vitaminas no son café, "Animals" no es mascota, "limpieza facial" no es limpieza del hogar, "pasta de dientes" no es pasta).
 - `c_refresh()` aplica `c_fix_cat` a todos los productos (antes solo a algunas secciones).
 - Segunda pasada (21/11): quesos que algunas webs dejan en Leche van a Quesos; fiambres de pavo/pollo (lonchas, chopped, mortadela) van a Charcutería cocida y no a carne fresca (salvo si la web lo tiene en carnicería); tónicos, geles faciales y agua micelar salen de Limpieza; el membrillo sale de Higiene; helados y galletas saladas por el nombre.
+
+### Nuevo intento con cadenas grandes (21/11 tarde)
+- Alcampo y Bonpreu: su robots.txt ya permite las fichas y las primeras consultas responden bien, pero tras unas pocas peticiones su AWS WAF vuelve a pedir reto (HTTP 202). Paramos y no insistimos: sin trabajadores programados.
+- Siguen bloqueados: Carrefour y Supersol (reto de Cloudflare), Eroski y Caprabo (captcha), El Corte Inglés/Hipercor (Akamai), Consum, BM y Masymas (datos solo por /api/, prohibido), MAS (Cloudflare). Covirán publica catálogo pero sin precios.
