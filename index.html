@@ -1103,7 +1103,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
 
 
 /* ---------- Catálogo por súper ---------- */
-const KSTORES=[['mercadona','Mercadona'],['aldi','Aldi'],['dia','Dia'],['condis','Condis'],['bonarea','bonÀrea'],['ametller','Ametller Origen'],['ahorramas','Ahorramas'],['gadis','Gadis'],['froiz','Froiz'],['hiperdino','HiperDino'],['lidl','Lidl']];
+const KSTORES=[['mercadona','Mercadona'],['aldi','Aldi'],['dia','Dia'],['condis','Condis'],['bonarea','bonÀrea'],['ametller','Ametller Origen'],['ahorramas','Ahorramas'],['gadis','Gadis'],['froiz','Froiz'],['hiperdino','HiperDino'],['alcampo','Alcampo'],['bonpreu','Bonpreu i Esclat'],['lidl','Lidl']];
 const kName=id=>(KSTORES.find(x=>x[0]===id)||[id,id])[1];
 let K={store:'aldi',top:null,sub:null,q:'',off:false,sort:'rel',pos:0,tree:{},seq:0};
 const kStores=()=>{const z=zStores();const l=z?KSTORES.filter(([id])=>z.includes(id)):KSTORES;return l.length?l:KSTORES};
