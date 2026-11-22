@@ -1,6 +1,6 @@
 // Catálogo de varios súpers desde sus fichas públicas de producto (sitemap + JSON-LD de schema.org).
 // Solo se leen páginas que su robots.txt permite. Una ficha por segundo y por súper; si el servidor
-// responde con 403/429/503 o un reto, paramos ese súper y no insistimos.
+// responde con 403/429/503 o un reto, paramos ese súper y no insistimos (con backoff_h, no volvemos hasta pasadas esas horas).
 // Súpers: Alcampo y Bonpreu i Esclat (misma plataforma), Ahorramas, Gadis, Ametller Origen, Froiz e HiperDino.
 // HiperDino (Canarias) no tiene sitemap de productos: se leen sus páginas de categoría (30 productos por página).
 // Froiz no lleva JSON-LD: su ficha viene renderizada en el servidor y se lee del HTML (ruta, nombre, precio e imagen).
@@ -267,6 +267,10 @@ Deno.serve(async (req) => {
 
   if (body.action === 'crawl') {
     const t0 = Date.now(); const budget = body.ms ?? 110000; const pause = body.pause ?? 900;
+    // si este súper nos frenó hace poco, esperamos (no insistimos)
+    const pk = 'pausa_' + store;
+    const { data: pz } = await sb.from('import_config').select('value').eq('key', pk).maybeSingle();
+    if (pz && new Date(pz.value).getTime() > Date.now()) return J({ ok: true, store, paused_until: pz.value });
     let qq = sb.from('c_queue').select('*').eq('store', store).eq('status', 'new');
     // varios trabajadores a la vez: cada uno coge las fichas cuyo id acaba en sus caracteres
     if (body.sfx) qq = qq.or(String(body.sfx).split('').map((c: string) => 'ext_id.like.*' + c).join(','));
@@ -314,10 +318,12 @@ Deno.serve(async (req) => {
           }
         }
       } catch (e) { status = 'error'; err = String(e).slice(0, 300); bad++; }
+      if (blocked && cfg.kind === 'ocado') status = 'new'; // la ficha se vuelve a intentar cuando acabe la pausa
       await sb.from('c_queue').update({ status, err, last_at: new Date().toISOString(), tries: status === 'error' ? job.tries + 1 : 0 }).eq('store', store).eq('ext_id', job.ext_id);
       if (blocked) break; // si el servidor nos frena, paramos y no insistimos
       await sleep(pause);
     }
+    if (blocked && body.backoff_h) await sb.from('import_config').upsert({ key: pk, value: new Date(Date.now() + body.backoff_h * 3600e3).toISOString() }, { onConflict: 'key' });
     return J({ ok: true, store, picked: (q || []).length, saved, excluded: skipped, errors: bad, blocked, ms: Date.now() - t0 });
   }
   return J({ error: 'action' });
