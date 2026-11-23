@@ -98,3 +98,4 @@ Se puede relanzar cuando se quiera para coger precios nuevos (no hay cron puesto
 
 ## Higiene, limpieza, bebé y mascotas en «Agrupados»
 Nuevos grupos genéricos (preservativos, lubricante, champú, gel de ducha, desodorante, pasta de dientes, compresas, papel higiénico, detergente, lejía, pañales, comida de perro/gato…; `prio` 600+). `c_assign_groups` solo los aplica a productos de esas secciones (y los de comida solo a comida). Nueva subcategoría `higiene.sexual` («Preservativos y salud sexual»), la rellena `c_extra_cats()` desde `c_refresh`.
+- Trigger `c_items_aunits` (`c_items_fix_units`): en Gadis, si el nombre no dice peso/volumen, el «precio por kilo» que da la web es por unidad → se borra y el tamaño pasa a «N unidades»; si el nombre sí dice el tamaño y no cuadra, manda el nombre.
