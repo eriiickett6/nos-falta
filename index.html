@@ -509,6 +509,9 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 .hscroll>.pcard{scroll-snap-align:start}
 .disc{position:absolute;top:16px;left:16px;background:linear-gradient(135deg,#EF4444,#F97316);color:#fff;font-weight:800;font-size:12px;padding:4px 8px;border-radius:999px;box-shadow:0 4px 10px rgba(239,68,68,.35);z-index:1}
 .cbuy{display:block;font-size:11.5px;line-height:1.25;color:var(--ink-3);font-weight:500;margin-top:3px;max-width:170px;white-space:normal}
+.addbar .mic{flex:none;border:0;background:transparent;color:var(--ink-3);padding:6px;border-radius:999px;cursor:pointer}.addbar .mic.on{color:#fff;background:#EF4444;animation:pulse 1s infinite}@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(239,68,68,.25)}}
+.wdrop{position:absolute;top:16px;right:16px;z-index:1;background:var(--good,#16A34A);color:#fff;font-weight:800;font-size:11.5px;padding:4px 8px;border-radius:999px}
+.btn.on{background:var(--good-bg,#DCFCE7);color:var(--good,#15803D)}
 .disc.promo{background:linear-gradient(135deg,#7C3AED,#2563EB);box-shadow:0 4px 10px rgba(37,99,235,.35)}
 .ktools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .ktools select{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13.5px;color:var(--ink)}
@@ -595,6 +598,8 @@ body.nohouse .shell{background:none}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="logo" viewBox="0 0 40 40"><image href="img/brand/logo-192.png" width="40" height="40"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
   <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></symbol>
   <symbol id="i-bag" viewBox="0 0 24 24"><path d="M5 8h14l-1 12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
@@ -663,6 +668,7 @@ body.nohouse .shell{background:none}
           <a class="tile tsave" href="#inicio" id="tSaveT"><span class="k">Habéis ahorrado</span><span class="v num" id="tSave">0,00 €</span><span class="ts" id="tSaveS"></span></a>
           <a class="tile dark" href="#familia"><span class="k">Esta semana compra</span><span class="v" id="tTurn"></span></a>
         </div>
+        <div id="watchSec" hidden><p class="gtitle">Lo que vigiláis <span class="s" id="watchN"></span></p><p class="dnote">Pulsa la campana en cualquier producto y aquí os avisamos cuando baje de precio.</p><div class="hscroll" id="watch"></div></div>
         <p class="gtitle" id="dropsT">Bajadas de precio <button type="button" id="dropAll">Ver todas</button></p>
         <p class="dnote"><span class="live"></span>Bajadas reales, vigiladas cada día: estos productos cuestan hoy menos que la semana pasada en el mismo súper, y siguen así.</p>
         <div class="hscroll" id="drops"></div>
@@ -679,6 +685,7 @@ body.nohouse .shell{background:none}
           <svg class="i" style="color:var(--ink-3)"><use href="#i-plus"/></svg>
           <label class="sr" for="q">Añadir producto</label>
           <input id="q" type="text" placeholder="¿Qué falta? Escribe y elige…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="sugg">
+          <button type="button" class="mic" id="micBtn" aria-label="Dictar lo que falta" title="Dictar: «leche, pan y huevos»" hidden><svg class="i"><use href="#i-mic"/></svg></button>
           <div class="sugg" id="sugg" role="listbox" hidden></div>
         </div>
         <div class="chips hab" id="hab"></div>
@@ -866,6 +873,13 @@ const uP=(v,u)=>fmt(v)+(u==='kg'?'/kg':u==='l'?'/l':'');
 const shownP=(pack,up,unit,loose)=>loose?uP(up,unit):fmt(pack);
 const nrm=x=>(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 async function addCItem(it){if(!SES)return;hist('c'+it.id,it.name,{t:'c',id:it.id});try{await call('hh_add_citem',{p_code:SES.code,p_member:SES.member,p_citem:it.id,p_qty:1});toast('+ '+it.name+' en la lista');await refresh()}catch(e){}}
+// «leche, 2 barras de pan y huevos» → varias cosas a la vez (pegar o dictar)
+function splitList(t,voz){t=String(t);if(!voz&&!/[,;\n]/.test(t))return[{qty:1,name:t.trim()}];return t.split(/\s*(?:,|;|\n|\s+y\s+|\s+\+\s+)\s*/i).map(x=>x.trim()).filter(x=>x.length>1).map(x=>{const m=x.match(/^(\d{1,2})\s*(?:x\s*)?(.+)$/i);return m?{qty:Math.min(+m[1],20),name:m[2].trim()}:{qty:1,name:x}})}
+async function addMany(parts){if(!SES)return;let n=0;
+  for(const x of parts){try{const {data}=await sb.rpc('search_groups',{q:x.name,cat:null,lim:5,off:0});const g=(data||[]).find(g=>nrm(g.name).includes(nrm(x.name))||nrm(x.name).includes(nrm(g.name)));
+      if(g){hist('g'+g.id,g.name,{t:'g',id:g.id});await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:null,p_qty:x.qty,p_group:g.id})}
+      else{hist('n'+nrm(x.name),x.name,{t:'n'});await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:x.name,p_qty:x.qty})}n++}catch(e){}}
+  toast(pl(n,'cosa añadida','cosas añadidas'));await refresh()}
 async function addCustom(name){if(!SES)return;hist('n'+nrm(name),name,{t:'n'});try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:name,p_qty:1});toast(name+' añadido');await refresh()}catch(e){}}
 
 /* ---------- Habituales (se guardan en este móvil) ---------- */
@@ -998,7 +1012,18 @@ async function rOffers(){const ids=kStores().map(([id])=>id);const key=ids.join(
   const {data,error}=await sb.rpc('c_offers',{p_stores:ids,p_lim:14});if(error){netError(error);return}
   box.replaceChildren(...((data||[]).length?data.map(kcard):[h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Hoy no hay ofertas en tus súpers.'))]))}
 $('#offAll').addEventListener('click',()=>{K.off='rebaja';K.sort='offer';K.top=null;K.sub=null;loaded.k=0});
-function rHome(){rZChip();const n=meName();$('#hello').textContent=n?'Hola, '+n:'¡Hola!';$('#tFaltan').textContent=pend().length;
+/* ---------- Vigilar precios: la casa marca productos y aquí se ve cuándo bajan ---------- */
+let WATCH=[],watchAt=0;
+const isWatched=id=>WATCH.some(w=>w.id===id);
+async function loadWatch(force){if(!SES||(!force&&Date.now()-watchAt<60000))return;watchAt=Date.now();
+  const {data,error}=await sb.rpc('hh_watch_list',{p_code:SES.code});if(error)return;WATCH=data||[];drawWatch();
+  const dropped=WATCH.filter(w=>w.drop).map(w=>w.id+':'+w.price).sort().join(',');const k='nf-watchseen-'+SES.code;
+  try{if(dropped&&localStorage.getItem(k)!==dropped){const n=WATCH.filter(w=>w.drop).length;toast('🔔 '+pl(n,'producto que vigiláis ha bajado','productos que vigiláis han bajado')+' de precio');localStorage.setItem(k,dropped)}}catch(e){}}
+function drawWatch(){const sec=$('#watchSec');if(!sec)return;sec.hidden=!WATCH.length;$('#watchN').textContent=WATCH.length?'('+WATCH.length+')':'';
+  $('#watch').replaceChildren(...WATCH.map(w=>{const c=kcard(w);if(w.drop){c.prepend(h('span',{class:'wdrop'},'Bajó de '+fmt(w.price0)))}return c}))}
+async function toggleWatch(it){if(!SES)return;try{const on=await call('hh_watch_toggle',{p_code:SES.code,p_item:it.id});
+  toast(on?'🔔 Os avisaremos si '+it.name+' baja de precio':'Ya no vigiláis '+it.name);await loadWatch(true)}catch(e){}}
+function rHome(){rZChip();loadWatch();const n=meName();$('#hello').textContent=n?'Hola, '+n:'¡Hola!';$('#tFaltan').textContent=pend().length;
   const t=ST.household?.turn;$('#tTurn').textContent=!t?'Sin decidir':(SES&&t===SES.member?'Te toca a ti':nameOf(t));
   $('#homeCats').replaceChildren(...CATS.filter(c=>!c.parent_id).map(c=>h('button',{class:'cat',type:'button',onclick(){P.cat=c.id;location.hash='productos';loadProducts(true)}},c.name)))}
 $('#homeQ').addEventListener('keydown',e=>{if(e.key==='Enter'){$('#pq').value=e.target.value;P.q=e.target.value.trim();location.hash='productos';loadProducts(true)}});
@@ -1185,7 +1210,7 @@ function kDiff(a,b){
   if(!same&&a.unit_price!=null&&b.unit_price!=null&&a.unit&&a.unit===b.unit){va=a.unit_price;vb=b.unit_price;by=kUnit(a.unit)}
   const d=r2(vb-va);if(Math.abs(d)<0.005)return h('span',{class:'diff'},'Mismo precio');
   return h('span',{class:'diff '+(d<0?'good':'bad')},fmt(Math.abs(d))+by+(d<0?' más barato':' más caro')+' ('+Math.round(Math.abs(d)/va*100)+'%)')}
-async function openItem(id){const root=$('#sheetRoot');
+async function openItem(id){const root=$('#sheetRoot');loadWatch();
   const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
   const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando en otros supermercados…'));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
@@ -1209,7 +1234,8 @@ async function openItem(id){const root=$('#sheetRoot');
           !m.loose&&m.unit_price!=null?h('span',{class:'s num',style:'display:block;text-align:right'},fmt(m.unit_price)+kUnit(m.unit)):null,kDiff(it,m))))):
         h('div',{class:'group'},h('div',{class:'empty'},KMODE==='strict'&&all.length?'No hay uno casi idéntico. Prueba «Parecido».':'Aún no lo hemos encontrado en otro súper.')),
       h('p',{class:'foot-note'},KMODE==='strict'?'Casi idéntico: mismo tipo, misma variedad y casi el mismo tamaño (±5%).':'Parecido: mismo tipo y variedad, tamaño parecido (±30%). Si el tamaño cambia, comparamos el precio por kilo o litro.'),
-      h('div',{style:'display:flex;gap:10px;margin-top:14px'},h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addCItem(it);added=true;draw()}},added?'Añadido ✓ · añadir otro':'Añadir a mi lista')));
+      h('div',{style:'display:flex;gap:10px;margin-top:14px'},h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addCItem(it);added=true;draw()}},added?'Añadido ✓ · añadir otro':'Añadir a mi lista'),
+        SES?h('button',{class:'btn btn-s'+(isWatched(it.id)?' on':''),type:'button','aria-pressed':String(isWatched(it.id)),title:'Avisarme si baja de precio',async onclick(){await toggleWatch(it);draw()}},ic('i-bell'),isWatched(it.id)?'Vigilando':'Avisar si baja'):null));
     sheet.querySelector('.x').focus()}
   draw()}
 
@@ -1217,17 +1243,29 @@ async function openItem(id){const root=$('#sheetRoot');
 const q=$('#q'),sg=$('#sugg');let hl=0,sT,sSeq=0;
 q.addEventListener('input',()=>{clearTimeout(sT);sT=setTimeout(sugg,250)});
 async function sugg(){const t=q.value.trim();if(!t){sg.hidden=true;q.setAttribute('aria-expanded','false');return}
-  const seq=++sSeq;const [gr,{data,error}]=await Promise.all([sb.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sb.rpc('search_products',{q:t,cat:null,store:null,only_priced:false,lim:5,off:0})]);if(seq!==sSeq)return;if(error){netError(error);return}
+  const parts=splitList(t);
+  if(parts.length>1){hl=0;const b=h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){q.value='';sg.hidden=true;addMany(parts)}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},'Añadir '+parts.length+' cosas'),h('span',{class:'s'},parts.map(x=>(x.qty>1?x.qty+'× ':'')+x.name).join(', '))));
+    b.classList.add('hl');sg.replaceChildren(b);sg.hidden=false;q.setAttribute('aria-expanded','true');return}
+  const ks=kStores().map(([id])=>id);
+  const seq=++sSeq;const [gr,ci]=await Promise.all([sb.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sb.rpc('c_list2',{p_store:ks.length===1?ks[0]:null,p_cat:null,p_q:t,p_lim:12,p_off:0,p_sort:'rel',p_offers:false,p_deal:null})]);if(seq!==sSeq)return;if(gr.error){netError(gr.error);return}
+  const KS=new Set(ks);const data=((ci.data&&ci.data.items)||[]).filter(x=>!KS.size||KS.has(x.store)).slice(0,5);
   const nq=nrm(t);const gs=(gr.data||[]).filter(g=>nrm(g.name).includes(nq)).slice(0,3);
   hl=0;const bs=[...gs.map(g=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addGroup(g);q.value='';sg.hidden=true}},pic(g.image_url),
-    h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},g.name+' · cualquier marca'),h('span',{class:'s'},pl(Number(g.n_products),'producto','productos')+' en '+pl(Number(g.n_stores),'súper','súpers'))),g.best_unit_price!=null?h('span',{class:'s num'},'desde '+shownP(g.best_price,g.best_unit_price,g.best_unit,g.best_loose)):null)),...(data||[]).map(p=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addProduct(p);q.value='';sg.hidden=true}},pic(p.image_url),
-    h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},p.name),h('span',{class:'s'},[p.brand,p.quantity_label].filter(Boolean).join(' · '))),p.best_price!=null?h('span',{class:'s num'},'desde '+fmt(p.best_price)):null))];
+    h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},g.name+' · cualquier marca'),h('span',{class:'s'},pl(Number(g.n_products),'producto','productos')+' en '+pl(Number(g.n_stores),'súper','súpers'))),g.best_unit_price!=null?h('span',{class:'s num'},'desde '+shownP(g.best_price,g.best_unit_price,g.best_unit,g.best_loose)):null)),...data.map(p=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addCItem(p);q.value='';sg.hidden=true}},pic(p.image_url),
+    h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},p.name),h('span',{class:'s'},[sName(p.store),p.size_label].filter(Boolean).join(' · '))),p.price!=null?h('span',{class:'s num'},fmt(p.price)):null))];
   bs.push(h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addCustom(t);q.value='';sg.hidden=true}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow'},'Añadir «'+t+'» sin buscar')));
   bs[0].classList.add('hl');sg.replaceChildren(...bs);sg.hidden=false;q.setAttribute('aria-expanded','true')}
 q.addEventListener('keydown',e=>{const bs=[...sg.querySelectorAll('button')];
   if((e.key==='ArrowDown'||e.key==='ArrowUp')&&bs.length){e.preventDefault();hl=(hl+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length;bs.forEach((b,i)=>b.classList.toggle('hl',i===hl))}
   else if(e.key==='Enter'){e.preventDefault();if(bs[hl])bs[hl].click()}else if(e.key==='Escape')sg.hidden=true});
 q.addEventListener('blur',()=>setTimeout(()=>{sg.hidden=true},150));
+// dictado por voz (Chrome/Android/Safari): «leche, dos barras de pan y huevos»
+(()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;const b=$('#micBtn');if(!SR||!b)return;b.hidden=false;let rec=null;
+  const NUM={un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8,nueve:9,diez:10,doce:12};
+  b.addEventListener('click',()=>{if(rec){rec.stop();return}rec=new SR();rec.lang='es-ES';rec.interimResults=false;rec.maxAlternatives=1;b.classList.add('on');
+    rec.onresult=e=>{const t=e.results[0][0].transcript.replace(/\b(un|una|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez|doce)\b/gi,w=>String(NUM[w.toLowerCase()]));
+      const parts=splitList(t,true);if(parts.length>1)addMany(parts);else{q.value=t;q.focus();sugg()}};
+    rec.onerror=()=>toast('No te he entendido. Prueba otra vez.');rec.onend=()=>{rec=null;b.classList.remove('on')};rec.start()})})();
 const who=id=>SES&&id===SES.member?'ti':nameOf(id);
 function itemMenu(i){sheetForm(i.name,[
     h('label',{class:'checkline'},h('input',{type:'checkbox',name:'u',checked:!!i.urgent}),'Urgente: hace falta ya'),
