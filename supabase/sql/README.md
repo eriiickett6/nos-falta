@@ -92,3 +92,9 @@ Se puede relanzar cuando se quiera para coger precios nuevos (no hay cron puesto
 - El trigger `c_items_zdeal` pone una marca provisional y `c_deals_refresh()` (dentro de `c_refresh`, cada hora) la confirma con el historial.
 - `c_drops_mv` (Bajadas de precio): solo si hoy está ≥3 % por debajo del mínimo de los 30 días anteriores (y había al menos 3 días de historial).
 - La app muestra «Rebajas» y «2x1 y 2ª unidad» por separado; las API devuelven `deal_old` como `old_price`.
+
+## Comparar precios: el más parecido en tamaño
+`compare_groups` elige en cada súper el producto del grupo con tamaño a ±25 % de la mediana del grupo y, entre esos, el más barato por kilo/litro (si no hay ninguno parecido, el de tamaño más cercano, marcado `approx`). `compare_citems` prioriza equivalentes con tamaño a ±25 % del original. Ambas devuelven `size_label` para enseñar qué comprar. La app solo muestra en el comparador los súpers con catálogo (`KSTORES`).
+
+## Higiene, limpieza, bebé y mascotas en «Agrupados»
+Nuevos grupos genéricos (preservativos, lubricante, champú, gel de ducha, desodorante, pasta de dientes, compresas, papel higiénico, detergente, lejía, pañales, comida de perro/gato…; `prio` 600+). `c_assign_groups` solo los aplica a productos de esas secciones (y los de comida solo a comida). Nueva subcategoría `higiene.sexual` («Preservativos y salud sexual»), la rellena `c_extra_cats()` desde `c_refresh`.

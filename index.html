@@ -508,6 +508,7 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 .hscroll::-webkit-scrollbar{display:none}
 .hscroll>.pcard{scroll-snap-align:start}
 .disc{position:absolute;top:16px;left:16px;background:linear-gradient(135deg,#EF4444,#F97316);color:#fff;font-weight:800;font-size:12px;padding:4px 8px;border-radius:999px;box-shadow:0 4px 10px rgba(239,68,68,.35);z-index:1}
+.cbuy{display:block;font-size:11.5px;line-height:1.25;color:var(--ink-3);font-weight:500;margin-top:3px;max-width:170px;white-space:normal}
 .disc.promo{background:linear-gradient(135deg,#7C3AED,#2563EB);box-shadow:0 4px 10px rgba(37,99,235,.35)}
 .ktools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
 .ktools select{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:700;font-size:13.5px;color:var(--ink)}
@@ -725,7 +726,7 @@ body.nohouse .shell{background:none}
         <div class="group" id="cmpRank"><div class="empty">Añade cosas a tu lista y aquí verás dónde te sale más barata.</div></div>
         <p class="gtitle">Precio de cada producto</p>
         <div class="tw"><table id="cmpTable"></table></div>
-        <p class="foot-note">Usamos el último precio real de cada súper. «—» aún no lo tenemos · «*» a ese súper le faltan precios de tu lista · «≈» no hay uno casi idéntico y usamos el más parecido.</p>
+        <p class="foot-note">Usamos el último precio real de cada súper. «—» aún no lo tenemos · «*» a ese súper le faltan precios de tu lista · «≈» no hay uno igual y usamos el más parecido en tamaño y precio. Debajo de cada precio ves qué producto comprar.</p>
       </section>
 
       <!-- FAMILIA Y GASTOS -->
@@ -1253,9 +1254,10 @@ async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic||i.ci
   const pids=its.filter(i=>!i.generic&&i.pid).map(i=>i.pid),gids=its.filter(i=>i.generic).map(i=>i.gid),cids=its.filter(i=>i.cid&&!i.pid).map(i=>i.cid);
   const seq=++cmpSeq;const [a,b,c]=await Promise.all([pids.length?sb.rpc('compare_prices',{pids}):{data:[]},gids.length?sb.rpc('compare_groups',{gids}):{data:[]},cids.length?sb.rpc('compare_citems',{cids}):{data:[]}]);if(seq!==cmpSeq)return;if(a.error||b.error||c.error){netError(a.error||b.error||c.error);return}
   const M={};for(const r of a.data){(M['p:'+r.product_id]=M['p:'+r.product_id]||{})[r.store_id]=r}for(const r of b.data){(M['g:'+r.group_id]=M['g:'+r.group_id]||{})[r.store_id]=r}for(const r of c.data){(M['c:'+r.c_item_id]=M['c:'+r.c_item_id]||{})[r.store_id]=r}
-  const vis=new Set(visStores().map(s=>s.id));
+  const KS=new Set(KSTORES.map(x=>x[0]));const cmpStores=()=>{const l=visStores().filter(s=>KS.has(s.id));return l.length?l:STORES.filter(s=>KS.has(s.id))};
+  const vis=new Set(cmpStores().map(s=>s.id));
   const best={};for(const i of its){const vals=Object.entries(M[ik(i)]||{}).filter(([k])=>vis.has(k)).map(([,v])=>v).sort((a,b)=>a.price-b.price);best[i.id]=vals[0]||null}
-  const VS=visStores();
+  const VS=cmpStores();
   const tots=VS.map(s=>{let t=0,miss=0;for(const i of its){const r=(M[ik(i)]||{})[s.id];if(r)t+=r.price*i.qty;else miss++}return{s,t:r2(t),miss}}).sort((a,b)=>a.miss-b.miss||a.t-b.t);
   let mix=0,mixMiss=0;for(const i of its){if(best[i.id])mix+=best[i.id].price*i.qty;else mixMiss++}mix=r2(mix);
   const top=tots[0];const max=Math.max(...tots.map(t=>t.t),1);
@@ -1278,7 +1280,7 @@ async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic||i.ci
       h('div',{class:'cols'},...[pair.a,pair.b].map(s=>h('div',{class:'col'},h('b',null,slogo(s.id,'width:28px;height:28px;font-size:11px;border-radius:8px'),s.name),...(pair.where[s.id]||[]).map(n=>h('span',null,n)))))))}
   else P.replaceChildren();
   T.replaceChildren(h('thead',null,h('tr',null,h('th',null,'Producto'),...VS.map(s=>h('th',null,s.name)))),
-    h('tbody',null,...its.map(i=>{const m=M[ik(i)]||{};return h('tr',null,h('td',null,h('b',null,i.name),i.qty>1?' ×'+i.qty:'',i.generic?h('span',{class:'gmeta',style:'display:block;font-size:12.5px;color:var(--ink-3);font-weight:400'},'cualquier marca'):null),...VS.map(s=>{const r=m[s.id];return h('td',{class:!r?'na':(best[i.id]&&best[i.id].store_id===s.id?'min':''),title:r?(r.approx?'Parecido: ':'')+(r.product_name?r.product_name+' · ':'')+fdate(r.seen_at):''},r?(r.approx?'≈ ':'')+fmt(r2(r.price*i.qty)):'—')}))})),
+    h('tbody',null,...its.map(i=>{const m=M[ik(i)]||{};return h('tr',null,h('td',null,h('b',null,i.name),i.qty>1?' ×'+i.qty:'',i.generic?h('span',{class:'gmeta',style:'display:block;font-size:12.5px;color:var(--ink-3);font-weight:400'},'cualquier marca'):null),...VS.map(s=>{const r=m[s.id];return h('td',{class:!r?'na':(best[i.id]&&best[i.id].store_id===s.id?'min':''),title:r?(r.approx?'Parecido: ':'')+(r.product_name?r.product_name+' · ':'')+fdate(r.seen_at):''},r?[h('b',{class:'num'},(r.approx?'≈ ':'')+fmt(r2(r.price*i.qty))),r.product_name?h('span',{class:'cbuy'},r.product_name+(r.size_label?' · '+r.size_label:'')):null]:'—')}))})),
     h('tfoot',null,h('tr',null,h('td',null,'Total'),...VS.map(s=>{const t=tots.find(x=>x.s.id===s.id);return h('td',null,t.miss===its.length?'—':fmt(t.t)+(t.miss?'*':''))}))));
 }
 
