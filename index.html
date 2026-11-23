@@ -881,7 +881,13 @@ const CHAIN={mercadona:'Mercadona',lidl:'Lidl',aldi:'Aldi',bonarea:'bonÀrea',co
 const CCOL={aldi:'#2563EB',bonarea:'#DC2626',mercadona:'#059669',condis:'#E11D48',lidl:'#EAB308',carrefour:'#4F46E5',dia:'#EF4444',alcampo:'#DB2777',bonpreu:'#EA580C',ahorramas:'#16A34A',gadis:'#F59E0B',ametller:'#65A30D',froiz:'#C62D2D',hiperdino:'#0EA5E9'};
 const BRANDRE=[['mercadona',/mercadona/i],['lidl',/\blidl\b/i],['aldi',/\baldi\b/i],['bonarea',/bon\s*[àa]rea/i],['condis',/condis/i],['carrefour',/carrefour/i],['dia',/^(dia|dia\s*%|dia market|dia maxi|la plaza de dia|cl[aà]rel)\b/i],['alcampo',/alcampo|simply|sabeco/i],['bonpreu',/bonpreu|esclat/i],['ahorramas',/ahorramas/i],['gadis',/\bgadis\b/i],['ametller',/ametller/i],['froiz',/froiz/i],['hiperdino',/hiper\s*dino/i]];
 const ADMIN_CP='00000';
-const zStores=()=>{const hh=ST.household;if(!hh||hh.admin)return null;if(hh.stores&&hh.stores.length)return hh.stores;return ZAUTO&&ZAUTO.cp===hh.postcode&&ZAUTO.ids.length?ZAUTO.ids:null};
+// cadenas regionales: solo en estas provincias (2 primeras cifras del código postal). Sirve de red si el mapa no responde.
+const REGION={hiperdino:['35','38'],ahorramas:['28','45','19','16','13','02'],gadis:['15','27','32','36','24','49','47','37','34','05','09','40'],
+  froiz:['15','27','32','36','24','49','47','37','34','09','28'],ametller:['08','17','25','43'],bonpreu:['08','17','25','43'],condis:['08','17','25','43'],bonarea:['08','17','25','43','22','50','44','31']};
+const inRegion=(id,cp)=>!REGION[id]||!cp||REGION[id].includes(String(cp).slice(0,2));
+const zStores=()=>{const hh=ST.household;if(!hh||hh.admin)return null;if(hh.stores&&hh.stores.length)return hh.stores;
+  if(ZAUTO&&ZAUTO.cp===hh.postcode&&ZAUTO.ids.length)return ZAUTO.ids;
+  return hh.postcode?STORES.map(x=>x.id).filter(id=>inRegion(id,hh.postcode)):null};
 // casas con código postal pero sin súpers guardados: los calculamos con el mapa y los guardamos
 let ZAUTO=null,zBusy=false;
 async function ensureZone(){const hh=ST.household;if(!SES||!hh||hh.admin||!hh.postcode||(hh.stores&&hh.stores.length)||zBusy||(ZAUTO&&ZAUTO.cp===hh.postcode))return;
