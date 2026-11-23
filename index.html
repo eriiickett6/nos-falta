@@ -824,7 +824,8 @@ let STORES=[],SM={},CATS=[],CN={};
 async function loadStatic(){
   const [s,c]=await Promise.all([sb.from('stores').select('*'),sb.from('categories').select('*').order('sort')]);
   if(s.error||c.error)throw s.error||c.error;
-  STORES=s.data;SM=Object.fromEntries(STORES.map(x=>[x.id,x]));CATS=c.data;CN=Object.fromEntries(CATS.map(x=>[x.id,x.name]));
+  // de momento solo enseñamos los súpers de los que tenemos productos y precios
+  STORES=s.data.filter(x=>KSTORES.some(([k])=>k===x.id));SM=Object.fromEntries(STORES.map(x=>[x.id,x]));CATS=c.data;CN=Object.fromEntries(CATS.map(x=>[x.id,x.name]));
 }
 const sName=id=>SM[id]?.name||id;
 const abbr=id=>sName(id).slice(0,2);
@@ -899,10 +900,12 @@ const kmFmt=k=>k<1?Math.max(10,Math.round(k*100)*10)+' m':(Math.round(k*10)/10).
 const hav=(a,b,c,d)=>{const r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 12742*Math.asin(Math.sqrt(x))};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const dirUrl=x=>'https://www.google.com/maps/dir/?api=1&destination='+x.lat+','+x.lon;
+// las tiendas de cadenas sin catálogo (Carrefour, Bonpreu...) se guardan en la caché pero no se enseñan
+const onlyKnown=d=>{if(d&&d.shops)d.shops=d.shops.filter(x=>SM[x.store]);return d};
 async function nearData(cp){
   const {data,error}=await sb.rpc('near_get',{p_cp:cp});if(error)throw error;if(!data)return null;
-  if(data.shops){if(data.stale)fetchShops(Object.assign({},data,{shops:null}),cp).catch(()=>{});return data}
-  return fetchShops(data,cp)}
+  if(data.shops){if(data.stale)fetchShops(Object.assign({},data,{shops:null}),cp).catch(()=>{});return onlyKnown(data)}
+  return onlyKnown(await fetchShops(data,cp))}
 async function fetchShops(data,cp){
   // primera vez con este código postal: lo pregunta el navegador a OpenStreetMap y lo guardamos para los demás
   // solo las cadenas que nos interesan (por marca o por nombre): la consulta es pequeña y rápida
