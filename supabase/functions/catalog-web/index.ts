@@ -24,6 +24,22 @@ const S: Record<string, Cfg> = {
     roots: { alimentacion: 'Alimentación', bebidas: 'Bebidas', bodega: 'Bodega', congelados: 'Congelados', frescos: 'Frescos', 'drogueria-y-limpieza': 'Droguería y limpieza',
       'higiene-y-perfumeria': 'Higiene y perfumería', infantil: 'Infantil', mascotas: 'Mascotas' } },
 };
+// Promos de varias unidades (2x1, 3x2, 2ª unidad al 50%, 3 por 5 €...). Solo cuenta si el súper lo pone escrito en la zona de la promo.
+function promoOf(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = String(raw).replace(/<[^>]+>/g, ' ').replace(/&ordf;/g, 'ª').replace(/&ordm;/g, 'º').replace(/&euro;/g, '€').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ');
+  let m = t.match(/(?:^|[^\w.,])([2-5])\s*[xX×]\s*([1-4])(?![\w.,]|\s*(?:cl|ml|gr?|kg|l|uds?|unidades|latas|botellas|bricks)\b)/);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/ll[eé]va(?:te)?\s*([2-5])\s*(?:y\s*)?paga\s*([1-4])/i);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/(?:([23])\s*[ªaº]\.?|segunda|tercera)\s*(?:ud\.?|unid\.?|unidad|unitat)\s*(gratis|(?:al|a|con\s+un|con|-)?\s*-?\s*(\d{1,3})\s*%)/i);
+  if (m) { const k = m[1] || (/tercera/i.test(m[0]) ? '3' : '2'); if (/gratis/i.test(m[2])) return k + 'ª unidad gratis'; const v = +m[3]; if (v > 0 && v <= 100) return k + 'ª unidad al ' + v + '%'; }
+  m = t.match(/-?\s*(\d{1,3})\s*%\s*(?:dto\.?|descuento)?\s*(?:en\s+)?(?:la\s+)?([23])\s*[ªaº]\s*(?:ud|unid|unidad|unitat)/i);
+  if (m && +m[1] > 0 && +m[1] <= 100) return m[2] + 'ª unidad al ' + m[1] + '%';
+  m = t.match(/\b([2-6])\s*(?:uds?\.?|unidades)?\s*por\s*(\d+[.,]\d{2})\s*€/i);
+  if (m) return m[1] + ' por ' + m[2].replace('.', ',') + ' €';
+  return null;
+}
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 // HiperDino: todos los productos de una página de categoría
 function parseHiperdino(html: string, sub: string, roots: Record<string, string>) {
@@ -47,7 +63,7 @@ function parseHiperdino(html: string, sub: string, roots: Record<string, string>
       size_label: !loose && nq && nu ? (net.n > 1 ? net.n + ' x ' + fmt(nq / net.n, nu) : fmt(nq, nu)) : null,
       net_qty: nq, net_unit: nu, pack_n: net.n > 1 ? net.n : null,
       price, unit_price: price && nq && nu ? +(price / nq).toFixed(2) : null, unit: nu, loose,
-      old_price: old && price && old > price ? old : null, promo_until: null,
+      old_price: old && price && old > price ? old : null, promo_until: null, promo_text: promoOf(blk.replace(/class="description__text name">[\s\S]*?<\/div>/, '')),
       store_cat: path.toLowerCase().replace(/\s*>\s*/g, '*'), store_cat_path: path, active: price != null,
     });
   }
@@ -115,7 +131,7 @@ function parseFroiz(store: string, html: string, url: string, id: string) {
   const perKg = /class="units"[^>]*>\s*<span[^>]*>\s*\/\s*(kg|l)\b/i.exec(pb);
   const img = (html.match(/src="(https:\/\/[^"]+)"\s+class="imageDetail/) || [])[1] || null;
   const path = crumbs.filter(x => x.l < 5).map(x => x.t).join(' > ') || null;
-  return { name, price, old, img, path, unitPrice: perKg ? price : null, unit: perKg ? perKg[1].toLowerCase() : null, perKg: !!perKg };
+  return { promo: promoOf(blk.slice(blk.indexOf('</') + 2)), name, price, old, img, path, unitPrice: perKg ? price : null, unit: perKg ? perKg[1].toLowerCase() : null, perKg: !!perKg };
 }
 
 function parse(store: string, cfg: Cfg, html: string, url: string, id: string) {
@@ -130,7 +146,7 @@ function parse(store: string, cfg: Cfg, html: string, url: string, id: string) {
       size_label: f.perKg ? null : (net_qty && net_unit ? (net.n > 1 ? net.n + ' x ' + fmt(net_qty / net.n, net_unit) : fmt(net_qty, net_unit)) : null),
       net_qty, net_unit, pack_n: net.n > 1 ? net.n : null,
       price: f.price, unit_price: f.unitPrice ?? (f.price && net_qty && net_unit ? +(f.price / net_qty).toFixed(2) : null), unit: f.unit ?? net_unit, loose: f.perKg,
-      old_price: f.old && f.price && f.old > f.price ? f.old : null, promo_until: null,
+      old_price: f.old && f.price && f.old > f.price ? f.old : null, promo_until: null, promo_text: f.promo,
       store_cat: f.path ? f.path.toLowerCase().replace(/\s*>\s*/g, '*').slice(0, 300) : null, store_cat_path: f.path,
       active: f.price != null,
     };
@@ -145,7 +161,7 @@ function parse(store: string, cfg: Cfg, html: string, url: string, id: string) {
   let img: string | null = Array.isArray(ld.image) ? ld.image[0] : (typeof ld.image === 'string' ? ld.image : null);
   if (img && img.startsWith('/')) img = cfg.base + img;
   let size: string | null = ld.size || null;
-  let path: string | null = null, unit_price: number | null = null, unit: string | null = null, old: number | null = null;
+  let path: string | null = null, unit_price: number | null = null, unit: string | null = null, old: number | null = null, promo: string | null = null;
 
   if (cfg.kind === 'ocado') {
     const k = html.indexOf('window.__QUERY_INITIAL_STATE__=');
@@ -169,6 +185,7 @@ function parse(store: string, cfg: Cfg, html: string, url: string, id: string) {
     const bc = lds.find(x => x && x['@type'] === 'BreadcrumbList');
     if (bc?.itemListElement) path = bc.itemListElement.map((e: any) => e?.item?.name || e?.name).filter(Boolean).join(' > ');
     if (!path) { const b = [...html.matchAll(/class="breadcrumb-item[^"]*"[\s\S]{0,300}?<a[^>]*>\s*([^<]{2,60}?)\s*<\/a>/g)].map(m => unent(m[1]).trim()); if (b.length) path = b.join(' > '); }
+    const pk = html.indexOf('class="promotions"'); if (pk >= 0) promo = promoOf(html.slice(pk, pk + 1500));
     const lp = html.match(/class="strike-through[^"]*"[\s\S]{0,300}?content="([\d.]+)"/);
     if (lp) old = num(lp[1]);
     const up = html.match(/([\d]+[.,]\d{2})\s*(?:&euro;|€)\s*\/\s*(kg|kilo|l|litro)\b/i);
@@ -181,6 +198,7 @@ function parse(store: string, cfg: Cfg, html: string, url: string, id: string) {
       if (p.price_kilo_litre != null) { unit_price = num(p.price_kilo_litre); unit = /litro/i.test(p.price_kilo_litre_suffix || '') ? 'l' : 'kg'; }
       const op = p.price_before ?? p.previous_price ?? p.old_price ?? p.crossed_price;
       if (op) old = num(op);
+      promo = promoOf(Object.entries(p).filter(([k]) => /promo|offer|oferta|discount|label/i.test(k)).map(([, v]) => typeof v === 'string' ? v : JSON.stringify(v)).join(' '));
     }
     const bc = lds.find(x => x && x['@type'] === 'BreadcrumbList');
     if (bc?.itemListElement) path = bc.itemListElement.map((e: any) => e?.item?.name || e?.name).filter(Boolean).join(' > ');
@@ -201,7 +219,7 @@ function parse(store: string, cfg: Cfg, html: string, url: string, id: string) {
     size_label: net_qty && net_unit ? (net.n > 1 ? net.n + ' x ' + fmt(net_qty / net.n, net_unit) : fmt(net_qty, net_unit)) : (size || null),
     net_qty, net_unit, pack_n: net.n > 1 ? net.n : null,
     price, unit_price, unit, loose,
-    old_price: old && price && old > price ? old : null, promo_until: null,
+    old_price: old && price && old > price ? old : null, promo_until: null, promo_text: promo,
     store_cat: path ? path.toLowerCase().replace(/\s*>\s*/g, '*') .slice(0, 300) : null, store_cat_path: path,
     active: price != null,
   };
@@ -253,7 +271,7 @@ Deno.serve(async (req) => {
         seen.add(id);
         let slug = loc.split('/').filter(Boolean).slice(-2).join('-').toLowerCase();
         try { slug = decodeURIComponent(slug); } catch { /* */ }
-        slug = slug.normalize('NFD').replace(/[̀-ͯ]/g, '');
+        slug = slug.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         if (slug.split(/[^a-z0-9]+/).some(w => SKIP.has(w))) { skipped++; continue; }
         rows.push({ store, ext_id: id, url: loc, status: 'new' });
       }

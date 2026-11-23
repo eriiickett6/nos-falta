@@ -11,6 +11,22 @@ const num = (s: string) => parseFloat(s.replace(/\./g, '').replace(',', '.'));
 const unent = (s: string) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>');
 const human = (slug: string) => { const t = slug.replace(/-/g, ' ').trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
 
+// Promos de varias unidades (2x1, 3x2, 2ª unidad al 50%, 3 por 5 €...). Solo cuenta si el súper lo pone escrito en la zona de la promo.
+function promoOf(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = String(raw).replace(/<[^>]+>/g, ' ').replace(/&ordf;/g, 'ª').replace(/&ordm;/g, 'º').replace(/&euro;/g, '€').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ');
+  let m = t.match(/(?:^|[^\w.,])([2-5])\s*[xX×]\s*([1-4])(?![\w.,]|\s*(?:cl|ml|gr?|kg|l|uds?|unidades|latas|botellas|bricks)\b)/);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/ll[eé]va(?:te)?\s*([2-5])\s*(?:y\s*)?paga\s*([1-4])/i);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/(?:([23])\s*[ªaº]\.?|segunda|tercera)\s*(?:ud\.?|unid\.?|unidad|unitat)\s*(gratis|(?:al|a|con\s+un|con|-)?\s*-?\s*(\d{1,3})\s*%)/i);
+  if (m) { const k = m[1] || (/tercera/i.test(m[0]) ? '3' : '2'); if (/gratis/i.test(m[2])) return k + 'ª unidad gratis'; const v = +m[3]; if (v > 0 && v <= 100) return k + 'ª unidad al ' + v + '%'; }
+  m = t.match(/-?\s*(\d{1,3})\s*%\s*(?:dto\.?|descuento)?\s*(?:en\s+)?(?:la\s+)?([23])\s*[ªaº]\s*(?:ud|unid|unidad|unitat)/i);
+  if (m && +m[1] > 0 && +m[1] <= 100) return m[2] + 'ª unidad al ' + m[1] + '%';
+  m = t.match(/\b([2-6])\s*(?:uds?\.?|unidades)?\s*por\s*(\d+[.,]\d{2})\s*€/i);
+  if (m) return m[1] + ' por ' + m[2].replace('.', ',') + ' €';
+  return null;
+}
 function parseNet(t: string): { q: number | null, u: string | null, n: number } {
   const s = t.toLowerCase();
   const pk = s.match(/(\d{1,2})\s*x\s*(\d+(?:[.,]\d+)?)\s*(kg|g|gr|l|ml|cl)\b/);
@@ -60,7 +76,7 @@ function parse(html: string, url: string) {
     size_label: net_qty && net_unit ? (net.n > 1 ? net.n + ' x ' + fmt(net_qty / net.n, net_unit) : fmt(net_qty, net_unit)) : null,
     net_qty, net_unit, pack_n: net.n > 1 ? net.n : null,
     price, unit_price, unit, loose,
-    old_price: old && price && old > price ? old : null, promo_until: null,
+    old_price: old && price && old > price ? old : null, promo_until: null, promo_text: promoOf((() => { const d = html.indexOf('pdp-view__discounts-section'); return d >= 0 ? html.slice(d, html.indexOf('buy-box__prices-container', d) > d ? html.indexOf('buy-box__prices-container', d) : d + 1500) : ''; })()),
     store_cat: sub ? cat + '*' + sub : cat || null,
     store_cat_path: [human(cat), sub ? human(sub) : null].filter(Boolean).join(' > ') || null,
     excluded: /^(electrodomesticos|hogar-y-electronica|bazar)/.test(cat), active: price != null,

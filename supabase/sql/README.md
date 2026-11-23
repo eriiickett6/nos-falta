@@ -81,3 +81,14 @@ Al marcar algo como comprado, `hh_toggle_bought` llama a `li_saving`: precio med
 La web de Alcampo bloquea (WAF) tras pocas páginas, así que sus precios salen de Open Prices (Open Food Facts, ODbL): precios que sube la gente desde tickets y etiquetas.
 `ops.call_fn('openprices','{"store":"alcampo","names":["Alcampo"],"since":"2015-01-01","restart":true}')` busca las tiendas Alcampo de España en Open Prices, recorre sus precios (el más reciente por EAN) y los guarda en `c_items` con `ext_id='ean:<código>'`. Avance en `import_runs` (kind `op_c`). Solo hay 13 tiendas Alcampo con datos, unos 80 productos: es todo lo que existe en Open Prices.
 Se puede relanzar cuando se quiera para coger precios nuevos (no hay cron puesto).
+
+## Buscador de Inicio con precios reales (`group_id`)
+`c_items.group_id` une cada producto del catálogo con su tipo genérico de `product_groups` (p. ej. «Pizza 4 quesos»). Lo pone `c_assign_groups()` (una pasada por grupo con el índice trigram, unos 20 s) y el trigger `c_items_zgroup` para productos nuevos. `c_refresh()` lo repasa cada hora.
+`search_groups`, `group_detail` y `compare_groups` ya leen la vista `c_offers_cmp` (catálogo real) en vez de las tablas viejas de Open Prices. «Todas las marcas» en Inicio usa `c_list2` sin súper.
+
+## Ofertas reales: rebajas y promos de varias unidades
+- `promo_text`: lo escriben los rastreadores solo si la web lo pone en la zona de la promo («2x1», «3x2», «2ª unidad al 50%», «3 por 5,00 €»). Ahorramas/Ametller (bloque «promotions»), Froiz, HiperDino, Gadis y Dia (`pdp-view__discounts-section`).
+- `deal`: `'multi'` si hay `promo_text`; `'rebaja'` si hay precio tachado **y** el precio de hoy es más bajo que el mínimo de los 30 días anteriores en `c_price_hist` (regla de la ley de rebajas). `deal_old` = precio de antes honesto (el tachado, o el mínimo real de 30 días si el tachado está inflado). Un tachado que no cumple no sale como oferta.
+- El trigger `c_items_zdeal` pone una marca provisional y `c_deals_refresh()` (dentro de `c_refresh`, cada hora) la confirma con el historial.
+- `c_drops_mv` (Bajadas de precio): solo si hoy está ≥3 % por debajo del mínimo de los 30 días anteriores (y había al menos 3 días de historial).
+- La app muestra «Rebajas» y «2x1 y 2ª unidad» por separado; las API devuelven `deal_old` como `old_price`.
