@@ -1132,6 +1132,10 @@ function kPrice(it,big){
   const small=!it.loose&&it.unit_price!=null&&it.unit?fmt(it.unit_price)+kUnit(it.unit):(it.loose&&it.size_label&&/aprox/i.test(it.size_label)?'≈ '+fmt(it.price)+' la pieza':'');
   const old=it.old_price&&it.old_price>it.price?h('s',null,fmt(it.old_price)):null;
   return h('div',{class:big?'bigp':'kprice'},h('b',{class:'num'},main),old,small?h('span',{class:'pu num'},small):null)}
+// precio medio por unidad si aprovechas la promo (2ª unidad al X%, 2x1, 3x2...)
+function promoAvg(it){const t=it.promo_text||'',p=Number(it.price);if(!t||!p)return null;let m=t.match(/^(\d)x(\d)$/);if(m)return{n:+m[1],avg:r2(p*m[2]/m[1])};
+  m=t.match(/^([23])ª unidad (?:al (\d+)%|gratis)/);if(m){const n=+m[1],d=m[2]?+m[2]/100:1;return{n,avg:r2(p*(n-d)/n)}}
+  m=t.match(/^(\d) por ([\d,]+)/);if(m)return{n:+m[1],avg:r2(parseFloat(m[2].replace(',','.'))/m[1])};return null}
 function kcard(it){
   return h('div',{class:'pcard'},
     h('button',{class:'pcard-open',type:'button',onclick(){openItem(it.id)}},pic(it.image_url,'art'),h('span',{class:'t'},it.name),
@@ -1194,7 +1198,7 @@ async function openItem(id){const root=$('#sheetRoot');
     sheet.replaceChildren(h('div',{class:'grab'}),
       h('div',{class:'sheet-head'},pic(it.image_url),h('div',{style:'min-width:0'},h('h2',null,it.name),h('div',{class:'sub'},[kName(it.store),it.brand,it.size_label].filter(Boolean).join(' · ')),h('div',{class:'sub'},[it.top_name,it.cat_name].filter(Boolean).join(' › '))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
       kPrice(it,true),
-      it.promo_text?h('span',{class:'tag tag-g'},'Promo: '+it.promo_text+' (el precio es por unidad)'):(it.old_price&&it.old_price>it.price?h('span',{class:'tag tag-g'},'Rebaja real · antes '+fmt(it.old_price)+(it.promo_until?' · hasta el '+new Date(it.promo_until).toLocaleDateString('es-ES',{day:'numeric',month:'short'}):'')):''),
+      it.promo_text?h('span',{class:'tag tag-g'},'Promo: '+it.promo_text+' · '+fmt(it.price)+' una unidad'+(promoAvg(it)?'; comprando '+promoAvg(it).n+' sale a '+fmt(promoAvg(it).avg)+' cada una':'')):(it.old_price&&it.old_price>it.price?h('span',{class:'tag tag-g'},'Rebaja real · antes '+fmt(it.old_price)+(it.promo_until?' · hasta el '+new Date(it.promo_until).toLocaleDateString('es-ES',{day:'numeric',month:'short'}):'')):''),
       histBox(HI),
       h('p',{class:'s',style:'margin:6px 0 0'},'Precio en '+kName(it.store)+(it.store==='mercadona'?' (catálogo semanal)':'')+' · '+fdate(it.updated_at)+' · ',h('a',{href:it.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web')),
       h('p',{class:'gtitle'},'Y en otros supermercados…'),

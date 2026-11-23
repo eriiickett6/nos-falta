@@ -99,3 +99,6 @@ Se puede relanzar cuando se quiera para coger precios nuevos (no hay cron puesto
 ## Higiene, limpieza, bebé y mascotas en «Agrupados»
 Nuevos grupos genéricos (preservativos, lubricante, champú, gel de ducha, desodorante, pasta de dientes, compresas, papel higiénico, detergente, lejía, pañales, comida de perro/gato…; `prio` 600+). `c_assign_groups` solo los aplica a productos de esas secciones (y los de comida solo a comida). Nueva subcategoría `higiene.sexual` («Preservativos y salud sexual»), la rellena `c_extra_cats()` desde `c_refresh`.
 - Trigger `c_items_aunits` (`c_items_fix_units`): en Gadis, si el nombre no dice peso/volumen, el «precio por kilo» que da la web es por unidad → se borra y el tamaño pasa a «N unidades»; si el nombre sí dice el tamaño y no cuadra, manda el nombre.
+
+## Aldi y Lidl: «2ª unidad al -50%» no es una rebaja
+Las dos webs ponen como precio el de la 2ª unidad y tachan el normal (Aldi: `priceTagLabels.promoText1` = «2ª ud al -50%»; Lidl: `discount.discountText` = «-50% 2a ud.»). Los rastreadores ahora guardan el precio normal de 1 unidad, sin tachado, y la promo en `promo_text` (sale en «2x1 y 2ª unidad»). El historial de esos días se corrigió al precio normal para que no salgan bajadas falsas. La app enseña cuánto sale cada unidad si compras las de la promo.

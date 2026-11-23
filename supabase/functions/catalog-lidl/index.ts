@@ -44,6 +44,22 @@ function ldProduct(html: string): any {
 }
 
 const num = (s: any) => { const x = parseFloat(String(s ?? '').replace(/\s/g, '').replace(',', '.')); return isFinite(x) ? x : null; };
+// Promos de varias unidades (2x1, 3x2, 2ª unidad al 50%, 3 por 5 €...). Solo cuenta si el súper lo pone escrito en la zona de la promo.
+function promoOf(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = String(raw).replace(/<[^>]+>/g, ' ').replace(/&ordf;/g, 'ª').replace(/&ordm;/g, 'º').replace(/&euro;/g, '€').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ');
+  let m = t.match(/(?:^|[^\w.,])([2-5])\s*[xX×]\s*([1-4])(?![\w.,]|\s*(?:cl|ml|gr?|kg|l|uds?|unidades|latas|botellas|bricks)\b)/);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/ll[eé]va(?:te)?\s*([2-5])\s*(?:y\s*)?paga\s*([1-4])/i);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/(?:([23])\s*[ªaº]\.?|segunda|tercera)\s*(?:ud\.?|unid\.?|unidad|unitat)\s*(gratis|(?:al|a|con\s+un|con|-)?\s*-?\s*(\d{1,3})\s*%)/i);
+  if (m) { const k = m[1] || (/tercera/i.test(m[0]) ? '3' : '2'); if (/gratis/i.test(m[2])) return k + 'ª unidad gratis'; const v = +m[3]; if (v > 0 && v <= 100) return k + 'ª unidad al ' + v + '%'; }
+  m = t.match(/-?\s*(\d{1,3})\s*%\s*(?:dto\.?|descuento)?\s*(?:en\s+)?(?:la\s+)?([23])\s*[ªaº]\s*(?:ud|unid|unidad|unitat)/i);
+  if (m && +m[1] > 0 && +m[1] <= 100) return m[2] + 'ª unidad al ' + m[1] + '%';
+  m = t.match(/\b([2-6])\s*(?:uds?\.?|unidades)?\s*por\s*(\d+[.,]\d{2})\s*€/i);
+  if (m) return m[1] + ' por ' + m[2].replace('.', ',') + ' €';
+  return null;
+}
 export function parseSize(t: string | null): { q: number | null, u: string | null, n: number | null } {
   if (!t) return { q: null, u: null, n: null };
   const s = t.toLowerCase().replace(/(\d),(\d)/g, '$1.$2');
@@ -82,13 +98,17 @@ function parse(html: string, url: string) {
   const pr: any = cands[0]?.o || {};
   if (pr.price == null) { const og = html.match(/og:description" content="[^"]*?([\d]+[.,]\d{2})\s*€/); if (og) pr.price = num(og[1]); }
   const name = String(kf.fullTitle || kf.title || ld?.name || '').trim();
-  const price = num(pr.price);
-  const old = num(pr.oldPrice ?? pr.discount?.deletedPrice);
+  // "-50% 2a ud.": Lidl pone en price el precio de la 2ª unidad; el precio normal es el tachado
+  const multi = promoOf([pr.discount?.discountText, ...((p.ribbons || []).map((r: any) => r?.text))].filter(Boolean).join(' '));
+  const del = num(pr.oldPrice ?? pr.discount?.deletedPrice);
+  const price = multi && del ? del : num(pr.price);
+  const old = multi ? null : del;
   const pack = String(pr.packaging?.text || '').trim();
   const bp = String(pr.basePrice?.text || '').trim();               // p. ej. "1 kg = 3,59 €" o "precio por kg"
   const mb = bp.toLowerCase().replace(/(\d),(\d)/g, '$1.$2').match(/(?:1\s*)?(kg|l|litro)\s*=\s*([\d.]+)/);
   const unit = mb ? (mb[1] === 'kg' ? 'kg' : 'l') : null;
-  const unitAmt = mb ? +mb[2] : null;
+  let unitAmt = mb ? +mb[2] : null;
+  if (multi && unitAmt && num(pr.price) && price) unitAmt = +(unitAmt * price / num(pr.price)!).toFixed(2);
   const loose = /granel|al peso|precio por kg|\/kg|por kilo/i.test(name + ' ' + pack + ' ' + bp) && !/malla|bolsa|bandeja|\d+\s*g\b/i.test(pack);
   const sz = parseSize(pack || name);
   let net_qty = sz.q, net_unit = sz.u;
@@ -108,7 +128,7 @@ function parse(html: string, url: string) {
     size_label: loose ? (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : 'a granel') : (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : (net_qty && net_unit ? fmt(net_qty, net_unit) : null)),
     net_qty: loose ? null : net_qty, net_unit: loose ? null : net_unit, pack_n: sz.n && sz.n > 1 ? sz.n : null,
     price, unit_price: u2 ? unit_price : null, unit: u2, loose,
-    old_price: old && price && old > price ? old : null, promo_until: old && price && old > price ? end : null,
+    old_price: old && price && old > price ? old : null, promo_until: (old && price && old > price) || multi ? end : null, promo_text: multi,
     store_cat: ids.length ? ids.join('*') : null, store_cat_path: names.length ? names.join(' > ') : (p.category || null),
     excluded: /electr|informát|ropa|calzado|herramient|bricolaje|juguete|deporte|muebl/i.test(wName),
     active: price != null,

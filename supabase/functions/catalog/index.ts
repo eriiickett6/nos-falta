@@ -36,11 +36,28 @@ export function parseSize(label: string | null): { q: number | null, u: string |
   return { q: null, u: null, n: null };
 }
 
+// Promos de varias unidades (2x1, 3x2, 2ª unidad al 50%, 3 por 5 €...). Solo cuenta si el súper lo pone escrito en la zona de la promo.
+function promoOf(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const t = String(raw).replace(/<[^>]+>/g, ' ').replace(/&ordf;/g, 'ª').replace(/&ordm;/g, 'º').replace(/&euro;/g, '€').replace(/&[a-z#0-9]+;/gi, ' ').replace(/\s+/g, ' ');
+  let m = t.match(/(?:^|[^\w.,])([2-5])\s*[xX×]\s*([1-4])(?![\w.,]|\s*(?:cl|ml|gr?|kg|l|uds?|unidades|latas|botellas|bricks)\b)/);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/ll[eé]va(?:te)?\s*([2-5])\s*(?:y\s*)?paga\s*([1-4])/i);
+  if (m && +m[1] > +m[2]) return m[1] + 'x' + m[2];
+  m = t.match(/(?:([23])\s*[ªaº]\.?|segunda|tercera)\s*(?:ud\.?|unid\.?|unidad|unitat)\s*(gratis|(?:al|a|con\s+un|con|-)?\s*-?\s*(\d{1,3})\s*%)/i);
+  if (m) { const k = m[1] || (/tercera/i.test(m[0]) ? '3' : '2'); if (/gratis/i.test(m[2])) return k + 'ª unidad gratis'; const v = +m[3]; if (v > 0 && v <= 100) return k + 'ª unidad al ' + v + '%'; }
+  m = t.match(/-?\s*(\d{1,3})\s*%\s*(?:dto\.?|descuento)?\s*(?:en\s+)?(?:la\s+)?([23])\s*[ªaº]\s*(?:ud|unid|unidad|unitat)/i);
+  if (m && +m[1] > 0 && +m[1] <= 100) return m[2] + 'ª unidad al ' + m[1] + '%';
+  m = t.match(/\b([2-6])\s*(?:uds?\.?|unidades)?\s*por\s*(\d+[.,]\d{2})\s*€/i);
+  if (m) return m[1] + ' por ' + m[2].replace('.', ',') + ' €';
+  return null;
+}
+
 type Item = {
   store: string, ext_id: string, url: string, name: string, brand: string | null, image_url: string | null,
   size_label: string | null, net_qty: number | null, net_unit: string | null, pack_n: number | null,
   price: number | null, unit_price: number | null, unit: string | null, loose: boolean, old_price: number | null,
-  promo_until: string | null, store_cat: string | null, store_cat_path: string | null, cats?: string[],
+  promo_until: string | null, promo_text?: string | null, store_cat: string | null, store_cat_path: string | null, cats?: string[],
   crumbs?: { ref: string, name: string }[], excluded: boolean, active: boolean,
 };
 
@@ -65,10 +82,15 @@ function parseAldi(html: string, url: string, ext: string): Item | null {
   const bp = (cp.basePrice || [])[0] || {};
   const sales = p.salesUnit ? String(p.salesUnit) : null;
   const sz = parseSize(sales);
-  const price = cp.priceValue ?? null;
+  // Aldi pone en priceValue el precio de la 2ª unidad cuando la promo es "2ª ud al -50%": entonces el precio normal es el tachado
+  const promoTxt = [cp.priceTagLabels?.promoText1, cp.priceTagLabels?.promoText2, bp.basePriceAdditionalInformation].filter(Boolean).join(' ');
+  const multi = promoOf(promoTxt) || (/1ª unidad a .*2ª unidad a/i.test(promoTxt) ? '2ª unidad con descuento' : null);
+  const strike = cp.strikePrice?.strikePriceValue ?? null;
+  const price = multi && strike ? strike : (cp.priceValue ?? null);
   const sc = String(bp.basePriceScale || '').toLowerCase().match(/\b(kg|l)\b/);
   let unit: string | null = sc ? sc[1] : null;
   let unit_price = bp.basePriceValue ?? null;
+  if (multi && strike && cp.priceValue && unit_price) unit_price = +(unit_price * strike / cp.priceValue).toFixed(2);
   if (unit && !['kg', 'l'].includes(unit)) { unit_price = null; unit = null; }
   const loose = /granel|aprox|peso variable|al corte|al peso/i.test((sales || '') + ' ' + p.name);
   const img = (p.assets || []).find((a: any) => a.type === 'primary')?.url || p.assets?.[0]?.url || null;
@@ -80,7 +102,7 @@ function parseAldi(html: string, url: string, ext: string): Item | null {
     store: 'aldi', ext_id: String(p.objectID || ext), url, name: decode(String(p.name)), brand: p.brandName ? decode(String(p.brandName)).replace(/®|™/g, '').trim() : null,
     image_url: img ? img + '?wid=400&hei=400' : null, size_label: sales ? sales.replace(/\s*unidad$/i, '') : null,
     net_qty, net_unit, pack_n: sz.n, price, unit_price, unit, loose,
-    old_price: cp.strikePrice?.strikePriceValue ?? null, promo_until: cp.strikePrice ? until : null,
+    old_price: multi ? null : (cp.strikePrice?.strikePriceValue ?? null), promo_until: cp.strikePrice ? until : null, promo_text: multi,
     store_cat: p.mainCategoryID || null, store_cat_path: null, cats: p.categoryIDs || [],
     excluded: false, active: !!p.isAvailable && price != null,
   };
