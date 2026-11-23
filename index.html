@@ -726,7 +726,7 @@ body.nohouse .shell{background:none}
         <div class="group" id="cmpRank"><div class="empty">Añade cosas a tu lista y aquí verás dónde te sale más barata.</div></div>
         <p class="gtitle">Precio de cada producto</p>
         <div class="tw"><table id="cmpTable"></table></div>
-        <p class="foot-note">Usamos el último precio real de cada súper. «—» aún no lo tenemos · «*» a ese súper le faltan precios de tu lista · «≈» no hay uno igual y usamos el más parecido en tamaño y precio. Debajo de cada precio ves qué producto comprar.</p>
+        <p class="foot-note">Usamos el último precio real de cada súper. «—» aún no lo tenemos · «*» a ese súper le faltan precios de tu lista · «≈» no hay uno igual y usamos el más parecido (mismo tamaño ±25 %); si un súper no tiene nada comparable, sale «—». Debajo de cada precio ves qué producto comprar.</p>
       </section>
 
       <!-- FAMILIA Y GASTOS -->
@@ -853,7 +853,7 @@ async function call(fn,args){const {data,error}=await sb.rpc(fn,args);
     else netError(error);throw error}
   $('#offline').hidden=true;return data}
 async function refresh(){if(!SES)return;try{ST=await call('hh_state',{p_code:SES.code});
-  if(SES.member&&!ST.members.some(m=>m.id===SES.member)){SES.member=null;saveSes()}update()}catch(e){}}
+  if(SES.member&&!ST.members.some(m=>m.id===SES.member)){SES.member=null;saveSes()}update();ensureZone()}catch(e){}}
 async function addProduct(p,qty){if(!SES)return;hist('p'+p.id,p.name,{t:'p',id:p.id});
   try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:p.id,p_custom:null,p_qty:qty||1});await refresh();
     const n=inList(p.id);toast(n&&n.qty>1?p.name+' · '+n.qty+' en la lista':p.name+' añadido a la lista')}catch(e){}}
@@ -881,7 +881,13 @@ const CHAIN={mercadona:'Mercadona',lidl:'Lidl',aldi:'Aldi',bonarea:'bonÀrea',co
 const CCOL={aldi:'#2563EB',bonarea:'#DC2626',mercadona:'#059669',condis:'#E11D48',lidl:'#EAB308',carrefour:'#4F46E5',dia:'#EF4444',alcampo:'#DB2777',bonpreu:'#EA580C',ahorramas:'#16A34A',gadis:'#F59E0B',ametller:'#65A30D',froiz:'#C62D2D',hiperdino:'#0EA5E9'};
 const BRANDRE=[['mercadona',/mercadona/i],['lidl',/\blidl\b/i],['aldi',/\baldi\b/i],['bonarea',/bon\s*[àa]rea/i],['condis',/condis/i],['carrefour',/carrefour/i],['dia',/^(dia|dia\s*%|dia market|dia maxi|la plaza de dia|cl[aà]rel)\b/i],['alcampo',/alcampo|simply|sabeco/i],['bonpreu',/bonpreu|esclat/i],['ahorramas',/ahorramas/i],['gadis',/\bgadis\b/i],['ametller',/ametller/i],['froiz',/froiz/i],['hiperdino',/hiper\s*dino/i]];
 const ADMIN_CP='00000';
-const zStores=()=>{const hh=ST.household;if(!hh||hh.admin||!hh.stores||!hh.stores.length)return null;return hh.stores};
+const zStores=()=>{const hh=ST.household;if(!hh||hh.admin)return null;if(hh.stores&&hh.stores.length)return hh.stores;return ZAUTO&&ZAUTO.cp===hh.postcode&&ZAUTO.ids.length?ZAUTO.ids:null};
+// casas con código postal pero sin súpers guardados: los calculamos con el mapa y los guardamos
+let ZAUTO=null,zBusy=false;
+async function ensureZone(){const hh=ST.household;if(!SES||!hh||hh.admin||!hh.postcode||(hh.stores&&hh.stores.length)||zBusy||(ZAUTO&&ZAUTO.cp===hh.postcode))return;
+  zBusy=true;try{const d=await nearData(hh.postcode);if(!d)return;const ids=chainsIn(d,hh.radius||5).map(c=>c.id);ZAUTO={cp:hh.postcode,ids};
+    if(!d.failed&&ids.length)call('hh_set_zone',{p_code:SES.code,p_cp:d.cp,p_place:d.place,p_lat:d.lat,p_lon:d.lon,p_radius:hh.radius||5,p_stores:ids,p_admin:false}).catch(()=>{});
+    cmpKey='';offKey='';loaded.k=0;update()}catch(e){}finally{zBusy=false}}
 const visStores=()=>{const z=zStores();const l=z?STORES.filter(s=>z.includes(s.id)):STORES;return l.length?l:STORES};
 const kmFmt=k=>k<1?Math.max(10,Math.round(k*100)*10)+' m':(Math.round(k*10)/10).toLocaleString('es-ES')+' km';
 const hav=(a,b,c,d)=>{const r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin((d-b)*r/2)**2;return 12742*Math.asin(Math.sqrt(x))};
@@ -1254,10 +1260,11 @@ async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic||i.ci
   const pids=its.filter(i=>!i.generic&&i.pid).map(i=>i.pid),gids=its.filter(i=>i.generic).map(i=>i.gid),cids=its.filter(i=>i.cid&&!i.pid).map(i=>i.cid);
   const seq=++cmpSeq;const [a,b,c]=await Promise.all([pids.length?sb.rpc('compare_prices',{pids}):{data:[]},gids.length?sb.rpc('compare_groups',{gids}):{data:[]},cids.length?sb.rpc('compare_citems',{cids}):{data:[]}]);if(seq!==cmpSeq)return;if(a.error||b.error||c.error){netError(a.error||b.error||c.error);return}
   const M={};for(const r of a.data){(M['p:'+r.product_id]=M['p:'+r.product_id]||{})[r.store_id]=r}for(const r of b.data){(M['g:'+r.group_id]=M['g:'+r.group_id]||{})[r.store_id]=r}for(const r of c.data){(M['c:'+r.c_item_id]=M['c:'+r.c_item_id]||{})[r.store_id]=r}
-  const KS=new Set(KSTORES.map(x=>x[0]));const cmpStores=()=>{const l=visStores().filter(s=>KS.has(s.id));return l.length?l:STORES.filter(s=>KS.has(s.id))};
+  const KS=new Set(KSTORES.map(x=>x[0]));const cmpStores=()=>visStores().filter(s=>KS.has(s.id));
   const vis=new Set(cmpStores().map(s=>s.id));
   const best={};for(const i of its){const vals=Object.entries(M[ik(i)]||{}).filter(([k])=>vis.has(k)).map(([,v])=>v).sort((a,b)=>a.price-b.price);best[i.id]=vals[0]||null}
   const VS=cmpStores();
+  if(!VS.length){W.replaceChildren();$('#cmpPlan').replaceChildren();R.replaceChildren(h('div',{class:'empty'},'En tu zona todavía no hay supermercados con precios. Prueba a ampliar la distancia en «Mi zona».'));T.replaceChildren();return}
   const tots=VS.map(s=>{let t=0,miss=0;for(const i of its){const r=(M[ik(i)]||{})[s.id];if(r)t+=r.price*i.qty;else miss++}return{s,t:r2(t),miss}}).sort((a,b)=>a.miss-b.miss||a.t-b.t);
   let mix=0,mixMiss=0;for(const i of its){if(best[i.id])mix+=best[i.id].price*i.qty;else mixMiss++}mix=r2(mix);
   const top=tots[0];const max=Math.max(...tots.map(t=>t.t),1);
