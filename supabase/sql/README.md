@@ -117,3 +117,16 @@ Las dos webs ponen como precio el de la 2ª unidad y tachan el normal (Aldi: `pr
   al día dentro del plan).
 - Las funciones de mantenimiento (c_refresh, c_build_matches, c_merc_fix…) ya no se pueden
   llamar desde la web pública.
+
+## Rendimiento de las recargas (24/11/2026, tarde)
+- El freno principal era `c_refresh` cada hora (bloqueaba c_items 11-15 min). Ahora:
+  `c_refresh_light()` cada hora (solo lo cambiado en 3 h, ~11 s) y `c_refresh()` completo a las 01:07 UTC.
+- Cola con prioridad (`c_queue.prio`): 3 = releer porque cambió en la categoría, 2 = en listas/vigilado,
+  1 = con oferta, 0 = resto. catalog-web, catalog-condis y catalog-dia cogen por prio.
+- Gadis: `catalog-scan` lee las 714 páginas de categoría (sitemap_categorias) y SOLO detecta cambios
+  (marca `checked_at` si el precio es igual y sin ofertas; si no, pone la ficha a releer con prio 3).
+  05:00 UTC: se relee toda ficha no confirmada ni releída ese día. Domingo: relectura completa.
+- Límite del plan de Supabase: con muchas escrituras a la vez el disco se limita (checkpoints de minutos)
+  y la base deja de aceptar conexiones. 24/11 se pausaron las recargas (`crawl_plan.active=false`) y se
+  reanudan solas a las 02:00 UTC (tarea de un solo uso `reanudar-recargas`) con menos lectores a la vez.
+- Pendiente: pasar `checked_at` a una tabla estrecha `c_seen` para escribir menos (migración preparada).
