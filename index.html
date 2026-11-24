@@ -820,6 +820,9 @@ const SUPABASE_KEY='sb_publishable_QS7ii2Wi-cOxZBkq7kn2Dw_zLd_Mar5';
 const tfetch=(u,o={})=>{const c=new AbortController();const t=setTimeout(()=>c.abort(),12000);if(o.signal)o.signal.addEventListener('abort',()=>c.abort());
   return fetch(u,Object.assign({},o,{signal:c.signal})).finally(()=>clearTimeout(t))};
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{fetch:tfetch}});
+// Catálogo, precios y ofertas viven en otro proyecto (así las recargas de precios no frenan la lista ni las cuentas)
+const CAT_URL='https://xmkwfrfxyvwhpbupmrpp.supabase.co',CAT_KEY='sb_publishable_gjlVs4CT8RpDwdZNJK8nAg_f5SkzYlr';
+const sbC=window.supabase.createClient(CAT_URL,CAT_KEY,{global:{fetch:tfetch},auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'nf-cat'}});
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const eur=new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'});const fmt=v=>eur.format(v);
@@ -873,6 +876,15 @@ async function call(fn,args){const {data,error}=await sb.rpc(fn,args);
     else netError(error);throw error}
   if(NETDOWN){NETDOWN=false;syncUI()}return data}
 
+/* ---------- Precios al día de lo que hay en la lista (del catálogo) ---------- */
+let LIVE={},liveAt=0,liveKey='';
+function applyLive(){for(const i of ST.items){const x=i.cid&&LIVE[i.cid];if(!x)continue;
+  if(x.price!=null){i.best=x.price;i.best_store=x.store}i.loose=x.loose;i.unit=x.unit;if(!i.img&&x.image_url)i.img=x.image_url}}
+async function loadLive(force){const ids=[...new Set(ST.items.filter(i=>i.cid&&!i.done).map(i=>i.cid))];const key=ids.join(',');
+  if(!ids.length||(!force&&key===liveKey&&Date.now()-liveAt<300000)||!navigator.onLine)return;
+  const {data,error}=await sbC.rpc('c_items_by_ids',{p_ids:ids});if(error||!data)return;
+  liveKey=key;liveAt=Date.now();for(const x of data)LIVE[x.id]=x;applyLive();update()}
+
 /* ---------- Sin conexión: la casa se guarda en el móvil y los cambios esperan en una cola ---------- */
 const isNet=e=>!navigator.onLine||/fetch|network|load failed|timed? ?out|abort|upstream|unavailable|gateway|connect|canceling statement|PGRST00[0-3]|\b5\d\d\b/i.test(String((e&&[e.message,e.details,e.code,e.status].filter(Boolean).join(' '))||e||''));
 const cGet=k=>{try{return JSON.parse(localStorage.getItem('nf-cache-'+k)||'null')}catch(e){return null}};
@@ -906,7 +918,7 @@ async function flush(){if(FLUSHING||!OUT.length||!SES)return;FLUSHING=true;syncU
 async function refresh(){if(!SES)return;
   if(!ST.household){const c=cGet('st-'+SES.code);if(c){ST=c;update()}}
   if(OUT.length){await flush();if(OUT.length)return}
-  try{const st=await call('hh_state',{p_code:SES.code});if(OUT.length)return;ST=st;saveST();
+  try{const st=await call('hh_state',{p_code:SES.code});if(OUT.length)return;ST=st;applyLive();saveST();loadLive();
     if(SES.member&&!ST.members.some(m=>m.id===SES.member)){SES.member=null;saveSes()}update();ensureZone()}
   catch(e){}}
 window.addEventListener('online',()=>{NETDOWN=false;syncUI();refresh()});
@@ -926,12 +938,13 @@ const uP=(v,u)=>fmt(v)+(u==='kg'?'/kg':u==='l'?'/l':'');
 const shownP=(pack,up,unit,loose)=>loose?uP(up,unit):fmt(pack);
 const nrm=x=>(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 function addCItem(it){if(!SES)return;hist('c'+it.id,it.name,{t:'c',id:it.id});
-  addLocal(ST.items.find(i=>!i.done&&i.cid===it.id),{cid:it.id,name:it.name,img:imgOf(it),brand:it.brand||null,cat:it.cat_id||null,best:it.price??null,best_store:it.store||null},1,'hh_add_citem',{p_code:SES.code,p_member:SES.member,p_citem:it.id,p_qty:1});
-  toast('+ '+it.name+' en la lista')}
+  addLocal(ST.items.find(i=>!i.done&&i.cid===it.id),{cid:it.id,name:it.name,img:imgOf(it),brand:it.size_label||null,cat:it.cat_id||null,best:it.price??null,best_store:it.store||null,loose:!!it.loose,unit:it.unit||null},1,'hh_add_citem',
+    {p_code:SES.code,p_member:SES.member,p_citem:it.id,p_qty:1,p_name:it.name,p_img:imgOf(it),p_cat:it.cat_id||null,p_size:it.size_label||null,p_store:it.store||null,p_price:it.price??null,p_loose:!!it.loose,p_unit:it.unit||null});
+  toast('+ '+it.name+' en la lista');sbC.rpc('c_mark_hot',{p_ids:[it.id]}).then(()=>{},()=>{})}
 // «leche, 2 barras de pan y huevos» → varias cosas a la vez (pegar o dictar)
 function splitList(t,voz){t=String(t);if(!voz&&!/[,;\n]/.test(t))return[{qty:1,name:t.trim()}];return t.split(/\s*(?:,|;|\n|\s+y\s+|\s+\+\s+)\s*/i).map(x=>x.trim()).filter(x=>x.length>1).map(x=>{const m=x.match(/^(\d{1,2})\s*(?:x\s*)?(.+)$/i);return m?{qty:Math.min(+m[1],20),name:m[2].trim()}:{qty:1,name:x}})}
 async function addMany(parts){if(!SES)return;let n=0;
-  for(const x of parts){let g=null;if(navigator.onLine&&!NETDOWN){try{const {data}=await sb.rpc('search_groups',{q:x.name,cat:null,lim:5,off:0});g=(data||[]).find(g=>nrm(g.name).includes(nrm(x.name))||nrm(x.name).includes(nrm(g.name)))}catch(e){}}
+  for(const x of parts){let g=null;if(navigator.onLine&&!NETDOWN){try{const {data}=await sbC.rpc('search_groups',{q:x.name,cat:null,lim:5,off:0});g=(data||[]).find(g=>nrm(g.name).includes(nrm(x.name))||nrm(x.name).includes(nrm(g.name)))}catch(e){}}
     if(g){hist('g'+g.id,g.name,{t:'g',id:g.id});addLocal(ST.items.find(i=>!i.done&&i.generic&&i.gid===g.id),{gid:g.id,generic:true,name:g.name,img:imgOf(g)},x.qty,'hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:null,p_qty:x.qty,p_group:g.id})}
     else{hist('n'+nrm(x.name),x.name,{t:'n'});addLocal(findCustom(x.name),{name:x.name},x.qty,'hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:x.name,p_qty:x.qty})}n++}
   toast(pl(n,'cosa añadida','cosas añadidas'))}
@@ -1065,8 +1078,8 @@ function rZChip(){const hh=ST.household;const c=$('#zChip');if(!c)return;
 let offKey='';
 async function rOffers(){const ids=kStores().map(([id])=>id);const key=ids.join(',');if(key===offKey)return;offKey=key;
   const box=$('#offers');box.replaceChildren(...Array.from({length:4},()=>h('div',{class:'skel',style:'height:250px'})));
-  rDrops(ids);sb.rpc('home_stats',{p_stores:ids}).then(({data})=>{if(!data)return;$('#tDrops').textContent=nf0(data.drops)});
-  const {data,error}=await sb.rpc('c_offers',{p_stores:ids,p_lim:14});
+  rDrops(ids);sbC.rpc('home_stats',{p_stores:ids}).then(({data})=>{if(!data)return;$('#tDrops').textContent=nf0(data.drops)});
+  const {data,error}=await sbC.rpc('c_offers',{p_stores:ids,p_lim:14});
   if(error){netError(error);offKey='';box.replaceChildren(h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Ahora mismo no podemos cargar las ofertas. ',h('button',{type:'button',class:'link',onclick:rOffers},'Reintentar'))));return}
   box.replaceChildren(...((data||[]).length?data.map(kcard):[h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Hoy no hay ofertas en tus súpers.'))]))}
 $('#offAll').addEventListener('click',()=>{K.off='rebaja';K.sort='offer';K.top=null;K.sub=null;loaded.k=0});
@@ -1074,12 +1087,17 @@ $('#offAll').addEventListener('click',()=>{K.off='rebaja';K.sort='offer';K.top=n
 let WATCH=[],watchAt=0;
 const isWatched=id=>WATCH.some(w=>w.id===id);
 async function loadWatch(force){if(!SES||(!force&&Date.now()-watchAt<60000))return;watchAt=Date.now();
-  const {data,error}=await sb.rpc('hh_watch_list',{p_code:SES.code});if(error)return;WATCH=data||[];drawWatch();
+  const {data,error}=await sb.rpc('hh_watch_list',{p_code:SES.code});if(error)return;WATCH=data||[];
+  if(WATCH.length){const r=await sbC.rpc('c_items_by_ids',{p_ids:WATCH.map(w=>w.id)});const m=Object.fromEntries((r.data||[]).map(x=>[x.id,x]));
+    WATCH=WATCH.map(w=>{const x=m[w.id];if(!x)return w;return Object.assign({},w,{price:x.price,unit_price:x.unit_price,unit:x.unit,loose:x.loose,old_price:x.deal_old,promo_text:x.promo_text,active:x.active,
+      image_url:x.image_url||w.image_url,drop:x.price!=null&&w.price0!=null&&x.price<w.price0*0.99})})}
+  drawWatch();
   const dropped=WATCH.filter(w=>w.drop).map(w=>w.id+':'+w.price).sort().join(',');const k='nf-watchseen-'+SES.code;
   try{if(dropped&&localStorage.getItem(k)!==dropped){const n=WATCH.filter(w=>w.drop).length;toast('🔔 '+pl(n,'producto que vigiláis ha bajado','productos que vigiláis han bajado')+' de precio');localStorage.setItem(k,dropped)}}catch(e){}}
 function drawWatch(){const sec=$('#watchSec');if(!sec)return;sec.hidden=!WATCH.length;$('#watchN').textContent=WATCH.length?'('+WATCH.length+')':'';
   $('#watch').replaceChildren(...WATCH.map(w=>{const c=kcard(w);if(w.drop){c.prepend(h('span',{class:'wdrop'},'Bajó de '+fmt(w.price0)))}return c}))}
-async function toggleWatch(it){if(!SES)return;try{const on=await call('hh_watch_toggle',{p_code:SES.code,p_item:it.id});
+async function toggleWatch(it){if(!SES)return;try{const on=await call('hh_watch_toggle',{p_code:SES.code,p_item:it.id,p_price:it.price??null,p_name:it.name,p_img:imgOf(it),p_store:it.store||null,p_size:it.size_label||null});
+  if(on)sbC.rpc('c_mark_hot',{p_ids:[it.id]}).then(()=>{},()=>{});
   toast(on?'🔔 Os avisaremos si '+it.name+' baja de precio':'Ya no vigiláis '+it.name);await loadWatch(true)}catch(e){}}
 function rHome(){rZChip();loadWatch();const n=meName();$('#hello').textContent=n?'Hola, '+n:'¡Hola!';$('#tFaltan').textContent=pend().length;
   const t=ST.household?.turn;$('#tTurn').textContent=!t?'Sin decidir':(SES&&t===SES.member?'Te toca a ti':nameOf(t));
@@ -1097,8 +1115,8 @@ async function loadProducts(reset){
   if(reset){P.off=0;$('#pgrid').replaceChildren(...Array.from({length:8},()=>h('div',{class:'skel'})));rCats()}
   const seq=++P.seq;P.loading=true;$('#pMore').disabled=true;
   const G=P.mode==='groups';
-  let {data,error}=G?await sb.rpc('search_groups',{q:P.q||null,cat:P.cat==='all'?null:P.cat,lim:40,off:P.off})
-    :await sb.rpc('c_list2',{p_store:P.store||null,p_cat:P.cat==='all'||P.cat==='bebe-mascotas'?null:P.cat,p_q:P.q||null,p_lim:40,p_off:P.off,p_sort:'rel',p_offers:false,p_deal:null});
+  let {data,error}=G?await sbC.rpc('search_groups',{q:P.q||null,cat:P.cat==='all'?null:P.cat,lim:40,off:P.off})
+    :await sbC.rpc('c_list2',{p_store:P.store||null,p_cat:P.cat==='all'||P.cat==='bebe-mascotas'?null:P.cat,p_q:P.q||null,p_lim:40,p_off:P.off,p_sort:'rel',p_offers:false,p_deal:null});
   if(!G&&data){P.ktotal=data.total;data=data.items}
   if(G&&data&&P.q){const nq=nrm(P.q);data=[...data].sort((a,b)=>(nrm(a.name).includes(nq)?0:1)-(nrm(b.name).includes(nq)?0:1))}
   if(seq!==P.seq)return;P.loading=false;$('#pMore').disabled=false;
@@ -1132,7 +1150,7 @@ async function openGroup(gid){const root=$('#sheetRoot');
   const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
   const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Comparando supermercados…'));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
-  const {data,error}=await sb.rpc('group_detail',{gid});if(error||!data||!data.group){netError(error);close();return}
+  const {data,error}=await sbC.rpc('group_detail',{gid});if(error||!data||!data.group){netError(error);close();return}
   const g=data.group,stores=data.stores,prods=data.products,withP=stores.filter(s=>s.has),best=withP[0];let shown=40;
   const img=(best&&best.image_url)||(prods.find(p=>p.image_url)||{}).image_url;
   function draw(){const it=inListG(gid);const last=withP[withP.length-1];
@@ -1161,7 +1179,7 @@ async function openProduct(pid){const root=$('#sheetRoot');
   const [pr,rows]=await Promise.all([sb.from('products').select('*').eq('id',pid).single(),sb.rpc('product_prices',{pid})]);
   if(pr.error||rows.error){netError(pr.error||rows.error);close();return}
   const p=pr.data,ps=rows.data;
-  const lk=await sb.rpc('c_like',{p_name:p.name,p_brand:p.brand||null,p_qty:p.quantity_label||null,p_stores:null,p_per:4});
+  const lk=await sbC.rpc('c_like',{p_name:p.name,p_brand:p.brand||null,p_qty:p.quantity_label||null,p_stores:null,p_per:4});
   const likes=lk.error?[]:(lk.data||[]);
   const vis=visStores();const open=new Set();
   const cands=vis.map(s=>{const t=ps.find(x=>x.store_id===s.id&&x.price!=null)||null;const L=(likes.find(x=>x.store===s.id)||{}).items||[];return {s,t,L}});
@@ -1226,11 +1244,11 @@ function kcard(it){
       it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null),
     it.old_price&&it.old_price>it.price?h('span',{class:'disc'},'−'+Math.round((1-it.price/it.old_price)*100)+'%'):(it.promo_text?h('span',{class:'disc promo'},it.promo_text):null),
     h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
-let KST=null;async function kStats(){if(KST)return KST;const {data}=await sb.rpc('c_store_stats');KST=data||{};return KST}
+let KST=null;async function kStats(){if(KST)return KST;const {data}=await sbC.rpc('c_store_stats');KST=data||{};return KST}
 const nf0=n=>Number(n).toLocaleString('es-ES',{useGrouping:'always'});
 const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es',alcampo:'https://www.compraonline.alcampo.es',bonpreu:'https://www.compraonline.bonpreuesclat.cat',ahorramas:'https://www.ahorramas.com',gadis:'https://www.gadisline.com',ametller:'https://www.ametllerorigen.com',froiz:'https://supermercado.froiz.com',hiperdino:'https://www.hiperdino.es'};
 async function kTree(){if(K.tree[K.store])return K.tree[K.store];
-  const {data,error}=await sb.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
+  const {data,error}=await sbC.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
 async function rCatalog(){
   if(!kStores().some(([id])=>id===K.store))K.store=kStores()[0][0];
   $('#kSort').value=K.sort;$('#kOff').setAttribute('aria-pressed',String(K.off==='rebaja'));$('#kMulti').setAttribute('aria-pressed',String(K.off==='multi'));
@@ -1250,7 +1268,7 @@ async function rCatalog(){
   kLoad(true)}
 async function kLoad(reset){if(reset){K.pos=0;$('#kgrid').replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},'Cargando productos…'))}
   const my=++K.seq;
-  const {data,error}=await sb.rpc('c_list2',{p_store:K.store,p_cat:K.sub||K.top,p_q:K.q||null,p_lim:40,p_off:K.pos,p_sort:K.sort,p_offers:false,p_deal:K.off||null});
+  const {data,error}=await sbC.rpc('c_list2',{p_store:K.store,p_cat:K.sub||K.top,p_q:K.q||null,p_lim:40,p_off:K.pos,p_sort:K.sort,p_offers:false,p_deal:K.off||null});
   if(my!==K.seq)return;if(error){netError(error);return}
   if(reset)$('#kgrid').replaceChildren();
   $('#kgrid').append(...data.items.map(kcard));K.pos+=data.items.length;
@@ -1272,10 +1290,10 @@ async function openItem(id){const root=$('#sheetRoot');loadWatch();
   const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
   const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando en otros supermercados…'));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
-  const {data,error}=await sb.rpc('c_item',{p_id:id});if(error||!data||!data.item){netError(error);close();return}
-  const it=data.item,all=data.matches;let added=false;let HI=null;sb.rpc('c_hist',{p_id:id}).then(r=>{HI=r.data;if(sheet.isConnected)draw()});
+  const {data,error}=await sbC.rpc('c_item',{p_id:id});if(error||!data||!data.item){netError(error);close();return}
+  const it=data.item,all=data.matches;let added=false;let HI=null;sbC.rpc('c_hist',{p_id:id}).then(r=>{HI=r.data;if(sheet.isConnected)draw()});
   const miss=visStores().map(s=>s.id).filter(id=>id!==it.store&&!all.some(m=>m.store===id));
-  if(miss.length){const r=await sb.rpc('c_like',{p_name:it.name,p_brand:null,p_qty:it.size_label||null,p_stores:miss,p_per:1});
+  if(miss.length){const r=await sbC.rpc('c_like',{p_name:it.name,p_brand:null,p_qty:it.size_label||null,p_stores:miss,p_per:1});
     for(const g of (r.data||[]))for(const m of g.items)if(m.kind!=='parecido'||m.score>=0.5)all.push({...m,store:g.store,strict:m.kind==='igual'})}
   function draw(){const ms=KMODE==='strict'?all.filter(m=>m.strict):all;
     sheet.replaceChildren(h('div',{class:'grab'}),
@@ -1306,7 +1324,7 @@ async function sugg(){const t=q.value.trim();if(!t){sg.hidden=true;q.setAttribut
     b.classList.add('hl');sg.replaceChildren(b);sg.hidden=false;q.setAttribute('aria-expanded','true');return}
   const ks=kStores().map(([id])=>id);
   const seq=++sSeq;let gr={data:[]},ci={data:null};const off=!navigator.onLine||NETDOWN;
-  if(!off){[gr,ci]=await Promise.all([sb.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sb.rpc('c_list2',{p_store:ks.length===1?ks[0]:null,p_cat:null,p_q:t,p_lim:12,p_off:0,p_sort:'rel',p_offers:false,p_deal:null})]);if(seq!==sSeq)return;
+  if(!off){[gr,ci]=await Promise.all([sbC.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sbC.rpc('c_list2',{p_store:ks.length===1?ks[0]:null,p_cat:null,p_q:t,p_lim:12,p_off:0,p_sort:'rel',p_offers:false,p_deal:null})]);if(seq!==sSeq)return;
     if(gr.error){netError(gr.error);gr={data:[]};ci={data:null}}}
   const KS=new Set(ks);const data=((ci.data&&ci.data.items)||[]).filter(x=>!KS.size||KS.has(x.store)).slice(0,5);
   const nq=nrm(t);const gs=(gr.data||[]).filter(g=>nrm(g.name).includes(nq)).slice(0,3);
@@ -1359,8 +1377,12 @@ function rList(){const p=pend().slice().sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0
   if(p.some(i=>i.pid||i.cid))box.append(h('div',{class:'group',style:'margin-top:16px'},h('a',{class:'row',href:'#comparar'},h('span',{class:'thumb ph',style:'color:var(--good)'},ic('i-scale')),h('div',{class:'grow'},h('span',{class:'t'},'¿Dónde te sale más barata?'),h('span',{class:'s'},'Compárala en todos los supermercados')),ic('i-chev'))));
   const db=$('#doneBox');db.replaceChildren();if(d.length)db.append(h('p',{class:'gtitle'},'Comprado ('+d.length+')',h('button',{type:'button',onclick(){ST.items=pend();mut('hh_clear_bought',{p_code:SES.code})}},'Vaciar')),h('div',{class:'group'},...d.map(itemRow)))}
 async function toggleDone(i){if(!SES.member){toast(ERR.miembro_no_valido);location.hash='familia';return}
-  const price=!i.done&&i.best!=null&&!(i.loose&&i.unit)?r2(i.best*i.qty):null;i.done=!i.done;i.done_by=SES.member;i.paid=price;
-  mut('hh_toggle_bought',{p_code:SES.code,p_item:i.id,p_member:SES.member,p_price:price,p_store:i.best_store});
+  const price=!i.done&&i.best!=null&&!(i.loose&&i.unit)?r2(i.best*i.qty):null;i.done=!i.done;i.done_by=SES.member;i.paid=price;update();
+  let sv=null;
+  if(i.done&&price!=null&&i.cid&&navigator.onLine&&!NETDOWN){
+    const z=ST.household&&!ST.household.admin&&ST.household.stores&&ST.household.stores.length?ST.household.stores:null;
+    try{const r=await Promise.race([sbC.rpc('c_saving_ref',{p_item:i.cid,p_store:i.best_store,p_stores:z,p_paid:price,p_qty:i.qty}),new Promise(res=>setTimeout(()=>res({}),2500))]);sv=r&&r.data||null}catch(e){}}
+  mut('hh_toggle_bought',{p_code:SES.code,p_item:i.id,p_member:SES.member,p_price:price,p_store:i.best_store,p_sv:sv});
   if(i.done)toast('✓ '+i.name+' comprado'+(price!=null?' · '+fmt(price)+' apuntado':''))}
 
 /* ---------- Comparar ---------- */
@@ -1370,7 +1392,7 @@ async function rCompare(force){const its=pend().filter(i=>i.pid||i.generic||i.ci
   const key=its.map(i=>ik(i)+'x'+i.qty).join(',');if(!force&&key===cmpKey)return;cmpKey=key;
   if(!its.length){W.replaceChildren();$('#cmpPlan').replaceChildren();R.replaceChildren(h('div',{class:'empty'},'Añade cosas a tu lista y aquí verás dónde te sale más barata.'));T.replaceChildren();return}
   const pids=its.filter(i=>!i.generic&&i.pid).map(i=>i.pid),gids=its.filter(i=>i.generic).map(i=>i.gid),cids=its.filter(i=>i.cid&&!i.pid).map(i=>i.cid);
-  const seq=++cmpSeq;const [a,b,c]=await Promise.all([pids.length?sb.rpc('compare_prices',{pids}):{data:[]},gids.length?sb.rpc('compare_groups',{gids}):{data:[]},cids.length?sb.rpc('compare_citems',{cids}):{data:[]}]);if(seq!==cmpSeq)return;if(a.error||b.error||c.error){netError(a.error||b.error||c.error);return}
+  const seq=++cmpSeq;const [a,b,c]=await Promise.all([pids.length?sb.rpc('compare_prices',{pids}):{data:[]},gids.length?sbC.rpc('compare_groups',{gids}):{data:[]},cids.length?sbC.rpc('compare_citems',{cids}):{data:[]}]);if(seq!==cmpSeq)return;if(a.error||b.error||c.error){netError(a.error||b.error||c.error);return}
   const M={};for(const r of a.data){(M['p:'+r.product_id]=M['p:'+r.product_id]||{})[r.store_id]=r}for(const r of b.data){(M['g:'+r.group_id]=M['g:'+r.group_id]||{})[r.store_id]=r}for(const r of c.data){(M['c:'+r.c_item_id]=M['c:'+r.c_item_id]||{})[r.store_id]=r}
   const KS=new Set(KSTORES.map(x=>x[0]));const cmpStores=()=>visStores().filter(s=>KS.has(s.id));
   const vis=new Set(cmpStores().map(s=>s.id));
@@ -1681,7 +1703,7 @@ const dWhen=d=>{const n=Math.round((new Date().setHours(0,0,0,0)-new Date(d).set
 function dcard(x){const c=kcard({...x,old_price:x.prev,nm:0});c.classList.add('dcard');
   c.querySelector('.pcard-open').append(h('span',{class:'dsince'},slogo(x.store),'Bajó '+dWhen(x.since)));return c}
 async function rDrops(ids){const box=$('#drops');box.replaceChildren(...Array.from({length:4},()=>h('div',{class:'skel',style:'height:250px'})));
-  const {data,error}=await sb.rpc('c_drops',{p_stores:ids,p_lim:14,p_off:0,p_sort:'pct'});
+  const {data,error}=await sbC.rpc('c_drops',{p_stores:ids,p_lim:14,p_off:0,p_sort:'pct'});
   if(error){netError(error);box.replaceChildren(h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Ahora mismo no podemos cargar las bajadas. ',h('button',{type:'button',class:'link',onclick:()=>rDrops(ids)},'Reintentar'))));return}
   const it=(data&&data.items)||[];$('#dropAll').hidden=!it.length;
   box.replaceChildren(...(it.length?it.map(dcard):[h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Esta semana no ha bajado nada en tus súpers. Lo miramos cada día.'))]))}
@@ -1692,7 +1714,7 @@ function openDrops(){const root=$('#sheetRoot');const close=()=>root.replaceChil
     h('div',{class:'grow'},h('span',{class:'t'},x.name),h('span',{class:'s'},[sName(x.store),x.size_label,'bajó '+dWhen(x.since)].filter(Boolean).join(' · '))),
     h('div',{class:'rp'},h('span',{class:'tag tag-g',style:'display:inline-block;margin-bottom:3px'},'−'+x.pct+'%'),h('span',{class:'price num',style:'display:block;text-align:right'},fmt(x.price)),h('s',{class:'s num',style:'display:block;text-align:right'},fmt(x.prev))));
   async function load(reset){if(reset){D.pos=0;D.items=[];list.replaceChildren(h('div',{class:'empty'},'Cargando…'))}
-    const {data,error}=await sb.rpc('c_drops',{p_stores:D.store?[D.store]:ids,p_lim:40,p_off:D.pos,p_sort:D.sort});if(error){netError(error);return}
+    const {data,error}=await sbC.rpc('c_drops',{p_stores:D.store?[D.store]:ids,p_lim:40,p_off:D.pos,p_sort:D.sort});if(error){netError(error);return}
     if(reset)list.replaceChildren();D.total=data.total;D.items.push(...data.items);D.pos+=data.items.length;list.append(...data.items.map(row));
     if(!D.total)list.replaceChildren(h('div',{class:'empty'},'No hay bajadas en este súper ahora mismo.'));
     count.textContent=pl(D.total,'producto ha bajado','productos han bajado')+' de precio en los últimos 30 días';more.hidden=D.pos>=D.total}
