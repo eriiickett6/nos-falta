@@ -102,3 +102,18 @@ Nuevos grupos genéricos (preservativos, lubricante, champú, gel de ducha, deso
 
 ## Aldi y Lidl: «2ª unidad al -50%» no es una rebaja
 Las dos webs ponen como precio el de la 2ª unidad y tachan el normal (Aldi: `priceTagLabels.promoText1` = «2ª ud al -50%»; Lidl: `discount.discountText` = «-50% 2a ud.»). Los rastreadores ahora guardan el precio normal de 1 unidad, sin tachado, y la promo en `promo_text` (sale en «2x1 y 2ª unidad»). El historial de esos días se corrigió al precio normal para que no salgan bajadas falsas. La app enseña cuánto sale cada unidad si compras las de la promo.
+
+## Tareas programadas (24/11/2026)
+- Una sola tarea `catalogo-tick` cada minuto llama a `ops.tick()`, que lee `ops.crawl_plan`
+  (fn, body, every_min, at_min). Se lanza cuando `minuto_del_día_UTC % every_min = at_min`.
+  Antes había ~40 tareas separadas y ~21 % fallaban con "job startup timeout".
+- Recarga completa (`seed` con reset) de todas las cadenas cada día, de 02:17 a 05:53 UTC.
+  Las ofertas (rebaja / 2ª unidad) se recalculan solas en el disparador `c_items_zdeal`
+  cada vez que cambia un precio.
+- Para pausar una cadena: `update ops.crawl_plan set active=false where name like 'gadis%'`.
+- `ops.tick()` también reintenta errores de tiempo cada 15 min y borra a las 04:00 UTC las
+  IP de `signup_log` con más de 30 días (RGPD).
+- Quitadas: import-off-cada-minuto, import-prices-cada-minuto (Open Prices ahora va una vez
+  al día dentro del plan).
+- Las funciones de mantenimiento (c_refresh, c_build_matches, c_merc_fix…) ya no se pueden
+  llamar desde la web pública.
