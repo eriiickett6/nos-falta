@@ -816,7 +816,10 @@ button.link{background:none;border:0;padding:0;color:var(--accent-ink);font:inhe
 "use strict";
 const SUPABASE_URL='https://jdaheyiupovupwzkmmvl.supabase.co';
 const SUPABASE_KEY='sb_publishable_QS7ii2Wi-cOxZBkq7kn2Dw_zLd_Mar5';
-const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+// si el servidor no contesta en 12 s, se corta y la app sigue con lo guardado en el móvil (y reintenta sola)
+const tfetch=(u,o={})=>{const c=new AbortController();const t=setTimeout(()=>c.abort(),12000);if(o.signal)o.signal.addEventListener('abort',()=>c.abort());
+  return fetch(u,Object.assign({},o,{signal:c.signal})).finally(()=>clearTimeout(t))};
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{global:{fetch:tfetch}});
 
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const eur=new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'});const fmt=v=>eur.format(v);
@@ -835,9 +838,11 @@ const SOURCE={open_prices:'Ticket de usuario (Open Prices)',web:'Web del súper'
 /* ---------- Datos fijos de la base ---------- */
 let STORES=[],SM={},CATS=[],CN={};
 async function loadStatic(){
-  let [s,c]=await Promise.all([sb.from('stores').select('*'),sb.from('categories').select('*').order('sort')]);
-  if(s.error||c.error){const k=cGet('static');if(!k)throw s.error||c.error;s={data:k.s};c={data:k.c};NETDOWN=true;syncUI()}
-  else cSet('static',{s:s.data,c:c.data});
+  // si ya hay súpers y categorías guardados, se usan al momento y se actualizan por detrás
+  const fetchS=()=>Promise.all([sb.from('stores').select('*'),sb.from('categories').select('*').order('sort')]);
+  const k0=cGet('static');let s,c;
+  if(k0){s={data:k0.s};c={data:k0.c};fetchS().then(([a,b])=>{if(!a.error&&!b.error)cSet('static',{s:a.data,c:b.data})},()=>{})}
+  else{[s,c]=await fetchS();if(s.error||c.error)throw s.error||c.error;cSet('static',{s:s.data,c:c.data})}
   // de momento solo enseñamos los súpers de los que tenemos productos y precios
   STORES=s.data.filter(x=>KSTORES.some(([k])=>k===x.id));SM=Object.fromEntries(STORES.map(x=>[x.id,x]));CATS=c.data;CN=Object.fromEntries(CATS.map(x=>[x.id,x.name]));
 }
@@ -1446,14 +1451,16 @@ const O={step:'hola',active:false,busy:false,err:'',email:'',cp:'',place:null,ne
 const STEPS=[['cuenta','Tu cuenta'],['nombre','Tu nombre'],['cp','Tu barrio'],['casa','Tu casa'],['invitar','Tu gente']];
 const handleOf=p=>p?p.name+' #'+p.tag:'';
 const inOnb=()=>!SES||O.active;
-async function meLoad(){try{ME=await call('me_get');cSet('me',ME)}catch(e){const c=isNet(e)&&cGet('me');if(!c)throw e;ME=c;NETDOWN=true;syncUI()}return ME}
+async function meLoad(){const c0=cGet('me');
+  if(c0&&SES){ME=c0;call('me_get').then(m=>{ME=m;cSet('me',m);update()},()=>{});return ME}  // abre al momento con lo guardado
+  try{ME=await call('me_get');cSet('me',ME)}catch(e){const c=isNet(e)&&cGet('me');if(!c)throw e;ME=c;NETDOWN=true;syncUI()}return ME}
 function nextStep(){if(!ME)return 'hola';const p=ME.profile;if(!p)return 'nombre';if(!p.postcode)return 'cp';if(!ME.houses.length)return 'casa';return null}
 function go(step){O.step=step;O.err='';O.busy=false;if(location.hash!=='#bienvenida')history.replaceState(null,'',location.pathname+location.search+'#bienvenida');route()}
 async function afterAuth(){await meLoad();const s=nextStep();if(s){SES=null;go(s);return}await enterHouse()}
 async function enterHouse(code){const hs=ME.houses;const pick=hs.find(x=>x.code===code)||hs.find(x=>x.code===lsGet(LKEY))||hs[0];
   SES={code:pick.code,member:pick.member_id,uid:true};saveSes();lsSet(LKEY,pick.code);O.active=false;
   history.replaceState(null,'',location.pathname+'#inicio');
-  Z.loaded=false;Z.d=null;cmpKey='';loaded={};await refresh();route();rOffers();
+  Z.loaded=false;Z.d=null;cmpKey='';loaded={};const r=refresh();route();rOffers();await r;
   if(ME.profile&&!ME.profile.tutorial_done)setTimeout(startCoach,600)}
 async function signOut(){try{await sb.auth.signOut()}catch(e){}cClear();ME=null;SES=null;saveSes();ST=EMPTY;O.active=false;update();go('hola');toast('Has cerrado sesión')}
 const AUTHERR={email_no_valido:'Ese email no parece correcto.',pass_corta:'La contraseña necesita al menos 8 caracteres.',pass_debil:'Esa contraseña es demasiado fácil. Prueba con otra más larga.',
@@ -1749,12 +1756,14 @@ window.addEventListener('hashchange',route);
   try{await loadStatic()}catch(e){netError(e)}
   $('#pStore').append(...STORES.map(s=>h('option',{value:s.id},s.name)));
   rMode();rHomeStats();
-  let session=null;try{session=(await sb.auth.getSession()).data.session}catch(e){}
-  // sin internet la sesión puede no renovarse: si este móvil ya tenía la casa guardada, se abre igual
-  if(!session&&SES&&cGet('me')&&(!navigator.onLine||NETDOWN))session={offline:true};
-  if(session){try{await afterAuth()}catch(e){
+  let session=null,serr=null;try{const g=await sb.auth.getSession();session=g.data.session;serr=g.error}catch(e){serr=e}
+  // sin internet (o servidor caído) la sesión puede no renovarse: si este móvil ya tenía la casa guardada, se abre igual
+  if(!session&&SES&&cGet('me')&&(!navigator.onLine||NETDOWN||(serr&&isNet(serr))))session={offline:true};
+  const boot=async()=>{try{await afterAuth()}catch(e){
       if(SES&&cGet('me')&&isNet(e)){NETDOWN=true;syncUI();ME=cGet('me');try{await enterHouse()}catch(_){}}
-      else{SES=null;go('hola')}}}
+      else if(isNet(e)){NETDOWN=true;syncUI();setTimeout(boot,15000)}  // servidor lento y nada guardado: se reintenta solo
+      else{SES=null;go('hola')}}};
+  if(session){await boot()}
   else{SES=null;go('hola')}
   update();route();if(location.hash==='#zona')rZona();
   sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&ME){ME=null;SES=null;ST=EMPTY;update();go('hola')}});
