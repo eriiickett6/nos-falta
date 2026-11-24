@@ -578,3 +578,4 @@ body.nohouse .shell{background:none}
   .fam-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 28px;align-items:start}
   .fam-grid>div>.gtitle:first-child{margin-top:26px}
 }
+button.link{background:none;border:0;padding:0;color:var(--accent-ink);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}

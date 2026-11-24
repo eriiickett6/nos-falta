@@ -593,6 +593,7 @@ body.nohouse .shell{background:none}
   .fam-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 28px;align-items:start}
   .fam-grid>div>.gtitle:first-child{margin-top:26px}
 }
+button.link{background:none;border:0;padding:0;color:var(--accent-ink);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer}
 </style>
 </head>
 <body>
@@ -868,7 +869,7 @@ async function call(fn,args){const {data,error}=await sb.rpc(fn,args);
   if(NETDOWN){NETDOWN=false;syncUI()}return data}
 
 /* ---------- Sin conexión: la casa se guarda en el móvil y los cambios esperan en una cola ---------- */
-const isNet=e=>!navigator.onLine||/fetch|network|load failed|timed? ?out|abort/i.test(String((e&&(e.message||e.details))||e||''));
+const isNet=e=>!navigator.onLine||/fetch|network|load failed|timed? ?out|abort|upstream|unavailable|gateway|connect|canceling statement|PGRST00[0-3]|\b5\d\d\b/i.test(String((e&&[e.message,e.details,e.code,e.status].filter(Boolean).join(' '))||e||''));
 const cGet=k=>{try{return JSON.parse(localStorage.getItem('nf-cache-'+k)||'null')}catch(e){return null}};
 const cSet=(k,v)=>{try{localStorage.setItem('nf-cache-'+k,JSON.stringify(v))}catch(e){}};
 function cClear(){try{for(const k of Object.keys(localStorage))if(k.startsWith('nf-cache-')||k==='nf-outbox')localStorage.removeItem(k)}catch(e){}OUT=[]}
@@ -878,7 +879,8 @@ const saveST=()=>{if(SES&&ST&&ST.household)cSet('st-'+SES.code,ST)};
 let tmpN=0;const tmpId=()=>-(Date.now()%1e9*100+(tmpN++%100));
 function syncUI(){const b=$('#offline');if(!b)return;const off=NETDOWN||!navigator.onLine,n=OUT.length;
   document.documentElement.classList.toggle('is-off',off);
-  if(off){b.hidden=false;b.dataset.k='off';b.replaceChildren(h('b',null,'Sin conexión. '),n?'Tienes '+pl(n,'cambio guardado','cambios guardados')+' en el móvil: se enviarán solos cuando vuelva internet.':'Puedes seguir usando tu lista. Los precios y el catálogo necesitan internet.')}
+  if(off){b.hidden=false;b.dataset.k='off';const net=!navigator.onLine;
+    b.replaceChildren(h('b',null,net?'Sin conexión. ':'Nuestro servidor va lento ahora mismo. '),n?'Tienes '+pl(n,'cambio guardado','cambios guardados')+' en el móvil: se enviarán solos'+(net?' cuando vuelva internet.':' en cuanto responda.'):'Puedes seguir usando tu lista'+(net?'. Los precios y el catálogo necesitan internet.':' con lo guardado en el móvil.'))}
   else if(n){b.hidden=false;b.dataset.k='sync';b.replaceChildren('Enviando '+pl(n,'cambio','cambios')+'…')}
   else{b.hidden=true;b.dataset.k=''}}
 // guarda el cambio en la cola, lo enseña ya en pantalla y lo intenta enviar
@@ -1059,7 +1061,8 @@ let offKey='';
 async function rOffers(){const ids=kStores().map(([id])=>id);const key=ids.join(',');if(key===offKey)return;offKey=key;
   const box=$('#offers');box.replaceChildren(...Array.from({length:4},()=>h('div',{class:'skel',style:'height:250px'})));
   rDrops(ids);sb.rpc('home_stats',{p_stores:ids}).then(({data})=>{if(!data)return;$('#tDrops').textContent=nf0(data.drops)});
-  const {data,error}=await sb.rpc('c_offers',{p_stores:ids,p_lim:14});if(error){netError(error);return}
+  const {data,error}=await sb.rpc('c_offers',{p_stores:ids,p_lim:14});
+  if(error){netError(error);offKey='';box.replaceChildren(h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Ahora mismo no podemos cargar las ofertas. ',h('button',{type:'button',class:'link',onclick:rOffers},'Reintentar'))));return}
   box.replaceChildren(...((data||[]).length?data.map(kcard):[h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Hoy no hay ofertas en tus súpers.'))]))}
 $('#offAll').addEventListener('click',()=>{K.off='rebaja';K.sort='offer';K.top=null;K.sub=null;loaded.k=0});
 /* ---------- Vigilar precios: la casa marca productos y aquí se ve cuándo bajan ---------- */
@@ -1671,7 +1674,8 @@ const dWhen=d=>{const n=Math.round((new Date().setHours(0,0,0,0)-new Date(d).set
 function dcard(x){const c=kcard({...x,old_price:x.prev,nm:0});c.classList.add('dcard');
   c.querySelector('.pcard-open').append(h('span',{class:'dsince'},slogo(x.store),'Bajó '+dWhen(x.since)));return c}
 async function rDrops(ids){const box=$('#drops');box.replaceChildren(...Array.from({length:4},()=>h('div',{class:'skel',style:'height:250px'})));
-  const {data,error}=await sb.rpc('c_drops',{p_stores:ids,p_lim:14,p_off:0,p_sort:'pct'});if(error){netError(error);return}
+  const {data,error}=await sb.rpc('c_drops',{p_stores:ids,p_lim:14,p_off:0,p_sort:'pct'});
+  if(error){netError(error);box.replaceChildren(h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Ahora mismo no podemos cargar las bajadas. ',h('button',{type:'button',class:'link',onclick:()=>rDrops(ids)},'Reintentar'))));return}
   const it=(data&&data.items)||[];$('#dropAll').hidden=!it.length;
   box.replaceChildren(...(it.length?it.map(dcard):[h('div',{class:'group',style:'grid-column:1/-1'},h('div',{class:'empty'},'Esta semana no ha bajado nada en tus súpers. Lo miramos cada día.'))]))}
 function openDrops(){const root=$('#sheetRoot');const close=()=>root.replaceChildren();const ids=kStores().map(([id])=>id);
@@ -1748,7 +1752,10 @@ window.addEventListener('hashchange',route);
   let session=null;try{session=(await sb.auth.getSession()).data.session}catch(e){}
   // sin internet la sesión puede no renovarse: si este móvil ya tenía la casa guardada, se abre igual
   if(!session&&SES&&cGet('me')&&(!navigator.onLine||NETDOWN))session={offline:true};
-  if(session){try{await afterAuth()}catch(e){SES=null;go('hola')}}else{SES=null;go('hola')}
+  if(session){try{await afterAuth()}catch(e){
+      if(SES&&cGet('me')&&isNet(e)){NETDOWN=true;syncUI();ME=cGet('me');try{await enterHouse()}catch(_){}}
+      else{SES=null;go('hola')}}}
+  else{SES=null;go('hola')}
   update();route();if(location.hash==='#zona')rZona();
   sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&ME){ME=null;SES=null;ST=EMPTY;update();go('hola')}});
   setInterval(()=>{if(!document.hidden&&SES&&navigator.onLine&&!$('#sheetRoot').children.length)refresh()},8000);
