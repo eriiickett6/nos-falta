@@ -646,7 +646,7 @@ body.nohouse .shell{background:none}
     </header>
 
     <main class="view">
-      <div class="notice" id="offline" hidden>Ahora mismo no llegamos al servidor. Revisa tu conexión y recarga la página.</div>
+      <div class="notice" id="offline" role="status" aria-live="polite" hidden>Sin conexión.</div>
 
       <!-- BIENVENIDA -->
       <section class="screen" id="s-bienvenida" data-title="Nos Falta">
@@ -788,6 +788,11 @@ body.nohouse .shell{background:none}
           <p>Los logotipos son marcas de sus propietarios y se cargan desde la web de cada supermercado; solo sirven para identificarlos.</p>
           <p>Fotos de fruta y verdura: <a href="https://github.com/fruits-360/fruits-360-100x100" target="_blank" rel="noopener">Fruits-360</a> de Mihai Oltean (CC BY-SA 4.0).</p>
         </div>
+        <p class="gtitle">Privacidad y legal</p>
+        <div class="prose">
+          <p>No vendemos tus datos ni usamos cookies de publicidad. Tu lista solo la ven los miembros de tu casa.</p>
+          <p><a href="privacidad.html">Política de privacidad</a> · <a href="privacidad.html#cookies">Cookies</a> · <a href="privacidad.html#aviso">Aviso legal</a> · <a href="privacidad.html#condiciones">Condiciones de uso</a></p>
+        </div>
       </section>
     </main>
   </div>
@@ -829,8 +834,9 @@ const SOURCE={open_prices:'Ticket de usuario (Open Prices)',web:'Web del súper'
 /* ---------- Datos fijos de la base ---------- */
 let STORES=[],SM={},CATS=[],CN={};
 async function loadStatic(){
-  const [s,c]=await Promise.all([sb.from('stores').select('*'),sb.from('categories').select('*').order('sort')]);
-  if(s.error||c.error)throw s.error||c.error;
+  let [s,c]=await Promise.all([sb.from('stores').select('*'),sb.from('categories').select('*').order('sort')]);
+  if(s.error||c.error){const k=cGet('static');if(!k)throw s.error||c.error;s={data:k.s};c={data:k.c};NETDOWN=true;syncUI()}
+  else cSet('static',{s:s.data,c:c.data});
   // de momento solo enseñamos los súpers de los que tenemos productos y precios
   STORES=s.data.filter(x=>KSTORES.some(([k])=>k===x.id));SM=Object.fromEntries(STORES.map(x=>[x.id,x]));CATS=c.data;CN=Object.fromEntries(CATS.map(x=>[x.id,x.name]));
 }
@@ -859,28 +865,72 @@ async function call(fn,args){const {data,error}=await sb.rpc(fn,args);
   if(error){const k=Object.keys(ERR).find(k=>(error.message||'').includes(k));
     if(k){toast(ERR[k]);if(k==='sin_sesion'){signOut();throw error}if(k==='casa_no_encontrada'&&!/join|hh_join/.test(fn)){SES=null;ST=EMPTY;saveSes();route()}else if(k==='miembro_no_valido'&&location.hash!=='#familia')location.hash='familia'}
     else netError(error);throw error}
-  $('#offline').hidden=true;return data}
-async function refresh(){if(!SES)return;try{ST=await call('hh_state',{p_code:SES.code});
-  if(SES.member&&!ST.members.some(m=>m.id===SES.member)){SES.member=null;saveSes()}update();ensureZone()}catch(e){}}
-async function addProduct(p,qty){if(!SES)return;hist('p'+p.id,p.name,{t:'p',id:p.id});
-  try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:p.id,p_custom:null,p_qty:qty||1});await refresh();
-    const n=inList(p.id);toast(n&&n.qty>1?p.name+' · '+n.qty+' en la lista':p.name+' añadido a la lista')}catch(e){}}
-async function addGroup(g,qty){if(!SES)return;hist('g'+g.id,g.name,{t:'g',id:g.id});
-  try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:null,p_qty:qty||1,p_group:g.id});await refresh();
-    const n=ST.items.find(i=>!i.done&&i.generic&&i.gid===g.id);toast(n&&n.qty>1?g.name+' · '+n.qty+' en la lista':g.name+' añadido a la lista (cualquier marca)')}catch(e){}}
+  if(NETDOWN){NETDOWN=false;syncUI()}return data}
+
+/* ---------- Sin conexión: la casa se guarda en el móvil y los cambios esperan en una cola ---------- */
+const isNet=e=>!navigator.onLine||/fetch|network|load failed|timed? ?out|abort/i.test(String((e&&(e.message||e.details))||e||''));
+const cGet=k=>{try{return JSON.parse(localStorage.getItem('nf-cache-'+k)||'null')}catch(e){return null}};
+const cSet=(k,v)=>{try{localStorage.setItem('nf-cache-'+k,JSON.stringify(v))}catch(e){}};
+function cClear(){try{for(const k of Object.keys(localStorage))if(k.startsWith('nf-cache-')||k==='nf-outbox')localStorage.removeItem(k)}catch(e){}OUT=[]}
+let NETDOWN=false,FLUSHING=false,OUT=[];try{OUT=JSON.parse(localStorage.getItem('nf-outbox')||'[]')}catch(e){}
+const saveOut=()=>{try{OUT.length?localStorage.setItem('nf-outbox',JSON.stringify(OUT)):localStorage.removeItem('nf-outbox')}catch(e){}syncUI()};
+const saveST=()=>{if(SES&&ST&&ST.household)cSet('st-'+SES.code,ST)};
+let tmpN=0;const tmpId=()=>-(Date.now()%1e9*100+(tmpN++%100));
+function syncUI(){const b=$('#offline');if(!b)return;const off=NETDOWN||!navigator.onLine,n=OUT.length;
+  document.documentElement.classList.toggle('is-off',off);
+  if(off){b.hidden=false;b.dataset.k='off';b.replaceChildren(h('b',null,'Sin conexión. '),n?'Tienes '+pl(n,'cambio guardado','cambios guardados')+' en el móvil: se enviarán solos cuando vuelva internet.':'Puedes seguir usando tu lista. Los precios y el catálogo necesitan internet.')}
+  else if(n){b.hidden=false;b.dataset.k='sync';b.replaceChildren('Enviando '+pl(n,'cambio','cambios')+'…')}
+  else{b.hidden=true;b.dataset.k=''}}
+// guarda el cambio en la cola, lo enseña ya en pantalla y lo intenta enviar
+function mut(fn,args,tmp){OUT.push({fn,args,tmp:tmp??null});saveOut();saveST();update();flush()}
+function remap(t,real){for(const o of OUT)for(const k of ['p_item','p_expense'])if(o.args[k]===t)o.args[k]=real;
+  for(const i of ST.items)if(i.id===t)i.id=real;for(const x of ST.expenses)if(x.id===t)x.id=real;saveST()}
+// quitar de la cola algo creado sin conexión que ya no hace falta enviar
+function unqueue(t){const n=OUT.length;OUT=OUT.filter(o=>o.tmp!==t&&o.args.p_item!==t&&o.args.p_expense!==t);if(OUT.length!==n)saveOut()}
+async function flush(){if(FLUSHING||!OUT.length||!SES)return;FLUSHING=true;syncUI();let sent=0;
+  try{while(OUT.length){const op=OUT[0];let res;
+      try{res=await sb.rpc(op.fn,op.args)}catch(e){res={error:e}}
+      if(res.error){if(isNet(res.error)){NETDOWN=true;break}
+        const msg=res.error.message||'';if(msg.includes('sin_sesion')){break}
+        const k=Object.keys(ERR).find(k=>msg.includes(k));toast(k?ERR[k]:'No se pudo guardar un cambio');OUT.shift();saveOut();continue}
+      NETDOWN=false;if(op.tmp!=null&&res.data!=null)remap(op.tmp,res.data);OUT.shift();saveOut();sent++}}
+  finally{FLUSHING=false;syncUI()}
+  if(sent&&!OUT.length){toast('✓ Cambios guardados en la casa');refresh()}}
+async function refresh(){if(!SES)return;
+  if(!ST.household){const c=cGet('st-'+SES.code);if(c){ST=c;update()}}
+  if(OUT.length){await flush();if(OUT.length)return}
+  try{const st=await call('hh_state',{p_code:SES.code});if(OUT.length)return;ST=st;saveST();
+    if(SES.member&&!ST.members.some(m=>m.id===SES.member)){SES.member=null;saveSes()}update();ensureZone()}
+  catch(e){}}
+window.addEventListener('online',()=>{NETDOWN=false;syncUI();refresh()});
+window.addEventListener('offline',syncUI);
+const imgOf=x=>x.image_url||x.img||x.image||null;
+// apunta algo en la lista al momento (también sin conexión); si ya estaba, suma cantidad
+function addLocal(found,base,qty,fn,args){qty=qty||1;let n=found;
+  if(n){n.qty+=qty;mut(fn,args)}else{const t=tmpId();n=Object.assign({id:t,qty,done:false,by:SES.member,best:null,best_store:null},base);ST.items=[n,...ST.items];mut(fn,args,t)}return n}
+function addProduct(p,qty){if(!SES)return;hist('p'+p.id,p.name,{t:'p',id:p.id});
+  const n=addLocal(inList(p.id),{pid:p.id,name:p.name,img:imgOf(p),cat:p.category_id||p.cat||null},qty,'hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:p.id,p_custom:null,p_qty:qty||1});
+  toast(n.qty>1?p.name+' · '+n.qty+' en la lista':p.name+' añadido a la lista')}
+function addGroup(g,qty){if(!SES)return;hist('g'+g.id,g.name,{t:'g',id:g.id});
+  const n=addLocal(ST.items.find(i=>!i.done&&i.generic&&i.gid===g.id),{gid:g.id,generic:true,name:g.name,img:imgOf(g),cat:g.category_id||g.cat||null},qty,'hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:null,p_qty:qty||1,p_group:g.id});
+  toast(n.qty>1?g.name+' · '+n.qty+' en la lista':g.name+' añadido a la lista (cualquier marca)')}
 const inListG=gid=>ST.items.find(i=>!i.done&&i.generic&&i.gid===gid);
 const uP=(v,u)=>fmt(v)+(u==='kg'?'/kg':u==='l'?'/l':'');
 const shownP=(pack,up,unit,loose)=>loose?uP(up,unit):fmt(pack);
 const nrm=x=>(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-async function addCItem(it){if(!SES)return;hist('c'+it.id,it.name,{t:'c',id:it.id});try{await call('hh_add_citem',{p_code:SES.code,p_member:SES.member,p_citem:it.id,p_qty:1});toast('+ '+it.name+' en la lista');await refresh()}catch(e){}}
+function addCItem(it){if(!SES)return;hist('c'+it.id,it.name,{t:'c',id:it.id});
+  addLocal(ST.items.find(i=>!i.done&&i.cid===it.id),{cid:it.id,name:it.name,img:imgOf(it),brand:it.brand||null,cat:it.cat_id||null,best:it.price??null,best_store:it.store||null},1,'hh_add_citem',{p_code:SES.code,p_member:SES.member,p_citem:it.id,p_qty:1});
+  toast('+ '+it.name+' en la lista')}
 // «leche, 2 barras de pan y huevos» → varias cosas a la vez (pegar o dictar)
 function splitList(t,voz){t=String(t);if(!voz&&!/[,;\n]/.test(t))return[{qty:1,name:t.trim()}];return t.split(/\s*(?:,|;|\n|\s+y\s+|\s+\+\s+)\s*/i).map(x=>x.trim()).filter(x=>x.length>1).map(x=>{const m=x.match(/^(\d{1,2})\s*(?:x\s*)?(.+)$/i);return m?{qty:Math.min(+m[1],20),name:m[2].trim()}:{qty:1,name:x}})}
 async function addMany(parts){if(!SES)return;let n=0;
-  for(const x of parts){try{const {data}=await sb.rpc('search_groups',{q:x.name,cat:null,lim:5,off:0});const g=(data||[]).find(g=>nrm(g.name).includes(nrm(x.name))||nrm(x.name).includes(nrm(g.name)));
-      if(g){hist('g'+g.id,g.name,{t:'g',id:g.id});await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:null,p_qty:x.qty,p_group:g.id})}
-      else{hist('n'+nrm(x.name),x.name,{t:'n'});await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:x.name,p_qty:x.qty})}n++}catch(e){}}
-  toast(pl(n,'cosa añadida','cosas añadidas'));await refresh()}
-async function addCustom(name){if(!SES)return;hist('n'+nrm(name),name,{t:'n'});try{await call('hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:name,p_qty:1});toast(name+' añadido');await refresh()}catch(e){}}
+  for(const x of parts){let g=null;if(navigator.onLine&&!NETDOWN){try{const {data}=await sb.rpc('search_groups',{q:x.name,cat:null,lim:5,off:0});g=(data||[]).find(g=>nrm(g.name).includes(nrm(x.name))||nrm(x.name).includes(nrm(g.name)))}catch(e){}}
+    if(g){hist('g'+g.id,g.name,{t:'g',id:g.id});addLocal(ST.items.find(i=>!i.done&&i.generic&&i.gid===g.id),{gid:g.id,generic:true,name:g.name,img:imgOf(g)},x.qty,'hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:null,p_qty:x.qty,p_group:g.id})}
+    else{hist('n'+nrm(x.name),x.name,{t:'n'});addLocal(findCustom(x.name),{name:x.name},x.qty,'hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:x.name,p_qty:x.qty})}n++}
+  toast(pl(n,'cosa añadida','cosas añadidas'))}
+const findCustom=name=>ST.items.find(i=>!i.done&&!i.pid&&!i.gid&&!i.cid&&nrm(i.name)===nrm(name.trim()));
+function addCustom(name){if(!SES)return;hist('n'+nrm(name),name,{t:'n'});
+  addLocal(findCustom(name),{name:name.trim()},1,'hh_add_item',{p_code:SES.code,p_member:SES.member,p_product:null,p_custom:name,p_qty:1});toast(name+' añadido')}
 
 /* ---------- Habituales (se guardan en este móvil) ---------- */
 const hkey=()=>'nf-hab-'+(SES?SES.code:'');
@@ -1247,13 +1297,15 @@ async function sugg(){const t=q.value.trim();if(!t){sg.hidden=true;q.setAttribut
   if(parts.length>1){hl=0;const b=h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){q.value='';sg.hidden=true;addMany(parts)}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},'Añadir '+parts.length+' cosas'),h('span',{class:'s'},parts.map(x=>(x.qty>1?x.qty+'× ':'')+x.name).join(', '))));
     b.classList.add('hl');sg.replaceChildren(b);sg.hidden=false;q.setAttribute('aria-expanded','true');return}
   const ks=kStores().map(([id])=>id);
-  const seq=++sSeq;const [gr,ci]=await Promise.all([sb.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sb.rpc('c_list2',{p_store:ks.length===1?ks[0]:null,p_cat:null,p_q:t,p_lim:12,p_off:0,p_sort:'rel',p_offers:false,p_deal:null})]);if(seq!==sSeq)return;if(gr.error){netError(gr.error);return}
+  const seq=++sSeq;let gr={data:[]},ci={data:null};const off=!navigator.onLine||NETDOWN;
+  if(!off){[gr,ci]=await Promise.all([sb.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sb.rpc('c_list2',{p_store:ks.length===1?ks[0]:null,p_cat:null,p_q:t,p_lim:12,p_off:0,p_sort:'rel',p_offers:false,p_deal:null})]);if(seq!==sSeq)return;
+    if(gr.error){netError(gr.error);gr={data:[]};ci={data:null}}}
   const KS=new Set(ks);const data=((ci.data&&ci.data.items)||[]).filter(x=>!KS.size||KS.has(x.store)).slice(0,5);
   const nq=nrm(t);const gs=(gr.data||[]).filter(g=>nrm(g.name).includes(nq)).slice(0,3);
   hl=0;const bs=[...gs.map(g=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addGroup(g);q.value='';sg.hidden=true}},pic(g.image_url),
     h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},g.name+' · cualquier marca'),h('span',{class:'s'},pl(Number(g.n_products),'producto','productos')+' en '+pl(Number(g.n_stores),'súper','súpers'))),g.best_unit_price!=null?h('span',{class:'s num'},'desde '+shownP(g.best_price,g.best_unit_price,g.best_unit,g.best_loose)):null)),...data.map(p=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addCItem(p);q.value='';sg.hidden=true}},pic(p.image_url),
     h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},p.name),h('span',{class:'s'},[sName(p.store),p.size_label].filter(Boolean).join(' · '))),p.price!=null?h('span',{class:'s num'},fmt(p.price)):null))];
-  bs.push(h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addCustom(t);q.value='';sg.hidden=true}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow'},'Añadir «'+t+'» sin buscar')));
+  bs.push(h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addCustom(t);q.value='';sg.hidden=true}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow'},'Añadir «'+t+'»'+(off||NETDOWN?' (sin conexión: se apunta tal cual)':' sin buscar'))));
   bs[0].classList.add('hl');sg.replaceChildren(...bs);sg.hidden=false;q.setAttribute('aria-expanded','true')}
 q.addEventListener('keydown',e=>{const bs=[...sg.querySelectorAll('button')];
   if((e.key==='ArrowDown'||e.key==='ArrowUp')&&bs.length){e.preventDefault();hl=(hl+(e.key==='ArrowDown'?1:-1)+bs.length)%bs.length;bs.forEach((b,i)=>b.classList.toggle('hl',i===hl))}
@@ -1270,7 +1322,7 @@ const who=id=>SES&&id===SES.member?'ti':nameOf(id);
 function itemMenu(i){sheetForm(i.name,[
     h('label',{class:'checkline'},h('input',{type:'checkbox',name:'u',checked:!!i.urgent}),'Urgente: hace falta ya'),
     h('label',{class:'field'},'Nota para quien compre',h('input',{name:'n',maxlength:120,value:i.note||'',placeholder:'Sin lactosa, la grande, la de oferta…'}))],'Guardar',async fd=>{
-    i.urgent=fd.get('u')==='on';i.note=String(fd.get('n')||'').trim();update();await call('hh_set_item',{p_code:SES.code,p_item:i.id,p_urgent:i.urgent,p_note:i.note});refresh()})}
+    i.urgent=fd.get('u')==='on';i.note=String(fd.get('n')||'').trim();mut('hh_set_item',{p_code:SES.code,p_item:i.id,p_urgent:i.urgent,p_note:i.note})})}
 function itemRow(i){
   return h('div',{class:'row'+(i.done?' done':'')+(i.urgent&&!i.done?' urg':'')},
     h('button',{class:'chk',type:'button','aria-label':(i.done?'Desmarcar ':'Comprado: ')+i.name,onclick(){toggleDone(i)}},ic('i-check','')),
@@ -1281,8 +1333,9 @@ function itemRow(i){
     !i.done?h('button',{class:'dots',type:'button','aria-label':'Más opciones: '+i.name,onclick(){itemMenu(i)}},ic('i-dots')):null,
     !i.done?h('div',{class:'stepper'},h('button',{type:'button','aria-label':'Uno menos',onclick(){setQty(i,i.qty-1)}},'−'),h('span',{class:'num'},String(i.qty)),h('button',{type:'button','aria-label':'Uno más',onclick(){setQty(i,i.qty+1)}},'+'))
       :h('button',{class:'x',type:'button','aria-label':'Quitar de la lista',onclick(){setQty(i,0)}},ic('i-x')))}
-async function setQty(i,n){if(n<1)ST.items=ST.items.filter(x=>x!==i);else i.qty=n;update();
-  try{await call('hh_set_qty',{p_code:SES.code,p_item:i.id,p_qty:n})}catch(e){}refresh()}
+function setQty(i,n){if(n<1)ST.items=ST.items.filter(x=>x!==i);else i.qty=n;
+  if(n<1&&i.id<0){unqueue(i.id);saveST();update();return}
+  mut('hh_set_qty',{p_code:SES.code,p_item:i.id,p_qty:n})}
 function shareList(){const p=pend();if(!p.length){toast('La lista está vacía');return}
   const text='🛒 Nos falta en '+(ST.household?ST.household.name:'casa')+':\n'+p.map(i=>'• '+i.name+(i.qty>1?' ×'+i.qty:'')+(i.urgent?' (¡urgente!)':'')+(i.note?' — '+i.note:'')).join('\n');
   if(navigator.share){navigator.share({title:'Nos Falta',text}).catch(()=>{});return}
@@ -1296,11 +1349,11 @@ function rList(){const p=pend().slice().sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0
   const groups={};for(const i of p){const top=CATS.find(c=>c.id===i.cat);const k=top?(top.parent_id||top.id):'otros';(groups[k]=groups[k]||[]).push(i)}
   for(const k of [...CATS.filter(c=>!c.parent_id).map(c=>c.id),'otros'])if(groups[k])box.append(h('p',{class:'gtitle'},k==='otros'?'Otros':CN[k]),h('div',{class:'group'},...groups[k].map(itemRow)));
   if(p.some(i=>i.pid||i.cid))box.append(h('div',{class:'group',style:'margin-top:16px'},h('a',{class:'row',href:'#comparar'},h('span',{class:'thumb ph',style:'color:var(--good)'},ic('i-scale')),h('div',{class:'grow'},h('span',{class:'t'},'¿Dónde te sale más barata?'),h('span',{class:'s'},'Compárala en todos los supermercados')),ic('i-chev'))));
-  const db=$('#doneBox');db.replaceChildren();if(d.length)db.append(h('p',{class:'gtitle'},'Comprado ('+d.length+')',h('button',{type:'button',async onclick(){ST.items=pend();update();try{await call('hh_clear_bought',{p_code:SES.code})}catch(e){}refresh()}},'Vaciar')),h('div',{class:'group'},...d.map(itemRow)))}
+  const db=$('#doneBox');db.replaceChildren();if(d.length)db.append(h('p',{class:'gtitle'},'Comprado ('+d.length+')',h('button',{type:'button',onclick(){ST.items=pend();mut('hh_clear_bought',{p_code:SES.code})}},'Vaciar')),h('div',{class:'group'},...d.map(itemRow)))}
 async function toggleDone(i){if(!SES.member){toast(ERR.miembro_no_valido);location.hash='familia';return}
-  const price=!i.done&&i.best!=null&&!(i.loose&&i.unit)?r2(i.best*i.qty):null;i.done=!i.done;i.done_by=SES.member;i.paid=price;update();
-  try{await call('hh_toggle_bought',{p_code:SES.code,p_item:i.id,p_member:SES.member,p_price:price,p_store:i.best_store});
-    if(i.done)toast('✓ '+i.name+' comprado'+(price!=null?' · '+fmt(price)+' apuntado':''))}catch(e){}refresh()}
+  const price=!i.done&&i.best!=null&&!(i.loose&&i.unit)?r2(i.best*i.qty):null;i.done=!i.done;i.done_by=SES.member;i.paid=price;
+  mut('hh_toggle_bought',{p_code:SES.code,p_item:i.id,p_member:SES.member,p_price:price,p_store:i.best_store});
+  if(i.done)toast('✓ '+i.name+' comprado'+(price!=null?' · '+fmt(price)+' apuntado':''))}
 
 /* ---------- Comparar ---------- */
 let cmpSeq=0,cmpKey='';
@@ -1353,25 +1406,28 @@ function rFamily(){if(!ST.household||!SES)return;const me=SES.member,turn=ST.hou
   const rows=ST.members.map((m,k)=>{const paid=H.filter(x=>x.who===m.id).reduce((a,x)=>a+c(x.total),0);return{m,paid:paid/100,diff:(paid-sh-(k<rem?1:0))/100}});
   $('#hhName').textContent=ST.household.name;$('#hhCode').textContent=prettyCode(ST.household.code);
   $('#members').replaceChildren(...rows.map(r=>h('div',{class:'row'},av(r.m.name),h('div',{class:'grow'},h('span',{class:'t'},r.m.name,r.m.tag?h('span',{class:'tagn',style:'font-size:13px;margin-left:5px'},'#'+r.m.tag):null,r.m.id===me?' (tú)':''),h('span',{class:'s'},(r.m.app===false?'Sin la app · ':'')+'Ha pagado '+fmt(r.paid)+' desde el último ajuste')),turn===r.m.id?h('span',{class:'tag tag-a'},'Compra esta semana'):null)));
-  $('#turn').replaceChildren(...ST.members.map(m=>h('button',{type:'button','aria-pressed':String(turn===m.id),async onclick(){ST.household.turn=m.id;update();try{await call('hh_set_turn',{p_code:SES.code,p_member:m.id})}catch(e){}refresh()}},av(m.name),m.name)));
+  $('#turn').replaceChildren(...ST.members.map(m=>h('button',{type:'button','aria-pressed':String(turn===m.id),onclick(){ST.household.turn=m.id;mut('hh_set_turn',{p_code:SES.code,p_member:m.id})}},av(m.name),m.name)));
   rAcct();
   $('#bal').replaceChildren(...(totC?[h('div',{class:'row'},h('div',{class:'grow'},h('span',{class:'t'},'Gastado desde el último ajuste'),h('span',{class:'s'},'Toca a cada uno '+fmt(sh/100))),h('span',{class:'price num'},fmt(totC/100))),
     ...rows.map(r=>h('div',{class:'row'},av(r.m.name),h('div',{class:'grow t'},r.m.name),Math.abs(r.diff)<0.01?h('span',{class:'tag tag-n'},'En paz'):r.diff>0?h('span',{class:'tag tag-g num'},'Le deben '+fmt(r.diff)):h('span',{class:'tag tag-a num'},'Debe '+fmt(-r.diff))))]:[h('div',{class:'empty'},'Cuentas al día: no hay nada pendiente.')]));
   $('#hist').replaceChildren(...(ST.expenses.length?ST.expenses.slice(0,40).map(x=>h('div',{class:'row'},pic(x.img),h('div',{class:'grow'},h('span',{class:'t'},x.note||'Compra'),h('span',{class:'s'},(SES&&x.who===SES.member?'Pagaste tú':'Pagó '+nameOf(x.who))+(x.store?' · '+sName(x.store):'')+' · '+new Date(x.at).toLocaleDateString('es-ES')+(new Date(x.at).getTime()<=since?' · saldado':''))),
-      h('span',{class:'price num'},fmt(x.total)),h('button',{class:'x',type:'button','aria-label':'Borrar gasto '+(x.note||''),async onclick(){ST.expenses=ST.expenses.filter(y=>y!==x);update();try{await call('hh_delete_expense',{p_code:SES.code,p_expense:x.id});toast('Gasto borrado')}catch(e){}refresh()}},ic('i-x')))):[h('div',{class:'empty'},'Aún no hay gastos. Se apuntan solos al marcar cosas como compradas, o con «Añadir gasto».')]));
+      h('span',{class:'price num'},fmt(x.total)),h('button',{class:'x',type:'button','aria-label':'Borrar gasto '+(x.note||''),onclick(){ST.expenses=ST.expenses.filter(y=>y!==x);toast('Gasto borrado');if(typeof x.id==='string'&&x.id.startsWith('tmp')){unqueue(x.id);saveST();update();return}mut('hh_delete_expense',{p_code:SES.code,p_expense:x.id})}},ic('i-x')))):[h('div',{class:'empty'},'Aún no hay gastos. Se apuntan solos al marcar cosas como compradas, o con «Añadir gasto».')]));
 }
 function sheetForm(title,fields,submitLabel,onsubmit){const root=$('#sheetRoot');const close=()=>root.replaceChildren();
   const f=h('form',{class:'sheet',onclick(e){e.stopPropagation()},async onsubmit(e){e.preventDefault();const b=f.querySelector('[type=submit]');b.disabled=true;try{await onsubmit(new FormData(f));close()}catch(err){b.disabled=false}}},
     h('div',{class:'grab'}),h('h2',{style:'font-size:20px;margin-bottom:12px'},title),h('div',{style:'display:grid;gap:12px'},...fields),h('button',{class:'btn btn-p',type:'submit',style:'width:100%;margin-top:14px'},submitLabel));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},f));const first=f.querySelector('input');if(first)first.focus()}
-$('#settle').addEventListener('click',async()=>{try{await call('hh_settle',{p_code:SES.code});toast('Cuentas saldadas');refresh()}catch(e){}});
+$('#settle').addEventListener('click',()=>{if(!ST.household)return;ST.household.settled_at=new Date().toISOString();mut('hh_settle',{p_code:SES.code});toast('Cuentas saldadas')});
 $('#addMember').addEventListener('click',()=>sheetForm('Añadir a alguien sin la app',[h('p',{class:'s',style:'margin:-6px 0 0'},'Para un peque o alguien que no usa el móvil: aparecerá en la casa y en las cuentas. Si tiene la app, mejor invítale.'),h('label',{class:'field'},'Nombre',h('input',{name:'n',required:true,maxlength:30}))],'Añadir',async fd=>{const v=String(fd.get('n')).trim();await call('hh_add_member',{p_code:SES.code,p_name:v});toast(v+' añadido a la casa');refresh()}));
 $('#addExpense').addEventListener('click',()=>sheetForm('Añadir gasto',[
   h('label',{class:'field'},'Importe (€)',h('input',{name:'t',required:true,type:'number',step:'0.01',min:'0.01',inputmode:'decimal',placeholder:'23,40'})),
   h('label',{class:'field'},'Qué es',h('input',{name:'n',maxlength:80,placeholder:'Ticket del súper, bombonas…'})),
   h('label',{class:'field'},'Supermercado',h('select',{name:'s'},h('option',{value:''},'Otro'),...visStores().map(s=>h('option',{value:s.id},s.name)))),
   h('label',{class:'field'},'Lo pagó',h('select',{name:'w'},...ST.members.map(m=>h('option',{value:m.id,selected:m.id===SES.member},m.name))))],'Apuntar gasto',async fd=>{
-    await call('hh_add_expense',{p_code:SES.code,p_member:fd.get('w'),p_total:Number(String(fd.get('t')).replace(',','.')),p_store:fd.get('s')||null,p_note:String(fd.get('n')||'')});toast('Gasto apuntado');refresh()}));
+    const total=Number(String(fd.get('t')).replace(',','.'));if(!(total>0)){toast(ERR.importe_no_valido);throw 0}
+    const t='tmp'+tmpId(),note=String(fd.get('n')||'').trim();
+    ST.expenses=[{id:t,total:r2(total),who:fd.get('w'),store:fd.get('s')||null,note:note||null,at:new Date().toISOString(),img:null},...ST.expenses];
+    mut('hh_add_expense',{p_code:SES.code,p_member:fd.get('w'),p_total:total,p_store:fd.get('s')||null,p_note:note},t);toast('Gasto apuntado')}));
 $('#invite').addEventListener('click',()=>{O.sent=[];O.err='';openInvite()});
 
 /* ---------- Cuenta y bienvenida ---------- */
@@ -1387,7 +1443,7 @@ const O={step:'hola',active:false,busy:false,err:'',email:'',cp:'',place:null,ne
 const STEPS=[['cuenta','Tu cuenta'],['nombre','Tu nombre'],['cp','Tu barrio'],['casa','Tu casa'],['invitar','Tu gente']];
 const handleOf=p=>p?p.name+' #'+p.tag:'';
 const inOnb=()=>!SES||O.active;
-async function meLoad(){ME=await call('me_get');return ME}
+async function meLoad(){try{ME=await call('me_get');cSet('me',ME)}catch(e){const c=isNet(e)&&cGet('me');if(!c)throw e;ME=c;NETDOWN=true;syncUI()}return ME}
 function nextStep(){if(!ME)return 'hola';const p=ME.profile;if(!p)return 'nombre';if(!p.postcode)return 'cp';if(!ME.houses.length)return 'casa';return null}
 function go(step){O.step=step;O.err='';O.busy=false;if(location.hash!=='#bienvenida')history.replaceState(null,'',location.pathname+location.search+'#bienvenida');route()}
 async function afterAuth(){await meLoad();const s=nextStep();if(s){SES=null;go(s);return}await enterHouse()}
@@ -1396,7 +1452,7 @@ async function enterHouse(code){const hs=ME.houses;const pick=hs.find(x=>x.code=
   history.replaceState(null,'',location.pathname+'#inicio');
   Z.loaded=false;Z.d=null;cmpKey='';loaded={};await refresh();route();rOffers();
   if(ME.profile&&!ME.profile.tutorial_done)setTimeout(startCoach,600)}
-async function signOut(){try{await sb.auth.signOut()}catch(e){}ME=null;SES=null;saveSes();ST=EMPTY;O.active=false;update();go('hola');toast('Has cerrado sesión')}
+async function signOut(){try{await sb.auth.signOut()}catch(e){}cClear();ME=null;SES=null;saveSes();ST=EMPTY;O.active=false;update();go('hola');toast('Has cerrado sesión')}
 const AUTHERR={email_no_valido:'Ese email no parece correcto.',pass_corta:'La contraseña necesita al menos 8 caracteres.',pass_debil:'Esa contraseña es demasiado fácil. Prueba con otra más larga.',
   email_ya_existe:'Ya hay una cuenta con ese email. Escribe tu contraseña para entrar.',demasiados_intentos:'Demasiados intentos seguidos. Espera un rato y vuelve a probar.',
   'Invalid login credentials':'Email o contraseña incorrectos.',no_se_pudo:'No hemos podido crear la cuenta. Prueba de nuevo en un momento.'};
@@ -1447,7 +1503,7 @@ function rOnb(){const box=$('#onb');if(!box)return;const s=O.step;let card;
       h('button',{class:'btn btn-p',type:'submit'},up?'Crear cuenta':'Entrar'));
     card=[stepsBar(),h('h2',null,up?'Crea tu cuenta':'¡Hola otra vez!'),h('p',{class:'sub'},up?'Con tu cuenta, tu lista te sigue en cualquier móvil y nadie más puede entrar en tu casa.':'Entra con tu email y tu contraseña.'),f,
       h('p',{class:'s',style:'text-align:center'},up?'¿Ya tienes cuenta? ':'¿Aún no tienes cuenta? ',h('button',{type:'button',class:'linkbtn',onclick(){go(up?'entrar':'cuenta')}},up?'Entra':'Créala en un minuto')),
-      up?h('p',{class:'foot-note',style:'margin:0'},'Pronto te llegará un correo para confirmar tu email.'):null,
+      up?h('p',{class:'foot-note',style:'margin:0'},'Pronto te llegará un correo para confirmar tu email. Al crear la cuenta aceptas las ',h('a',{href:'privacidad.html#condiciones',target:'_blank',rel:'noopener'},'condiciones de uso'),' y la ',h('a',{href:'privacidad.html',target:'_blank',rel:'noopener'},'política de privacidad'),'.'):null,
       h('button',{type:'button',class:'back',onclick(){go('hola')}},'← Volver')];
     setTimeout(()=>{const i=f.querySelector(O.email?'[name=pass]':'[name=email]');if(i)i.focus()},50);
   }else if(s==='nombre'){const p=ME&&ME.profile;
@@ -1665,7 +1721,7 @@ async function rSupers(){const {data,error}=await sb.rpc('catalog_stats');if(err
     h('div',{class:'rp'},h('span',{class:'t num'},pl(Number(s.products),'producto','productos')),h('span',{class:'s num'},pl(Number(s.priced),'precio real','precios reales')+(s.last_price?' · '+fdate(s.last_price):''))))))}
 
 /* ---------- Red ---------- */
-function netError(e){console.error(e);$('#offline').hidden=false}
+function netError(e){console.error(e);if(isNet(e)){NETDOWN=true;syncUI()}}
 
 /* ---------- Render y rutas ---------- */
 function update(){rHome();rSaveMaybe();rList();rFamily();const n=pend().length;$$('[data-count]').forEach(e=>{e.textContent=n;e.hidden=!n});if(location.hash==='#comparar')rCompare()}
@@ -1690,10 +1746,13 @@ window.addEventListener('hashchange',route);
   $('#pStore').append(...STORES.map(s=>h('option',{value:s.id},s.name)));
   rMode();rHomeStats();
   let session=null;try{session=(await sb.auth.getSession()).data.session}catch(e){}
-  if(session){try{await afterAuth()}catch(e){SES=null;go('hola')}}else{SES=null;go(invite?'hola':'hola')}
+  // sin internet la sesión puede no renovarse: si este móvil ya tenía la casa guardada, se abre igual
+  if(!session&&SES&&cGet('me')&&(!navigator.onLine||NETDOWN))session={offline:true};
+  if(session){try{await afterAuth()}catch(e){SES=null;go('hola')}}else{SES=null;go('hola')}
   update();route();if(location.hash==='#zona')rZona();
   sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&ME){ME=null;SES=null;ST=EMPTY;update();go('hola')}});
-  setInterval(()=>{if(!document.hidden&&SES&&!$('#sheetRoot').children.length)refresh()},8000);
+  setInterval(()=>{if(!document.hidden&&SES&&navigator.onLine&&!$('#sheetRoot').children.length)refresh()},8000);
+  syncUI();if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
 })();
