@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
   if (body.action === 'crawl') {
     const t0 = Date.now();
-    const { data: q } = await sb.from('c_queue').select('*').eq('store', 'dia').eq('status', 'new').limit(body.n ?? 40);
+    const { data: q } = await sb.from('c_queue').select('*').eq('store', 'dia').eq('status', 'new').order('prio', { ascending: false }).limit(body.n ?? 40);
     let saved = 0, bad = 0, blocked = false;
     const cats = new Map<string, any>();
     for (const job of q || []) {

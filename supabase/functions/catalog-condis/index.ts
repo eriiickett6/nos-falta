@@ -130,7 +130,7 @@ Deno.serve(async (req) => {
 
   if (body.action === 'crawl') {
     const t0 = Date.now();
-    const { data: q } = await sb.from('c_queue').select('*').eq('store', 'condis').eq('status', 'new').limit(body.n ?? 40);
+    const { data: q } = await sb.from('c_queue').select('*').eq('store', 'condis').eq('status', 'new').order('prio', { ascending: false }).limit(body.n ?? 40);
     const { data: map } = await sb.from('c_store_cats').select('ext,cat_id').eq('store', 'condis');
     const catOf = new Map((map || []).map((m: any) => [m.ext, m.cat_id]));
     let saved = 0, bad = 0, blocked = false;
