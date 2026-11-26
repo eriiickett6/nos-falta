@@ -720,7 +720,7 @@ button.link{background:none;border:0;padding:0;color:var(--accent-ink);font:inhe
         <label class="searchbox" style="margin-top:12px"><svg class="i"><use href="#i-search"/></svg><span class="sr">Buscar en el catálogo</span><input id="kq" type="search" placeholder="Buscar"></label>
         <div class="chips" id="kTop" style="margin-top:12px"></div>
         <div class="chips sub" id="kSub" style="margin-top:8px"></div>
-        <div class="ktools"><label class="sr" for="kSort">Ordenar</label><select id="kSort"><option value="rel">Más relevantes</option><option value="price">Más baratos</option><option value="unit">Mejor precio por kilo/litro</option><option value="offer">Mayor descuento</option></select><button class="chip" type="button" id="kOff" aria-pressed="false">Rebajas</button><button class="chip" type="button" id="kMulti" aria-pressed="false">2x1 y 2ª unidad</button></div>
+        <div class="ktools"><label class="sr" for="kSort">Ordenar</label><select id="kSort"><option value="rel">Más relevantes</option><option value="price">Más baratos</option><option value="unit">Mejor precio por kilo/litro</option><option value="offer">Mayor descuento</option></select><button class="chip" type="button" id="kOff" aria-pressed="false">Rebajas</button><button class="chip" type="button" id="kMulti" aria-pressed="false">2x1 y 2ª unidad</button><button class="chip" type="button" id="kFlyer" aria-pressed="false" hidden>Ofertas del folleto</button></div>
         <p class="count" id="kCount"></p>
         <div class="pgrid" id="kgrid"></div>
         <div class="more"><button class="btn btn-s" id="kMore" type="button" hidden>Ver más productos</button></div>
@@ -1231,6 +1231,7 @@ const kStores=()=>{const z=zStores();const l=z?KSTORES.filter(([id])=>z.includes
 let KMODE=(()=>{try{return localStorage.getItem('nf-cmp')||'rec'}catch(e){return 'rec'}})();
 const kUnit=u=>u==='kg'?'/kg':u==='l'?'/l':'';
 function kPrice(it,big){
+  if(it.price==null)return h('div',{class:big?'bigp':'kprice'},h('span',{class:'s'},'Sin precio online'));
   const main=it.loose&&it.unit_price!=null?fmt(it.unit_price)+kUnit(it.unit):fmt(it.price);
   const small=!it.loose&&it.unit_price!=null&&it.unit?fmt(it.unit_price)+kUnit(it.unit):(it.loose&&it.size_label&&/aprox/i.test(it.size_label)?'≈ '+fmt(it.price)+' la pieza':'');
   const old=it.old_price&&it.old_price>it.price?h('s',null,fmt(it.old_price)):null;
@@ -1239,66 +1240,101 @@ function kPrice(it,big){
 function promoAvg(it){const t=it.promo_text||'',p=Number(it.price);if(!t||!p)return null;let m=t.match(/^(\d)x(\d)$/);if(m)return{n:+m[1],avg:r2(p*m[2]/m[1])};
   m=t.match(/^([23])ª unidad (?:al (\d+)%|gratis)/);if(m){const n=+m[1],d=m[2]?+m[2]/100:1;return{n,avg:r2(p*(n-d)/n)}}
   m=t.match(/^(\d) por ([\d,]+)/);if(m)return{n:+m[1],avg:r2(parseFloat(m[2].replace(',','.'))/m[1])};return null}
-// oferta del folleto semanal de Lidl (sale antes que en su web): "Folleto 27–29 nov · 1,29 €"
-function flTxt(it){if(it.fl_price==null||!it.fl_from)return null;const d=x=>new Date(x+'T12:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
-  const hoy=new Date().toISOString().slice(0,10),fut=it.fl_from>hoy;
-  return (fut?'Folleto, desde el '+d(it.fl_from):'Folleto, hasta el '+d(it.fl_to))+' · '+fmt(it.fl_price)+(it.fl_plus?' con Lidl Plus':'')}
-function kcard(it){
+// Un folleto puede anunciar un precio con días de antelación.
+const flFecha=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid'});
+function flTxt(it,hoy=flFecha.format(new Date())){
+  if(it.fl_price==null)return null;
+  const d=x=>new Date(x+'T12:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+  let periodo='Folleto';
+  if(it.fl_from&&it.fl_from>hoy)periodo+=', desde el '+d(it.fl_from);
+  else if(it.fl_to)periodo+=', hasta el '+d(it.fl_to);
+  return periodo+' · '+fmt(it.fl_price)+(it.fl_plus?' con Lidl Plus':'')}
+function kcard(it,filtro){
+  const folleto=filtro==='folleto',hoy=flFecha.format(new Date());
+  const fl=flTxt(it,hoy),precio=folleto?it.fl_price:it.price,antes=folleto?it.fl_old:it.old_price;
   return h('div',{class:'pcard'},
-    h('button',{class:'pcard-open',type:'button',onclick(){openItem(it.id)}},pic(it.image_url,'art'),h('span',{class:'t'},it.name),
+    h('button',{class:'pcard-open',type:'button',onclick(){openItem(it.id,folleto?it:null)}},pic(it.image_url,'art'),h('span',{class:'t'},it.name),
       h('span',{class:'s'},[it.brand,it.size_label].filter(Boolean).join(' · ')||' '),kPrice(it),
       it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null,
-      flTxt(it)&&(it.fl_from>new Date().toISOString().slice(0,10)||Math.abs(it.fl_price-it.price)>=0.01)?h('span',{class:'kmatch'},flTxt(it)):null),
-    it.old_price&&it.old_price>it.price?h('span',{class:'disc'},'−'+Math.round((1-it.price/it.old_price)*100)+'%'):(it.promo_text?h('span',{class:'disc promo'},it.promo_text):null),
+      fl&&(folleto||it.price==null||it.fl_from>hoy||Math.abs(it.fl_price-it.price)>=0.01)?h('span',{class:'kmatch'},fl):null),
+    precio!=null&&antes>precio?h('span',{class:'disc'},'−'+Math.round((1-precio/antes)*100)+'%'):(!folleto&&it.promo_text?h('span',{class:'disc promo'},it.promo_text):null),
     h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
 let KST=null;async function kStats(){if(KST)return KST;const {data}=await sbC.rpc('c_store_stats');KST=data||{};return KST}
 const nf0=n=>Number(n).toLocaleString('es-ES',{useGrouping:'always'});
 const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es',alcampo:'https://www.compraonline.alcampo.es',bonpreu:'https://www.compraonline.bonpreuesclat.cat',ahorramas:'https://www.ahorramas.com',gadis:'https://www.gadisline.com',ametller:'https://www.ametllerorigen.com',froiz:'https://supermercado.froiz.com',hiperdino:'https://www.hiperdino.es'};
-async function kTree(){if(K.tree[K.store])return K.tree[K.store];
-  const {data,error}=await sbC.rpc('c_tree',{p_store:K.store});if(error){netError(error);return[]}K.tree[K.store]=data||[];return K.tree[K.store]}
+async function kTree(store){if(K.tree[store])return K.tree[store];
+  const {data,error}=await sbC.rpc('c_tree',{p_store:store});if(error){netError(error);return[]}K.tree[store]=data||[];return K.tree[store]}
+function kChips(){
+  $('#kFlyer').hidden=K.store!=='lidl';
+  $('#kOff').setAttribute('aria-pressed',String(K.off==='rebaja'));
+  $('#kMulti').setAttribute('aria-pressed',String(K.off==='multi'));
+  $('#kFlyer').setAttribute('aria-pressed',String(K.off==='folleto'))}
 async function rCatalog(){
   if(!kStores().some(([id])=>id===K.store))K.store=kStores()[0][0];
-  $('#kSort').value=K.sort;$('#kOff').setAttribute('aria-pressed',String(K.off==='rebaja'));$('#kMulti').setAttribute('aria-pressed',String(K.off==='multi'));
+  if(K.store!=='lidl'&&K.off==='folleto')K.off=false;
+  const store=K.store;
+  $('#kSort').value=K.sort;kChips();kLoad(true);
   const kst=await kStats();
+  if(store!==K.store)return;
   $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{class:'stcard',type:'button',role:'radio','aria-checked':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},slogo(id),h('b',null,n),h('small',{class:'num'},kst[id]?nf0(kst[id].n)+' productos':'—'))));
   const cur=kst[K.store];
   $('#kHead').replaceChildren(h('div',null,h('h2',null,kName(K.store)),h('p',null,cur?[nf0(cur.n)+' productos',cur.offers?nf0(cur.offers)+' en oferta':null,'actualizado '+fdate(cur.updated)].filter(Boolean).join(' · '):'Catálogo')),
     SURL[K.store]?h('a',{class:'btn btn-s btn-sm',href:SURL[K.store],target:'_blank',rel:'noopener'},'Su web'):null);
   $('#kq').placeholder='Buscar en '+kName(K.store);
-  const tree=await kTree();
+  const tree=await kTree(store);
+  if(store!==K.store)return;
   $('#kTop').replaceChildren(h('button',{class:'chip',type:'button','aria-pressed':String(!K.top),onclick(){K.top=null;K.sub=null;rCatalog()}},'Todo'),
     ...tree.map(c=>h('button',{class:'chip',type:'button','aria-pressed':String(K.top===c.id),onclick(){K.top=c.id;K.sub=null;rCatalog()}},c.name)));
   const t=tree.find(c=>c.id===K.top);
   $('#kSub').hidden=!t;
   $('#kSub').replaceChildren(...(t?[h('button',{class:'chip',type:'button','aria-pressed':String(!K.sub),onclick(){K.sub=null;rCatalog()}},'Todo '+t.name.toLowerCase()),
-    ...t.subs.map(s=>h('button',{class:'chip',type:'button','aria-pressed':String(K.sub===s.id),onclick(){K.sub=s.id;rCatalog()}},s.name+' · '+s.n))]:[]));
-  kLoad(true)}
-async function kLoad(reset){if(reset){K.pos=0;$('#kgrid').replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},'Cargando productos…'))}
+    ...t.subs.map(s=>h('button',{class:'chip',type:'button','aria-pressed':String(K.sub===s.id),onclick(){K.sub=s.id;rCatalog()}},s.name+' · '+s.n))]:[]))}
+async function kLoad(reset){
+  const grid=$('#kgrid'),count=$('#kCount'),more=$('#kMore');
+  if(reset){K.pos=0;count.textContent='';more.hidden=true;grid.replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},'Cargando productos…'))}
+  else if(more.disabled)return;
   const my=++K.seq;
-  const {data,error}=await sbC.rpc('c_list2',{p_store:K.store,p_cat:K.sub||K.top,p_q:K.q||null,p_lim:40,p_off:K.pos,p_sort:K.sort,p_offers:false,p_deal:K.off||null});
-  if(my!==K.seq)return;if(error){netError(error);return}
-  if(reset)$('#kgrid').replaceChildren();
-  $('#kgrid').append(...data.items.map(kcard));K.pos+=data.items.length;
-  if(!data.total)$('#kgrid').replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},K.off==='multi'?'Ahora no hay promos de 2x1 ni de 2ª unidad aquí.':K.off?'No hay rebajas aquí ahora mismo.':'Aquí no hay productos todavía.'));
-  $('#kCount').textContent=pl(data.total,K.off==='multi'?'promo':K.off?'rebaja':'producto',K.off==='multi'?'promos':K.off?'rebajas':'productos')+' en '+kName(K.store);
-  $('#kMore').hidden=K.pos>=data.total}
+  const filtro=K.off,folleto=filtro==='folleto';
+  const args={p_cat:K.sub||K.top,p_q:K.q||null,p_lim:40,p_off:K.pos,p_sort:K.sort};
+  more.disabled=true;
+  const {data,error}=folleto?await sbC.rpc('c_list_folleto',args):
+    await sbC.rpc('c_list2',{...args,p_store:K.store,p_offers:false,p_deal:filtro||null});
+  if(my!==K.seq)return;
+  more.disabled=false;
+  if(error){
+    netError(error);
+    if(reset)grid.replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},folleto?'No se han podido cargar las ofertas del folleto. ':'No se han podido cargar los productos. ',
+      h('button',{class:'linkb',type:'button',onclick(){kLoad(true)}},'Reintentar')));
+    return}
+  if(reset)grid.replaceChildren();
+  grid.append(...data.items.map(it=>kcard(it,filtro)));K.pos+=data.items.length;
+  const [uno,varios,vacio]=folleto?['oferta del folleto','ofertas del folleto','No hay ofertas del folleto aquí.']:
+    filtro==='multi'?['promo','promos','Ahora no hay promos de 2x1 ni de 2ª unidad aquí.']:
+    filtro==='rebaja'?['rebaja','rebajas','No hay rebajas aquí ahora mismo.']:
+    ['producto','productos','Aquí no hay productos todavía.'];
+  if(!data.total)grid.replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},vacio));
+  count.textContent=pl(data.total,uno,varios)+' en '+kName(K.store);
+  more.hidden=K.pos>=data.total}
 $('#kSort').addEventListener('change',e=>{K.sort=e.target.value;kLoad(true)});
-function kDeal(d){K.off=K.off===d?false:d;$('#kOff').setAttribute('aria-pressed',String(K.off==='rebaja'));$('#kMulti').setAttribute('aria-pressed',String(K.off==='multi'));if(K.off==='rebaja'&&K.sort==='rel'){K.sort='offer';$('#kSort').value='offer'}kLoad(true)}
+function kDeal(d){K.off=K.off===d?false:d;kChips();if(K.off==='rebaja'&&K.sort==='rel'){K.sort='offer';$('#kSort').value='offer'}kLoad(true)}
 $('#kOff').addEventListener('click',()=>kDeal('rebaja'));$('#kMulti').addEventListener('click',()=>kDeal('multi'));
+$('#kFlyer').addEventListener('click',()=>kDeal('folleto'));
 let kqT;$('#kq').addEventListener('input',e=>{clearTimeout(kqT);kqT=setTimeout(()=>{K.q=e.target.value.trim();kLoad(true)},300)});
 $('#kMore').addEventListener('click',()=>kLoad(false));
 function kDiff(a,b){
+  if(a.price==null||b.price==null)return null;
   const same=a.net_qty&&b.net_qty&&a.net_unit===b.net_unit&&Math.abs(a.net_qty-b.net_qty)/a.net_qty<=0.02&&!a.loose&&!b.loose;
   let va=a.price,vb=b.price,by='';
   if(!same&&a.unit_price!=null&&b.unit_price!=null&&a.unit&&a.unit===b.unit){va=a.unit_price;vb=b.unit_price;by=kUnit(a.unit)}
   const d=r2(vb-va);if(Math.abs(d)<0.005)return h('span',{class:'diff'},'Mismo precio');
   return h('span',{class:'diff '+(d<0?'good':'bad')},fmt(Math.abs(d))+by+(d<0?' más barato':' más caro')+' ('+Math.round(Math.abs(d)/va*100)+'%)')}
-async function openItem(id){const root=$('#sheetRoot');loadWatch();
+async function openItem(id,productoFolleto){const root=$('#sheetRoot');loadWatch();
   const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
   const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando en otros supermercados…'));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
-  const {data,error}=await sbC.rpc('c_item',{p_id:id});if(error||!data||!data.item){netError(error);close();return}
-  const it=data.item,all=data.matches;let added=false;let HI=null;sbC.rpc('c_hist',{p_id:id}).then(r=>{HI=r.data;if(sheet.isConnected)draw()});
+  const {data,error}=await sbC.rpc('c_item',{p_id:id});
+  const it=data?.item||productoFolleto;if(!it){netError(error);close();return}
+  const all=data?.matches||[];let added=false;let HI=null;sbC.rpc('c_hist',{p_id:id}).then(r=>{HI=r.data;if(sheet.isConnected)draw()});
   const miss=visStores().map(s=>s.id).filter(id=>id!==it.store&&!all.some(m=>m.store===id));
   if(miss.length){const r=await sbC.rpc('c_like',{p_name:it.name,p_brand:null,p_qty:it.size_label||null,p_stores:miss,p_per:1});
     for(const g of (r.data||[]))for(const m of g.items)if(m.kind!=='parecido'||m.score>=0.5)all.push({...m,store:g.store,strict:m.kind==='igual'})}
@@ -1306,7 +1342,7 @@ async function openItem(id){const root=$('#sheetRoot');loadWatch();
     sheet.replaceChildren(h('div',{class:'grab'}),
       h('div',{class:'sheet-head'},pic(it.image_url),h('div',{style:'min-width:0'},h('h2',null,it.name),h('div',{class:'sub'},[kName(it.store),it.brand,it.size_label].filter(Boolean).join(' · ')),h('div',{class:'sub'},[it.top_name,it.cat_name].filter(Boolean).join(' › '))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
       kPrice(it,true),
-      it.promo_text&&promoAvg(it)?h('span',{class:'tag tag-g'},'Promo: '+it.promo_text+' · '+fmt(it.price)+' una unidad; comprando '+promoAvg(it).n+' sale a '+fmt(promoAvg(it).avg)+' cada una'):/lidl plus/i.test(it.promo_text||'')?h('span',{class:'tag tag-g'},'Precio con Lidl Plus (la app gratuita de Lidl)'+(it.old_price&&it.old_price>it.price?' · antes '+fmt(it.old_price):'')):(it.old_price&&it.old_price>it.price?h('span',{class:'tag tag-g'},'Rebaja real · antes '+fmt(it.old_price)+(it.promo_until?' · hasta el '+new Date(it.promo_until).toLocaleDateString('es-ES',{day:'numeric',month:'short'}):'')):''),
+      it.price==null?null:it.promo_text&&promoAvg(it)?h('span',{class:'tag tag-g'},'Promo: '+it.promo_text+' · '+fmt(it.price)+' una unidad; comprando '+promoAvg(it).n+' sale a '+fmt(promoAvg(it).avg)+' cada una'):/lidl plus/i.test(it.promo_text||'')?h('span',{class:'tag tag-g'},'Precio con Lidl Plus (la app gratuita de Lidl)'+(it.old_price&&it.old_price>it.price?' · antes '+fmt(it.old_price):'')):(it.old_price&&it.old_price>it.price?h('span',{class:'tag tag-g'},'Rebaja real · antes '+fmt(it.old_price)+(it.promo_until?' · hasta el '+new Date(it.promo_until).toLocaleDateString('es-ES',{day:'numeric',month:'short'}):'')):''),
       flTxt(it)?h('span',{class:'tag tag-g'},flTxt(it)+(it.fl_old?' (antes '+fmt(it.fl_old)+')':'')):'',
       histBox(HI),
       h('p',{class:'s',style:'margin:6px 0 0'},'Precio en '+kName(it.store)+(it.store==='mercadona'?' (catálogo semanal)':'')+' · '+fdate(it.updated_at)+' · ',h('a',{href:it.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web')),

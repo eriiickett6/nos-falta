@@ -58,7 +58,7 @@ Supabase catálogo
 - `tfetch`: fetch con timeout de 12 s, usado por los dos clientes de Supabase.
 - Cola offline: los cambios de la casa se guardan en el móvil y se envían al volver la conexión.
 - Búsqueda: caché `SCACHE` (60 entradas por término + súpers), debounce 180 ms, texto "Añadir «…»" al instante.
-- Llamadas al catálogo (`sbC.rpc`): `search_groups`, `c_list2`, `c_item`, `c_like`, `c_tree`, `c_store_stats`, `c_offers`, `c_drops`, `c_hist`, `compare_groups`, `group_detail`, `compare_citems`, `c_items_by_ids`, `c_mark_hot`, `c_saving_ref`, `home_stats`.
+- Llamadas al catálogo (`sbC.rpc`): `search_groups`, `c_list2`, `c_list_folleto`, `c_item`, `c_like`, `c_tree`, `c_store_stats`, `c_offers`, `c_drops`, `c_hist`, `compare_groups`, `group_detail`, `compare_citems`, `c_items_by_ids`, `c_mark_hot`, `c_saving_ref`, `home_stats`.
 - Llamadas a la app (`sb.rpc`): `near_get`, `near_save`, `hh_watch_list`, `hh_savings`, `product_prices`, `compare_prices`, `catalog_stats` y las `hh_*` de la casa.
 - Probar que el JS no tiene errores de sintaxis antes de publicar:
   ```bash
@@ -171,6 +171,8 @@ Función `catalog-folleto`, acción `auto` cada 20 min (`crawl_plan` `folletos-l
 5. `c_flyer_match`: une cada oferta con su producto (similitud trigram ≥ 0,45 + tamaño ±10 %).
 6. `c_flyer_apply('lidl')`: copia la oferta a `c_items.fl_*`. Si la web no tiene precio, usa el del folleto mientras dura (`price_src = 'folleto'`) y lo quita al acabar.
 La app enseña "Folleto, desde el 27 nov · 1,29 € con Lidl Plus" (`flTxt` en index.html).
+
+El filtro «Ofertas del folleto» aparece en el catálogo de Lidl. `c_list_folleto` selecciona las ofertas vigentes o próximas antes de paginar, también si el producto carece de precio online. La búsqueda y las categorías acotan los resultados, y los criterios de precio y descuento usan el importe del folleto. El importe anunciado se muestra junto a su fecha. Al añadir el producto a la lista se usa el precio online si está disponible. Claude debe aplicar `supabase/sql/catalogo_filtro_folleto.sql` en **catálogo** antes de publicar la app.
 
 ### 5.7 Otras fuentes
 
