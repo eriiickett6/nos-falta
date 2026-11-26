@@ -7,3 +7,6 @@ create unique index if not exists c_mcount_pk on public.c_mcount(item_id);
 -- 2) c_list2 en plpgsql con SQL dinámico: solo añade los filtros que se usan, así usa el índice trigram (yogur: 3,9 s -> 0,05 s)
 -- 3) pg_prewarm cada 10 min (ops.calentar) para que las recargas nocturnas no saquen el catálogo de memoria
 -- 4) c_items: columnas ean, price_src ('web' | 'openprices'), price_date; openprices action 'fill' para rellenar precios que el súper no publica
+-- 26/11 (2): search_groups en plpgsql sobre c_group_stats (vista materializada por grupo), c_offers_cmp pasa a vista
+-- materializada (la vista original es c_offers_cmp_live), c_cat_counts para c_tree. Se refrescan cada hora (catalogo-emparejar)
+-- y en la tarea diaria. Lectura pública (grant select a anon): las funciones de búsqueda no son security definer.
