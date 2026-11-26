@@ -212,3 +212,4 @@ La app enseña "Folleto, desde el 27 nov · 1,29 € con Lidl Plus" (`flTxt` en 
 | Borrar `dist/` | Restos de Wix | |
 | RGPD | Botón "Borrar mi cuenta" | |
 | Lista de mejoras | Ver el documento "Nos Falta — lista de mejoras" (fases) | |
+| Auditoría de la web | Revisar la web publicada y el código, y acordar con Claude las mejoras de cada área | Codex |
