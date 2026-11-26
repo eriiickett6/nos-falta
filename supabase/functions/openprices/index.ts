@@ -23,6 +23,7 @@ Deno.serve(async (req) => {
   const J = (o: unknown) => new Response(JSON.stringify(o), { headers: { 'Content-Type': 'application/json' } });
   const store = String(b.store || ''); const names: string[] = b.names || [];
   if (!store || !names.length) return J({ error: 'store y names' });
+  if (b.action === 'fill') return J(await fill(sb, store, names, b));
   const since = b.since || '2025-01-01'; const t0 = Date.now(); const budget = b.ms ?? 110000;
 
   let { data: run } = await sb.from('import_runs').select('*').eq('kind', 'op_c').eq('store_id', store).eq('status', 'running').order('id').limit(1).maybeSingle();
@@ -94,3 +95,77 @@ Deno.serve(async (req) => {
   return J({ ok: true, store, quedan_tiendas: c.locs?.length, page: c.page, productos: ok, fallos: failed, finished, msg });
 });
 function num(s: any) { if (s == null) return null; const n = parseFloat(String(s).replace(',', '.')); return isFinite(n) ? n : null; }
+
+// Rellena el precio de productos del catálogo que el súper no publica en su web (por ejemplo Lidl),
+// con el precio más reciente que la gente ha subido a Open Prices en tiendas de esa cadena en España.
+// Se cruza por código de barras (EAN) y se marca como price_src = 'openprices' con su fecha.
+async function fill(sb: any, store: string, names: string[], b: any) {
+  const t0 = Date.now(); const budget = b.ms ?? 100000;
+  const days = b.days ?? 180;
+  const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+  const key = 'op_fill_' + store;
+  const { data: cr } = await sb.from('import_config').select('value').eq('key', key).maybeSingle();
+  let c: any = cr ? JSON.parse(cr.value) : null;
+  if (!c || b.restart) c = { locs: null, page: 1, done: false };
+  if (c.done && !b.restart) return { ok: true, idle: true };
+  let pages = 0, matched = 0, updated = 0, seenPrices = 0, msg = '';
+  try {
+    if (!c.locs) {
+      const ids = new Set<number>();
+      for (const n of names) {
+        let p = 1;
+        while (true) {
+          const j = await getJson(`${API}/locations?osm_name__like=${encodeURIComponent(n)}&price_count__gte=1&size=100&page=${p}`);
+          for (const l of j.items || []) if (l.osm_address_country_code === 'ES' || /espa/i.test(l.osm_address_country || '')) ids.add(l.id);
+          if (p >= (j.pages || 1)) break; p++; await sleep(500);
+        }
+      }
+      c.locs = [...ids]; c.page = 1; c.chunk = 0; c.nlocs = ids.size;
+    }
+    while (Date.now() - t0 < budget && c.chunk * 40 < c.locs.length) {
+      const chunk = c.locs.slice(c.chunk * 40, c.chunk * 40 + 40);
+      const j = await getJson(`${API}/prices?location_id__in=${chunk.join(',')}&date__gte=${since}&currency=EUR&order_by=-date&size=100&page=${c.page}`);
+      pages++;
+      const items = (j.items || []).filter((x: any) => x.product_code && num(x.price));
+      seenPrices += items.length;
+      const codes = [...new Set(items.map((x: any) => String(x.product_code)))];
+      if (codes.length) {
+        const { data: have } = await sb.from('c_items').select('id,ean,price,price_src,price_date,net_qty,net_unit,excluded')
+          .eq('store', store).in('ean', codes);
+        const byEan = new Map<string, any[]>();
+        for (const h of have || []) { if (!byEan.has(h.ean)) byEan.set(h.ean, []); byEan.get(h.ean)!.push(h); }
+        for (const x of items) {
+          for (const h of byEan.get(String(x.product_code)) || []) {
+            matched++;
+            if (h.excluded) continue;
+            if (h.price != null && h.price_src !== 'openprices') continue;            // ya tiene precio oficial de la web
+            if (h.price_date && h.price_date >= x.date) continue;                      // ya tenemos uno igual o más reciente
+            const price = num(x.price)!;
+            const per = x.price_per === 'KILOGRAM' ? 'kg' : x.price_per === 'LITRE' ? 'l' : null;
+            let nq = h.net_qty, nu = h.net_unit;
+            const pr = x.product || {}; const q = num(pr.product_quantity); const qu = String(pr.product_quantity_unit || '').toLowerCase();
+            if (!nq && q && (qu === 'g' || qu === 'kg')) { nq = qu === 'g' ? q / 1000 : q; nu = 'kg'; }
+            if (!nq && q && (qu === 'ml' || qu === 'l' || qu === 'cl')) { nq = qu === 'ml' ? q / 1000 : qu === 'cl' ? q / 100 : q; nu = 'l'; }
+            const disc = x.price_is_discounted && num(x.price_without_discount) && num(x.price_without_discount)! > price;
+            const row: any = {
+              price, unit: per ?? nu ?? null, loose: !!per,
+              unit_price: per ? price : (nq && (nu === 'kg' || nu === 'l') ? +(price / nq).toFixed(2) : null),
+              net_qty: per ? 1 : nq, net_unit: per ?? nu,
+              size_label: !per && nq && nu ? fmt(nq, nu) : undefined,
+              old_price: disc ? num(x.price_without_discount) : null,
+              active: true, price_src: 'openprices', price_date: x.date,
+            };
+            if (row.size_label === undefined) delete row.size_label;
+            const { error } = await sb.from('c_items').update(row).eq('id', h.id);
+            if (error) msg = error.message; else { updated++; h.price_date = x.date; h.price_src = 'openprices'; h.price = price; }
+          }
+        }
+      }
+      if (c.page >= (j.pages || 1)) { c.chunk++; c.page = 1; } else c.page++;
+      await sleep(700);
+    }
+    if (c.chunk * 40 >= (c.locs?.length || 0)) c.done = true;
+  } catch (e) { msg = String(e).slice(0, 300); }
+  await sb.from('import_config').upsert({ key, value: JSON.stringify(c) }, { onConflict: 'key' });
+  return { ok: true, store, tiendas: c.nlocs, paginas: pages, precios_leidos: seenPrices, coinciden: matched, actualizados: updated, terminado: !!c.done, msg };
+}

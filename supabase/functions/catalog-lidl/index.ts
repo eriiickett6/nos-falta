@@ -124,7 +124,7 @@ function parse(html: string, url: string) {
   const end = pr.endDate ? String(pr.endDate).slice(0, 10) : null;
   return {
     store: 'lidl', ext_id: String(p.erpNumber), url,
-    name, brand: (ld?.brand?.name) || null, image_url: img,
+    name, brand: (ld?.brand?.name) || null, image_url: img, ean: String(ld?.gtin13 || ld?.gtin || '').replace(/\D/g, '') || null,
     size_label: loose ? (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : 'a granel') : (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : (net_qty && net_unit ? fmt(net_qty, net_unit) : null)),
     net_qty: loose ? null : net_qty, net_unit: loose ? null : net_unit, pack_n: sz.n && sz.n > 1 ? sz.n : null,
     price, unit_price: u2 ? unit_price : null, unit: u2, loose,
@@ -165,6 +165,15 @@ Deno.serve(async (req) => {
       out.hits = hits;
     }
     return J(out);
+  }
+  if (body.action === 'grep') {
+    // solo para investigar: busca texto en una página o script público de lidl.es que robots.txt permite
+    const u = String(body.url || '');
+    if (!/^https:\/\/www\.lidl\.es\//.test(u) || /\/(user-api|cqe)\/|search\?q=|[?&](offset|idsOnly|productsOnly|id|pageId|advisor|sort)=/.test(u)) return J({ error: 'url no permitida' });
+    const r = await get(u); const t = await r.text();
+    const rx = new RegExp(body.re, 'g'); const out: string[] = []; let m;
+    while ((m = rx.exec(t)) && out.length < (body.max || 15)) out.push(t.slice(Math.max(0, m.index - (body.pre ?? 150)), m.index + (body.post ?? 250)));
+    return J({ status: r.status, len: t.length, hits: out });
   }
   if (body.action === 'test') {
     const out: any[] = [];
@@ -227,12 +236,19 @@ Deno.serve(async (req) => {
             }
             let cat: string | null = null;
             if (row.store_cat) { const ids = row.store_cat.split('*'); for (let i = ids.length; i > 0 && !cat; i--) cat = catOf.get(ids.slice(0, i).join('*')) || null; }
-            const { data: rows, error } = await sb.from('c_items').upsert({ ...row, cat_id: cat, updated_at: new Date().toISOString() }, { onConflict: 'store,ext_id' }).select('id,price,unit_price');
+            // si Lidl no pone precio en la ficha pero tenemos uno de Open Prices, no lo borramos
+            const up: any = { ...row, cat_id: cat, updated_at: new Date().toISOString() };
+            if (row.price != null) { up.price_src = 'web'; up.price_date = null; }
+            else {
+              const { data: ex } = await sb.from('c_items').select('price_src').eq('store', 'lidl').eq('ext_id', row.ext_id).maybeSingle();
+              if (ex?.price_src === 'openprices') for (const k of ['price', 'unit_price', 'unit', 'old_price', 'promo_until', 'promo_text', 'active', 'net_qty', 'net_unit', 'size_label']) delete up[k];
+            }
+            const { data: rows, error } = await sb.from('c_items').upsert(up, { onConflict: 'store,ext_id' }).select('id,price,unit_price');
             if (error) { status = 'error'; err = error.message; bad++; }
             else {
               saved++;
               const x: any = rows![0];
-              if (x?.price != null) await sb.from('c_price_hist').upsert({ item_id: x.id, price: x.price, unit_price: x.unit_price }, { onConflict: 'item_id,seen_on' });
+              if (row.price != null && x?.price != null) await sb.from('c_price_hist').upsert({ item_id: x.id, price: x.price, unit_price: x.unit_price }, { onConflict: 'item_id,seen_on' });
             }
             void _raw;
           }

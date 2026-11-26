@@ -1,0 +1,9 @@
+-- Proyecto nos-falta-catalogo (xmkwfrfxyvwhpbupmrpp), 26/11/2026
+-- 1) Recuento de comparaciones por producto, calculado una vez al día (antes se contaba en cada búsqueda)
+create materialized view if not exists public.c_mcount as
+  select a as item_id, count(*)::int nm, (count(*) filter (where strict))::int nms from public.c_matches group by a;
+create unique index if not exists c_mcount_pk on public.c_mcount(item_id);
+-- se refresca en la tarea diaria: select c_refresh(); refresh materialized view concurrently public.c_mcount
+-- 2) c_list2 en plpgsql con SQL dinámico: solo añade los filtros que se usan, así usa el índice trigram (yogur: 3,9 s -> 0,05 s)
+-- 3) pg_prewarm cada 10 min (ops.calentar) para que las recargas nocturnas no saquen el catálogo de memoria
+-- 4) c_items: columnas ean, price_src ('web' | 'openprices'), price_date; openprices action 'fill' para rellenar precios que el súper no publica
