@@ -1239,11 +1239,16 @@ function kPrice(it,big){
 function promoAvg(it){const t=it.promo_text||'',p=Number(it.price);if(!t||!p)return null;let m=t.match(/^(\d)x(\d)$/);if(m)return{n:+m[1],avg:r2(p*m[2]/m[1])};
   m=t.match(/^([23])ª unidad (?:al (\d+)%|gratis)/);if(m){const n=+m[1],d=m[2]?+m[2]/100:1;return{n,avg:r2(p*(n-d)/n)}}
   m=t.match(/^(\d) por ([\d,]+)/);if(m)return{n:+m[1],avg:r2(parseFloat(m[2].replace(',','.'))/m[1])};return null}
+// oferta del folleto semanal de Lidl (sale antes que en su web): "Folleto 27–29 nov · 1,29 €"
+function flTxt(it){if(it.fl_price==null||!it.fl_from)return null;const d=x=>new Date(x+'T12:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
+  const hoy=new Date().toISOString().slice(0,10),fut=it.fl_from>hoy;
+  return (fut?'Folleto, desde el '+d(it.fl_from):'Folleto, hasta el '+d(it.fl_to))+' · '+fmt(it.fl_price)+(it.fl_plus?' con Lidl Plus':'')}
 function kcard(it){
   return h('div',{class:'pcard'},
     h('button',{class:'pcard-open',type:'button',onclick(){openItem(it.id)}},pic(it.image_url,'art'),h('span',{class:'t'},it.name),
       h('span',{class:'s'},[it.brand,it.size_label].filter(Boolean).join(' · ')||' '),kPrice(it),
-      it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null),
+      it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null,
+      flTxt(it)&&(it.fl_from>new Date().toISOString().slice(0,10)||Math.abs(it.fl_price-it.price)>=0.01)?h('span',{class:'kmatch'},flTxt(it)):null),
     it.old_price&&it.old_price>it.price?h('span',{class:'disc'},'−'+Math.round((1-it.price/it.old_price)*100)+'%'):(it.promo_text?h('span',{class:'disc promo'},it.promo_text):null),
     h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
 let KST=null;async function kStats(){if(KST)return KST;const {data}=await sbC.rpc('c_store_stats');KST=data||{};return KST}
@@ -1302,6 +1307,7 @@ async function openItem(id){const root=$('#sheetRoot');loadWatch();
       h('div',{class:'sheet-head'},pic(it.image_url),h('div',{style:'min-width:0'},h('h2',null,it.name),h('div',{class:'sub'},[kName(it.store),it.brand,it.size_label].filter(Boolean).join(' · ')),h('div',{class:'sub'},[it.top_name,it.cat_name].filter(Boolean).join(' › '))),h('button',{class:'x',type:'button','aria-label':'Cerrar',onclick:close},ic('i-x'))),
       kPrice(it,true),
       it.promo_text?h('span',{class:'tag tag-g'},'Promo: '+it.promo_text+' · '+fmt(it.price)+' una unidad'+(promoAvg(it)?'; comprando '+promoAvg(it).n+' sale a '+fmt(promoAvg(it).avg)+' cada una':'')):(it.old_price&&it.old_price>it.price?h('span',{class:'tag tag-g'},'Rebaja real · antes '+fmt(it.old_price)+(it.promo_until?' · hasta el '+new Date(it.promo_until).toLocaleDateString('es-ES',{day:'numeric',month:'short'}):'')):''),
+      flTxt(it)?h('span',{class:'tag tag-g'},flTxt(it)+(it.fl_old?' (antes '+fmt(it.fl_old)+')':'')):'',
       histBox(HI),
       h('p',{class:'s',style:'margin:6px 0 0'},'Precio en '+kName(it.store)+(it.store==='mercadona'?' (catálogo semanal)':'')+' · '+fdate(it.updated_at)+' · ',h('a',{href:it.url,target:'_blank',rel:'noopener',style:'color:var(--accent-ink)'},'Ver en su web')),
       h('p',{class:'gtitle'},'Y en otros supermercados…'),

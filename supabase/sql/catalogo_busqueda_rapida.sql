@@ -14,3 +14,11 @@ create unique index if not exists c_mcount_pk on public.c_mcount(item_id);
 -- search_groups: la palabra debe empezar una palabra (\m); grupos por nombre primero; grupos que salen por sus productos solo si
 -- son de comida (no bebe-mascotas/higiene/limpieza), >= 2 productos y >= 25 % de los del grupo.
 -- c_list2: misma regla de palabra; mascotas/higiene/limpieza al final salvo que se busquen; palabra entera (con plural) primero.
+
+-- ===== Folletos de Lidl (PDF semanal) =====
+-- c_flyer_pages: texto de cada página con posición (lo guarda la función catalog-folleto, acción ingest)
+-- c_flyer_offers: ofertas sacadas del folleto (acción parse) y emparejadas con c_items (c_flyer_match)
+-- c_items.fl_price/fl_old/fl_from/fl_to/fl_plus: la oferta de folleto vigente o próxima de cada producto
+-- c_flyer_apply(store): copia la oferta a c_items; si la web no tiene precio, usa el del folleto mientras dure (price_src='folleto')
+-- c_list2 y c_item devuelven también fl_price, fl_old, fl_from, fl_to, fl_plus
+-- crawl_plan 'folletos-lidl' (cada 20 min): acción auto = busca los folletos de alimentación, lee 9 páginas por vez, parsea y aplica
