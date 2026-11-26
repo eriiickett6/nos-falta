@@ -182,6 +182,8 @@ La app enseña "Folleto, desde el 27 nov · 1,29 € con Lidl Plus" (`flTxt` en 
 
 ## 6. Cómo trabajar varias IAs a la vez
 
+**Las IAs se hablan por `TABLON.md`** (mensajes con fecha, quién y para quién). Léelo al empezar cada sesión.
+
 1. **Una tarea = una rama**: `git switch -c <ia>/<tarea>` (ej. `codex/filtro-folleto`). Merge a `main` cuando funcione.
 2. **Reservar la tarea** en la tabla de §7: poner tu nombre en "Quién" en un commit pequeño antes de empezar.
 3. **No tocar a la vez la misma zona.** Zonas que chocan fácilmente:
