@@ -205,7 +205,7 @@ La app enseña "Folleto, desde el 27 nov · 1,29 € con Lidl Plus" (`flTxt` en 
 
 | Tarea | Detalle | Quién |
 |---|---|---|
-| Filtro "Ofertas del folleto" | Chip en el catálogo de Lidl con `fl_price is not null`, también las que empiezan después | |
+| Filtro "Ofertas del folleto" | Chip en el catálogo de Lidl con `fl_price is not null`, también las que empiezan después | Codex |
 | Calidad del folleto | Rechazar parejas con tamaño distinto o precio ×2 frente a la web; saltar no-comida | |
 | Precio "Solo en tienda" | Mostrar productos de Lidl sin precio online como "Precio solo en tienda" en vez de ocultarlos | |
 | Limpieza SQL (pide confirmación) | Borrar `export_ddl` / `export_rows` (proyecto app), `ops.mudanza*` / `ddl_aplicar` (catálogo), las tablas viejas del catálogo en el proyecto app y la función de pruebas `lidl-debug` | |
