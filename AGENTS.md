@@ -168,6 +168,7 @@ La app enseña "Folleto, desde el 27 nov · 1,29 € con Lidl Plus" (`flTxt` en 
 ### 5.7 Otras fuentes
 
 - **Mercadona**: dataset abierto de datania en Hugging Face (MIT). Su API bloquea robots, así que no se usa.
+  Mercadona a veces quita del nombre visible la variedad que sí está en la URL (ej. su havarti se llama "Queso lonchas cremoso de vaca Hacendado"). `withVariety` añade entre paréntesis las variedades de una lista fija (havarti, emmental, gouda…) que salen en la URL y no en el nombre. Para que se encuentre otra variedad, añádela a `VARIEDADES`.
 - **Open Prices** (Open Food Facts): `openprices` acción `fill`. Sirve de poco en Lidl (unos 90 precios).
 - **Ocado** (Bonpreu/Esclat, Alcampo): páginas de categoría públicas (`catalog-ocado`).
 - **Gadis**: `catalog-scan` solo detecta cambios por categoría y nunca escribe precios.

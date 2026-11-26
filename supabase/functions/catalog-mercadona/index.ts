@@ -9,6 +9,18 @@ const n = (v: unknown) => { const x = parseFloat(String(v ?? '').trim()); return
 const fmtQty = (q: number) => String(+q.toFixed(3)).replace('.', ',');
 // precio que pagas = unit_price; €/kg o €/l = bulk_price
 
+// Mercadona a veces quita del nombre visible el tipo de producto que sí está en la URL
+// (p. ej. "Queso lonchas cremoso de vaca Hacendado" es /queso-lonchas-cremoso-havarti-vaca-hacendado-paquete).
+// Solo añadimos palabras de una lista de variedades conocidas, para no meter ruido en la búsqueda.
+const VARIEDADES = ['havarti', 'emmental', 'gouda', 'edam', 'cheddar', 'mozzarella', 'brie', 'camembert', 'manchego', 'gruyere', 'parmesano',
+  'provolone', 'feta', 'burrata', 'mascarpone', 'ricotta', 'roquefort', 'gorgonzola', 'idiazabal', 'tetilla', 'comte', 'grana', 'scamorza', 'raclette', 'maasdam'];
+function withVariety(name: string, url: string): string {
+  const slug = (url.match(/\/product\/\d+\/([^/?#]+)/) || [])[1] || '';
+  const low = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const add = slug.split('-').filter(w => VARIEDADES.includes(w) && !low.includes(w));
+  return add.length ? name + ' (' + [...new Set(add)].join(', ') + ')' : name;
+}
+
 function toItem(p: any, path: { ids: string[], names: string[] }) {
   const pi = p.price_instructions || {};
   const price = n(pi.unit_price);
@@ -43,7 +55,7 @@ function toItem(p: any, path: { ids: string[], names: string[] }) {
   const prev = n(pi.previous_unit_price);
   return {
     store: 'mercadona', ext_id: String(p.id), url: p.share_url || ('https://tienda.mercadona.es/product/' + p.id),
-    name: String(p.display_name || '').trim(), brand: null, image_url: p.thumbnail || null,
+    name: withVariety(String(p.display_name || '').trim(), String(p.share_url || '')), brand: null, image_url: p.thumbnail || null,
     size_label: label || null, net_qty, net_unit, pack_n: pi.total_units ?? null,
     price, unit_price: unit ? bulk : null, unit, loose, old_price: prev && price && prev > price ? prev : null, promo_until: null,
     store_cat: path.ids.join('*'), store_cat_path: path.names.join(' > '),
