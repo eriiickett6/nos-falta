@@ -1,47 +1,11 @@
 // Catálogo de Lidl España (www.lidl.es): solo productos de tienda (fichas p11…), no el bazar online.
-// robots.txt permite las fichas /p/; el sitemap de productos las lista todas.
+// robots.txt permite /p/; el sitemap da la lista y la API de cuadrícula (/p/api/gridboxes) los datos, de 20 en 20.
+// (El lector antiguo, ficha a ficha, está en el historial de git.)
 import { createClient } from 'npm:@supabase/supabase-js@2.45.4';
 
 const BASE = 'https://www.lidl.es';
 const UA = 'Mozilla/5.0 (compatible; NosFaltaBot/0.1; proyecto escolar)';
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
-
-// datos de Nuxt: un array plano donde los objetos apuntan a otras posiciones
-function nuxt(html: string): any[] | null {
-  const m = html.match(/<script[^>]*id="__NUXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
-  if (!m) return null;
-  try { return JSON.parse(m[1]); } catch { return null; }
-}
-function resolver(arr: any[]) {
-  const memo = new Map<number, any>();
-  const val = (i: number, d = 0): any => {
-    if (typeof i !== 'number' || i < 0 || i >= arr.length) return undefined;
-    if (memo.has(i)) return memo.get(i);
-    if (d > 40) return null;
-    const x = arr[i];
-    let out: any = x;
-    if (Array.isArray(x)) {
-      if (typeof x[0] === 'string' && ['Reactive', 'ShallowReactive', 'Ref', 'ShallowRef', 'EmptyRef', 'EmptyShallowRef'].includes(x[0])) out = x.length > 1 ? val(x[1], d + 1) : null;
-      else if (x[0] === 'Set') out = x.slice(1).map(j => val(j, d + 1));
-      else if (x[0] === 'Map') { out = {}; for (let k = 1; k + 1 < x.length; k += 2) out[String(val(x[k], d + 1))] = val(x[k + 1], d + 1); }
-      else if (x[0] === 'Date') out = x[1];
-      else { out = []; memo.set(i, out); for (const j of x) out.push(val(j, d + 1)); return out; }
-    } else if (x && typeof x === 'object') {
-      out = {}; memo.set(i, out);
-      for (const k of Object.keys(x)) out[k] = val(x[k], d + 1);
-      return out;
-    }
-    memo.set(i, out);
-    return out;
-  };
-  return val;
-}
-function ldProduct(html: string): any {
-  for (const m of html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)) {
-    try { const j = JSON.parse(m[1]); if (j['@type'] === 'Product') return j; } catch { /* */ }
-  }
-  return null;
-}
 
 const num = (s: any) => { const x = parseFloat(String(s ?? '').replace(/\s/g, '').replace(',', '.')); return isFinite(x) ? x : null; };
 // Promos de varias unidades (2x1, 3x2, 2ª unidad al 50%, 3 por 5 €...). Solo cuenta si el súper lo pone escrito en la zona de la promo.
@@ -60,7 +24,7 @@ function promoOf(raw: string | null | undefined): string | null {
   if (m) return m[1] + ' por ' + m[2].replace('.', ',') + ' €';
   return null;
 }
-export function parseSize(t: string | null): { q: number | null, u: string | null, n: number | null } {
+function parseSize(t: string | null): { q: number | null, u: string | null, n: number | null } {
   if (!t) return { q: null, u: null, n: null };
   const s = t.toLowerCase().replace(/(\d),(\d)/g, '$1.$2');
   const conv = (q: number, u: string): [number, string] =>
@@ -75,80 +39,22 @@ export function parseSize(t: string | null): { q: number | null, u: string | nul
 }
 const fmt = (q: number, u: string) => (u === 'kg' && q < 1 ? Math.round(q * 1000) + ' g' : u === 'l' && q < 1 ? Math.round(q * 1000) + ' ml' : String(+q.toFixed(3)).replace('.', ',') + ' ' + u);
 
-function parse(html: string, url: string) {
-  const arr = nuxt(html); if (!arr) return null;
-  const val = resolver(arr);
-  let p: any = null;
-  for (let i = 0; i < Math.min(arr.length, 60) && !p; i++) {
-    const x = arr[i];
-    if (x && typeof x === 'object' && !Array.isArray(x) && 'erpNumber' in x && 'keyfacts' in x && 'price' in x) p = val(i);
-  }
-  if (!p) return null;
-  const ld = ldProduct(html);
-  const kf = p.keyfacts || {};
-  // el bloque de precio completo (con oldPrice/endDate) es el que tiene más campos; el de Lidl Plus es más corto
-  const cands: any[] = [];
-  for (let i = 0; i < arr.length; i++) {
-    const x = arr[i];
-    if (x && typeof x === 'object' && !Array.isArray(x) && 'price' in x && 'packaging' in x && 'basePrice' in x) {
-      const o = val(i); if (typeof o?.price === 'number') cands.push({ o, path: String(i), n: Object.keys(x).length });
-    }
-  }
-  cands.sort((a, b) => b.n - a.n);
-  const pr: any = cands[0]?.o || {};
-  if (pr.price == null) { const og = html.match(/og:description" content="[^"]*?([\d]+[.,]\d{2})\s*€/); if (og) pr.price = num(og[1]); }
-  const name = String(kf.fullTitle || kf.title || ld?.name || '').trim();
-  // "-50% 2a ud.": Lidl pone en price el precio de la 2ª unidad; el precio normal es el tachado
-  const multi = promoOf([pr.discount?.discountText, ...((p.ribbons || []).map((r: any) => r?.text))].filter(Boolean).join(' '));
-  const del = num(pr.oldPrice ?? pr.discount?.deletedPrice);
-  const price = multi && del ? del : num(pr.price);
-  const old = multi ? null : del;
-  const pack = String(pr.packaging?.text || '').trim();
-  const bp = String(pr.basePrice?.text || '').trim();               // p. ej. "1 kg = 3,59 €" o "precio por kg"
-  const mb = bp.toLowerCase().replace(/(\d),(\d)/g, '$1.$2').match(/(?:1\s*)?(kg|l|litro)\s*=\s*([\d.]+)/);
-  const unit = mb ? (mb[1] === 'kg' ? 'kg' : 'l') : null;
-  let unitAmt = mb ? +mb[2] : null;
-  if (multi && unitAmt && num(pr.price) && price) unitAmt = +(unitAmt * price / num(pr.price)!).toFixed(2);
-  const loose = /granel|al peso|precio por kg|\/kg|por kilo/i.test(name + ' ' + pack + ' ' + bp) && !/malla|bolsa|bandeja|\d+\s*g\b/i.test(pack);
-  const sz = parseSize(pack || name);
-  let net_qty = sz.q, net_unit = sz.u;
-  if (!loose && price && unitAmt && unit && (!net_qty || net_unit !== unit)) { net_qty = +(price / unitAmt).toFixed(3); net_unit = unit; }
-  let unit_price: number | null = unitAmt, u2: string | null = unit;
-  if (!unit_price && price && net_qty && (net_unit === 'kg' || net_unit === 'l')) { unit_price = +(price / net_qty).toFixed(2); u2 = net_unit; }
-  if (loose && price && !unit_price) { unit_price = price; u2 = 'kg'; }
-  const wPath = String(kf.wonCategoryPrimaryPath || '');
-  const wName = String(kf.wonCategoryPrimary || '');
-  const names = wName.split('/').slice(2);                            // quita "Mundos de necesidad/Comida y…"
-  const ids = wPath.split('/').filter(Boolean).slice(1);
-  const img = (ld?.image || [])[0] || null;
-  const end = pr.endDate ? String(pr.endDate).slice(0, 10) : null;
-  return {
-    store: 'lidl', ext_id: String(p.erpNumber), url,
-    name, brand: (ld?.brand?.name) || null, image_url: img, ean: String(ld?.gtin13 || ld?.gtin || '').replace(/\D/g, '') || null,
-    size_label: loose ? (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : 'a granel') : (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : (net_qty && net_unit ? fmt(net_qty, net_unit) : null)),
-    net_qty: loose ? null : net_qty, net_unit: loose ? null : net_unit, pack_n: sz.n && sz.n > 1 ? sz.n : null,
-    price, unit_price: u2 ? unit_price : null, unit: u2, loose,
-    old_price: old && price && old > price ? old : null, promo_until: (old && price && old > price) || multi ? end : null, promo_text: multi,
-    store_cat: ids.length ? ids.join('*') : null, store_cat_path: names.length ? names.join(' > ') : (p.category || null),
-    excluded: /electr|informát|ropa|calzado|herramient|bricolaje|juguete|deporte|muebl/i.test(wName),
-    active: price != null,
-    _raw: { pack, bp, cat: wName, analytics: kf.analyticsCategory, prPaths: cands.map(c => c.path + ':' + c.o.price) },
-  };
-}
-
 // Ficha de la API de cuadrícula de lidl.es (/p/api/gridboxes): la misma que usa su web para pintar listados, 20 productos por petición.
 function fromGrid(x: any) {
   if (!x || !x.erpNumber) return null;
   const kf = x.keyfacts || {};
-  let pr: any = x.price || {};
+  // el precio completo (texto de la promo "-50% 2a ud.", fechas) solo viene en regionsPrices; x.price es un resumen sin el texto
+  const rp = (Object.values(x.regionsPrices || {}) as any[]).map((r: any) => r?.currentPrice).find((c: any) => typeof c?.price === 'number');
+  let pr: any = rp ? { ...rp, packaging: rp.packaging?.text ? rp.packaging : x.price?.packaging, basePrice: rp.basePrice?.text ? rp.basePrice : x.price?.basePrice } : (x.price || {});
   const name = String(x.fullTitle || kf.fullTitle || x.title || '').trim();
   if (!name) return null;
   // sin precio normal pero con precio para clientes de Lidl Plus (su app gratuita): se usa ese y se avisa
   const lp = (x.lidlPlus || []).find((l: any) => typeof l?.price?.price === 'number');
   const plus = num(pr.price) == null && !!lp;
   if (plus) pr = { ...lp.price, packaging: lp.price.packaging?.text ? lp.price.packaging : pr.packaging };
-  const multi = promoOf([pr.discount?.discountText, ...((x.ribbons || []).map((r: any) => r?.text))].filter(Boolean).join(' '));
+  const multi = promoOf([pr.discount?.discountText, ...((x.ribbons || []).map((r: any) => r?.text))].filter(Boolean).join(' | '));
   const del = num(pr.oldPrice ?? pr.discount?.deletedPrice);
+  // "-50% 2a ud.": el precio grande es el de la 2ª unidad; el normal (lo que pagas por una) es el tachado
   const price = multi && del ? del : num(pr.price);
   const old = multi ? null : del;
   const pack = String(pr.packaging?.text || '').trim();
@@ -190,34 +96,6 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => ({}));
   const J = (o: unknown) => new Response(JSON.stringify(o), { headers: { 'Content-Type': 'application/json' } });
   const get = (u: string) => fetch(u, { headers: { 'User-Agent': UA, 'Accept-Language': 'es-ES,es;q=0.9' } });
-
-  if (body.action === 'dump') {
-    const r = await get(body.url); const html = await r.text();
-    const ld = ldProduct(html);
-    const arr = nuxt(html);
-    const out: any = { status: r.status, ld: ld ? { name: ld.name, brand: ld.brand, gtin: ld.gtin13, img: (ld.image || [])[0], offers: ld.offers } : null, len: arr?.length };
-    if (arr) {
-      const val = resolver(arr);
-      const hits: any[] = [];
-      for (let i = 0; i < arr.length && hits.length < 12; i++) {
-        const x = arr[i];
-        if (x && typeof x === 'object' && !Array.isArray(x)) {
-          const ks = Object.keys(x);
-          if (ks.some(k => (body.keys || ['basePrice', 'packaging', 'category', 'keyfacts', 'fullTitle', 'erpNumber']).includes(k))) {
-            const o = val(i);
-            hits.push({ i, keys: ks, o: JSON.stringify(o).slice(0, body.cut || 900) });
-          }
-        }
-      }
-      out.hits = hits;
-    }
-    return J(out);
-  }
-  if (body.action === 'test') {
-    const out: any[] = [];
-    for (const u of body.urls || []) { const r = await get(u); out.push({ u, status: r.status, item: parse(await r.text(), u) }); await sleep(800); }
-    return J(out);
-  }
 
   if (body.action === 'seed') {
     const r = await get(BASE + '/p/export/ES/es/product_sitemap.xml.gz');
@@ -308,58 +186,5 @@ Deno.serve(async (req) => {
     return J({ ok: true, picked: (q || []).length, calls, saved, sin_precio_conservado: kept, gone, errors: bad, blocked, msg, ms: Date.now() - t0 });
   }
 
-  if (body.action === 'crawl') {
-    const t0 = Date.now();
-    const { data: q } = await sb.from('c_queue').select('*').eq('store', 'lidl').eq('status', 'new').limit(body.n ?? 30);
-    const { data: map } = await sb.from('c_store_cats').select('ext,cat_id').eq('store', 'lidl');
-    const catOf = new Map((map || []).map((m: any) => [m.ext, m.cat_id]));
-    let saved = 0, bad = 0, blocked = false;
-    const cats = new Map<string, any>();
-    for (const job of q || []) {
-      if (Date.now() - t0 > 100000) break;
-      let status = 'done', err: string | null = null;
-      try {
-        const r = await get(job.url);
-        if (r.status === 404 || r.status === 410) { status = 'gone'; await sb.from('c_items').update({ active: false }).eq('store', 'lidl').eq('ext_id', job.ext_id); }
-        else if (r.status !== 200) { status = 'error'; err = 'HTTP ' + r.status; if ([202, 403, 429, 503].includes(r.status)) blocked = true; }
-        else {
-          const it = parse(await r.text(), job.url);
-          if (!it) { status = 'error'; err = 'sin datos'; }
-          else {
-            const { _raw, ...row } = it;
-            if (row.store_cat) {
-              const ids = row.store_cat.split('*'); const names = (row.store_cat_path || '').split(' > ');
-              for (let i = 1; i <= ids.length; i++) {
-                const ext = ids.slice(0, i).join('*');
-                if (!cats.has(ext)) cats.set(ext, { store: 'lidl', ext, name: names[i - 1] || ext, path: names.slice(0, i).join(' > ') });
-              }
-            }
-            let cat: string | null = null;
-            if (row.store_cat) { const ids = row.store_cat.split('*'); for (let i = ids.length; i > 0 && !cat; i--) cat = catOf.get(ids.slice(0, i).join('*')) || null; }
-            // si Lidl no pone precio en la ficha pero tenemos uno de Open Prices, no lo borramos
-            const up: any = { ...row, cat_id: cat, updated_at: new Date().toISOString() };
-            if (row.price != null) { up.price_src = 'web'; up.price_date = null; }
-            else {
-              const { data: ex } = await sb.from('c_items').select('price_src').eq('store', 'lidl').eq('ext_id', row.ext_id).maybeSingle();
-              if (ex?.price_src === 'openprices') for (const k of ['price', 'unit_price', 'unit', 'old_price', 'promo_until', 'promo_text', 'active', 'net_qty', 'net_unit', 'size_label']) delete up[k];
-            }
-            const { data: rows, error } = await sb.from('c_items').upsert(up, { onConflict: 'store,ext_id' }).select('id,price,unit_price');
-            if (error) { status = 'error'; err = error.message; bad++; }
-            else {
-              saved++;
-              const x: any = rows![0];
-              if (row.price != null && x?.price != null) await sb.from('c_price_hist').upsert({ item_id: x.id, price: x.price, unit_price: x.unit_price }, { onConflict: 'item_id,seen_on' });
-            }
-            void _raw;
-          }
-        }
-      } catch (e) { status = 'error'; err = String(e).slice(0, 300); bad++; }
-      await sb.from('c_queue').update({ status, err, last_at: new Date().toISOString(), tries: status === 'error' ? job.tries + 1 : 0 }).eq('store', 'lidl').eq('ext_id', job.ext_id);
-      if (blocked) break; // si nos frenan, paramos y no insistimos
-      await sleep(1500);
-    }
-    if (cats.size) await sb.from('c_store_cats').upsert([...cats.values()], { onConflict: 'store,ext', ignoreDuplicates: true });
-    return J({ ok: true, picked: (q || []).length, saved, errors: bad, blocked, ms: Date.now() - t0 });
-  }
   return J({ error: 'action' });
 });
