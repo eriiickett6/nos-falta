@@ -147,6 +147,13 @@ Desactivar: `update ops.crawl_plan set active = false where name = '…';`
 - **Regla de precio**: con una promo de varias unidades, `price` = lo que cuesta **una** unidad (el precio tachado), `old_price` = null y `promo_text` = la promo. Nunca guardar como precio el de la 2ª unidad. La app calcula el precio medio llevando varias (`promoAvg`).
 - **Lidl**: el texto "-50% 2a ud." **solo** viene en `regionsPrices[*].currentPrice.discount.discountText` de la API de cuadrícula; `price` a secas es un resumen sin ese texto. Si no se lee ahí, sale como "−50%" falso (fallo corregido el 26/11/2026).
 
+### 5.4b Cuándo una rebaja es "real" (trigger `c_items_deal`)
+
+- `deal = 'multi'` solo si `promo_text` es una promo de varias unidades (2x1, "2ª unidad…", "3 por…"). "Con Lidl Plus" no es multi.
+- `deal = 'rebaja'` si el precio tachado es creíble: `c_ref30` (el precio más bajo de los 30 días antes del último cambio, según nuestro `c_price_hist`) es mayor que el precio actual.
+- Excepción Lidl: si la oferta tiene fecha de fin (`promo_until`) y nuestro historial tiene menos de 30 días sin otro precio, nos fiamos del tachado de Lidl. Por ley el tachado es el precio más bajo de los 30 días anteriores.
+- En otros súpers (Froiz, Ahorramas…) hay cientos de tachados permanentes: ahí no nos fiamos sin historial.
+
 ### 5.5 Lidl
 
 - Lista: sitemap `https://www.lidl.es/p/export/ES/es/product_sitemap.xml.gz` (acción `seed`, 4 veces al día).
@@ -198,7 +205,6 @@ La app enseña "Folleto, desde el 27 nov · 1,29 € con Lidl Plus" (`flTxt` en 
 
 | Tarea | Detalle | Quién |
 |---|---|---|
-| Releer Lidl con el arreglo del 2ª ud. | `update c_queue set status='new', prio=9 where store='lidl'` (lo hace sola la siembra de cada 6 h si nadie lo lanza) | |
 | Filtro "Ofertas del folleto" | Chip en el catálogo de Lidl con `fl_price is not null`, también las que empiezan después | |
 | Calidad del folleto | Rechazar parejas con tamaño distinto o precio ×2 frente a la web; saltar no-comida | |
 | Precio "Solo en tienda" | Mostrar productos de Lidl sin precio online como "Precio solo en tienda" en vez de ocultarlos | |
