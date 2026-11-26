@@ -136,6 +136,53 @@ function parse(html: string, url: string) {
   };
 }
 
+// Ficha de la API de cuadrícula de lidl.es (/p/api/gridboxes): la misma que usa su web para pintar listados, 20 productos por petición.
+function fromGrid(x: any) {
+  if (!x || !x.erpNumber) return null;
+  const kf = x.keyfacts || {};
+  let pr: any = x.price || {};
+  const name = String(x.fullTitle || kf.fullTitle || x.title || '').trim();
+  if (!name) return null;
+  // sin precio normal pero con precio para clientes de Lidl Plus (su app gratuita): se usa ese y se avisa
+  const lp = (x.lidlPlus || []).find((l: any) => typeof l?.price?.price === 'number');
+  const plus = num(pr.price) == null && !!lp;
+  if (plus) pr = { ...lp.price, packaging: lp.price.packaging?.text ? lp.price.packaging : pr.packaging };
+  const multi = promoOf([pr.discount?.discountText, ...((x.ribbons || []).map((r: any) => r?.text))].filter(Boolean).join(' '));
+  const del = num(pr.oldPrice ?? pr.discount?.deletedPrice);
+  const price = multi && del ? del : num(pr.price);
+  const old = multi ? null : del;
+  const pack = String(pr.packaging?.text || '').trim();
+  const bp = String(pr.basePrice?.text || '').trim();
+  const mb = bp.toLowerCase().replace(/(\d),(\d)/g, '$1.$2').match(/(?:1\s*)?(kg|l|litro)\s*=\s*([\d.]+)/);
+  const unit = mb ? (mb[1] === 'kg' ? 'kg' : 'l') : null;
+  let unitAmt = mb ? +mb[2] : null;
+  if (multi && unitAmt && num(pr.price) && price) unitAmt = +(unitAmt * price / num(pr.price)!).toFixed(2);
+  const loose = /granel|al peso|precio por kg|\/kg|por kilo/i.test(name + ' ' + pack + ' ' + bp) && !/malla|bolsa|bandeja|\d+\s*g\b/i.test(pack);
+  const sz = parseSize(pack || name);
+  let net_qty = sz.q, net_unit = sz.u;
+  if (!loose && price && unitAmt && unit && (!net_qty || net_unit !== unit)) { net_qty = +(price / unitAmt).toFixed(3); net_unit = unit; }
+  let unit_price: number | null = unitAmt, u2: string | null = unit;
+  if (!unit_price && price && net_qty && (net_unit === 'kg' || net_unit === 'l')) { unit_price = +(price / net_qty).toFixed(2); u2 = net_unit; }
+  if (loose && price && !unit_price) { unit_price = price; u2 = 'kg'; }
+  const wPath = String(kf.wonCategoryPrimaryPath || '');
+  const wName = String(kf.wonCategoryPrimary || '');
+  const names = wName.split('/').slice(2);
+  const ids = wPath.split('/').filter(Boolean).slice(1);
+  const end = pr.endDate ? String(pr.endDate).slice(0, 10) : null;
+  const badge = (x.stockAvailability?.badgeInfo?.badges || []).map((b: any) => b?.text).filter(Boolean).join(' · ') || null;
+  return {
+    store: 'lidl', ext_id: String(x.erpNumber), url: x.canonicalUrl ? BASE + x.canonicalUrl : null,
+    name, brand: x.brand?.name || null, image_url: x.image || null,
+    size_label: loose ? (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : 'a granel') : (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : (net_qty && net_unit ? fmt(net_qty, net_unit) : null)),
+    net_qty: loose ? null : net_qty, net_unit: loose ? null : net_unit, pack_n: sz.n && sz.n > 1 ? sz.n : null,
+    price, unit_price: u2 ? unit_price : null, unit: u2, loose,
+    old_price: old && price && old > price ? old : null, promo_until: (old && price && old > price) || multi ? end : null, promo_text: multi || (plus ? String(lp.lidlPlusText || 'Con Lidl Plus') : null),
+    store_cat: ids.length ? ids.join('*') : null, store_cat_path: names.length ? names.join(' > ') : (x.category || null),
+    excluded: /electr|inform\u00e1t|ropa|calzado|herramient|bricolaje|juguete|deporte|muebl/i.test(wName),
+    active: price != null, _badge: badge,
+  };
+}
+
 Deno.serve(async (req) => {
   const sb = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const { data: cfg } = await sb.from('import_config').select('value').eq('key', 'import_token').single();
@@ -165,15 +212,6 @@ Deno.serve(async (req) => {
       out.hits = hits;
     }
     return J(out);
-  }
-  if (body.action === 'grep') {
-    // solo para investigar: busca texto en una página o script público de lidl.es que robots.txt permite
-    const u = String(body.url || '');
-    if (!/^https:\/\/www\.lidl\.es\//.test(u) || /\/(user-api|cqe)\/|search\?q=|[?&](offset|idsOnly|productsOnly|id|pageId|advisor|sort)=/.test(u)) return J({ error: 'url no permitida' });
-    const r = await get(u); const t = await r.text();
-    const rx = new RegExp(body.re, 'g'); const out: string[] = []; let m;
-    while ((m = rx.exec(t)) && out.length < (body.max || 15)) out.push(t.slice(Math.max(0, m.index - (body.pre ?? 150)), m.index + (body.post ?? 250)));
-    return J({ status: r.status, len: t.length, hits: out });
   }
   if (body.action === 'test') {
     const out: any[] = [];
@@ -206,6 +244,68 @@ Deno.serve(async (req) => {
       return J({ ok: true, products: ids.length, retired: gone.length });
     }
     return J({ ok: true, products: rows.length });
+  }
+
+  if (body.action === 'grid') {
+    // lee los productos pendientes de 20 en 20 con la API de cuadrícula (mucho menos tráfico que una página por producto)
+    const t0 = Date.now(); const per = 20; const reqs = Math.min(body.n ?? 10, 30);
+    const { data: q } = await sb.from('c_queue').select('*').eq('store', 'lidl').eq('status', 'new').order('prio', { ascending: false }).limit(per * reqs);
+    const { data: map } = await sb.from('c_store_cats').select('ext,cat_id').eq('store', 'lidl');
+    const catOf = new Map((map || []).map((m: any) => [m.ext, m.cat_id]));
+    const cats = new Map<string, any>();
+    let saved = 0, gone = 0, kept = 0, bad = 0, calls = 0, blocked = false, msg = '';
+    for (let k = 0; k < (q || []).length; k += per) {
+      if (Date.now() - t0 > 95000) break;
+      const jobs = q!.slice(k, k + per);
+      const ids = jobs.map((j: any) => j.ext_id);
+      const r = await get(`${BASE}/p/api/gridboxes/ES/es?erpNumbers=${ids.join(',')}`); calls++;
+      if (r.status !== 200) { msg = 'HTTP ' + r.status; if ([202, 403, 429, 503].includes(r.status)) blocked = true; break; }
+      let arr: any[] = [];
+      try { arr = await r.json(); } catch { msg = 'json'; break; }
+      const byId = new Map(arr.map((x: any) => [String(x?.erpNumber), x]));
+      const rows: any[] = []; const st = new Map<string, string>();
+      // los que siguen sin precio: no borrar un precio de Open Prices si lo hay
+      const { data: ex } = await sb.from('c_items').select('ext_id,price_src').eq('store', 'lidl').in('ext_id', ids);
+      const srcOf = new Map((ex || []).map((e: any) => [e.ext_id, e.price_src]));
+      for (const id of ids) {
+        const it = fromGrid(byId.get(id));
+        if (!it) { st.set(id, 'gone'); continue; }
+        const { _badge, ...row } = it;
+        if (row.store_cat) {
+          const cs = row.store_cat.split('*'); const ns = (row.store_cat_path || '').split(' > ');
+          for (let i = 1; i <= cs.length; i++) { const e = cs.slice(0, i).join('*'); if (!cats.has(e)) cats.set(e, { store: 'lidl', ext: e, name: ns[i - 1] || e, path: ns.slice(0, i).join(' > ') }); }
+        }
+        let cat: string | null = null;
+        if (row.store_cat) { const cs = row.store_cat.split('*'); for (let i = cs.length; i > 0 && !cat; i--) cat = catOf.get(cs.slice(0, i).join('*')) || null; }
+        const up: any = { ...row, cat_id: cat, updated_at: new Date().toISOString(), price_src: row.price != null ? 'web' : null, price_date: null };
+        if (!up.url) up.url = jobs.find((j: any) => j.ext_id === id)?.url;
+        if (row.price == null && srcOf.get(id) === 'openprices') {
+          // sin precio en Lidl pero con uno de Open Prices: se actualiza aparte sin tocar el precio (en bloque se borraría)
+          const keep: any = { ...up }; for (const f of ['price', 'unit_price', 'unit', 'old_price', 'promo_until', 'promo_text', 'active', 'net_qty', 'net_unit', 'size_label', 'price_src', 'price_date']) delete keep[f];
+          await sb.from('c_items').update(keep).eq('store', 'lidl').eq('ext_id', id); kept++; st.set(id, 'done'); continue;
+        }
+        rows.push(up); st.set(id, 'done');
+      }
+      if (rows.length) {
+        const { data: saved2, error } = await sb.from('c_items').upsert(rows, { onConflict: 'store,ext_id' }).select('id,ext_id,price,unit_price,price_src');
+        if (error) { msg = error.message.slice(0, 200); bad += rows.length; for (const r2 of rows) st.set(r2.ext_id, 'error'); }
+        else {
+          saved += rows.length;
+          const hist = (saved2 || []).filter((x: any) => x.price != null && x.price_src === 'web').map((x: any) => ({ item_id: x.id, price: x.price, unit_price: x.unit_price }));
+          if (hist.length) await sb.from('c_price_hist').upsert(hist, { onConflict: 'item_id,seen_on' });
+        }
+      }
+      const goneIds = [...st].filter(([, v]) => v === 'gone').map(([id]) => id);
+      if (goneIds.length) { gone += goneIds.length; await sb.from('c_items').update({ active: false }).eq('store', 'lidl').in('ext_id', goneIds); }
+      const now = new Date().toISOString();
+      for (const v of ['done', 'gone', 'error']) {
+        const these = [...st].filter(([, s2]) => s2 === v).map(([id]) => id);
+        if (these.length) await sb.from('c_queue').update({ status: v, err: v === 'error' ? msg : null, last_at: now, tries: 0 }).eq('store', 'lidl').in('ext_id', these);
+      }
+      await sleep(body.pause ?? 1200);
+    }
+    if (cats.size) await sb.from('c_store_cats').upsert([...cats.values()], { onConflict: 'store,ext', ignoreDuplicates: true });
+    return J({ ok: true, picked: (q || []).length, calls, saved, sin_precio_conservado: kept, gone, errors: bad, blocked, msg, ms: Date.now() - t0 });
   }
 
   if (body.action === 'crawl') {
