@@ -10,3 +10,7 @@ create unique index if not exists c_mcount_pk on public.c_mcount(item_id);
 -- 26/11 (2): search_groups en plpgsql sobre c_group_stats (vista materializada por grupo), c_offers_cmp pasa a vista
 -- materializada (la vista original es c_offers_cmp_live), c_cat_counts para c_tree. Se refrescan cada hora (catalogo-emparejar)
 -- y en la tarea diaria. Lectura pública (grant select a anon): las funciones de búsqueda no son security definer.
+-- 26/11 (3): búsqueda más precisa. product_groups.kw (palabras extra: pienso/perro/gato/mascota), c_group_stats.nn = nombre + kw.
+-- search_groups: la palabra debe empezar una palabra (\m); grupos por nombre primero; grupos que salen por sus productos solo si
+-- son de comida (no bebe-mascotas/higiene/limpieza), >= 2 productos y >= 25 % de los del grupo.
+-- c_list2: misma regla de palabra; mascotas/higiene/limpieza al final salvo que se busquen; palabra entera (con plural) primero.
