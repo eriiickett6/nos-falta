@@ -1,6 +1,8 @@
 <!doctype html>
 <html lang="es">
 <head>
+<link rel="preconnect" href="https://xmkwfrfxyvwhpbupmrpp.supabase.co" crossorigin>
+<link rel="preconnect" href="https://jdaheyiupovupwzkmmvl.supabase.co" crossorigin>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#F6F4EF" media="(prefers-color-scheme: light)">
@@ -1316,16 +1318,23 @@ async function openItem(id){const root=$('#sheetRoot');loadWatch();
   draw()}
 
 /* ---------- Lista ---------- */
-const q=$('#q'),sg=$('#sugg');let hl=0,sT,sSeq=0;
-q.addEventListener('input',()=>{clearTimeout(sT);sT=setTimeout(sugg,250)});
+const q=$('#q'),sg=$('#sugg');let hl=0,sT,sSeq=0;const SCACHE=new Map(); // búsquedas recientes: al repetir una palabra sale al momento
+q.addEventListener('input',()=>{clearTimeout(sT);sT=setTimeout(sugg,180)});
 async function sugg(){const t=q.value.trim();if(!t){sg.hidden=true;q.setAttribute('aria-expanded','false');return}
   const parts=splitList(t);
   if(parts.length>1){hl=0;const b=h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){q.value='';sg.hidden=true;addMany(parts)}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow',style:'min-width:0'},h('span',{class:'t'},'Añadir '+parts.length+' cosas'),h('span',{class:'s'},parts.map(x=>(x.qty>1?x.qty+'× ':'')+x.name).join(', '))));
     b.classList.add('hl');sg.replaceChildren(b);sg.hidden=false;q.setAttribute('aria-expanded','true');return}
   const ks=kStores().map(([id])=>id);
   const seq=++sSeq;let gr={data:[]},ci={data:null};const off=!navigator.onLine||NETDOWN;
-  if(!off){[gr,ci]=await Promise.all([sbC.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sbC.rpc('c_list2',{p_store:ks.length===1?ks[0]:null,p_cat:null,p_q:t,p_lim:12,p_off:0,p_sort:'rel',p_offers:false,p_deal:null})]);if(seq!==sSeq)return;
-    if(gr.error){netError(gr.error);gr={data:[]};ci={data:null}}}
+  const ck=nrm(t)+'|'+ks.join(',');const hit=SCACHE.get(ck);
+  if(hit){[gr,ci]=hit}
+  else if(!off){
+    // mientras llegan los resultados, ya se puede añadir lo escrito tal cual
+    if(sg.hidden||!sg.children.length){const b0=h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addCustom(t);q.value='';sg.hidden=true}},h('span',{class:'thumb ph'},ic('i-plus')),h('span',{class:'grow'},'Añadir «'+t+'»'),h('span',{class:'s'},'Buscando…'));
+      b0.classList.add('hl');hl=0;sg.replaceChildren(b0);sg.hidden=false;q.setAttribute('aria-expanded','true')}
+    [gr,ci]=await Promise.all([sbC.rpc('search_groups',{q:t,cat:null,lim:12,off:0}),sbC.rpc('c_list2',{p_store:ks.length===1?ks[0]:null,p_cat:null,p_q:t,p_lim:12,p_off:0,p_sort:'rel',p_offers:false,p_deal:null})]);if(seq!==sSeq)return;
+    if(gr.error){netError(gr.error);gr={data:[]};ci={data:null}}
+    else{SCACHE.set(ck,[gr,ci]);if(SCACHE.size>60)SCACHE.delete(SCACHE.keys().next().value)}}
   const KS=new Set(ks);const data=((ci.data&&ci.data.items)||[]).filter(x=>!KS.size||KS.has(x.store)).slice(0,5);
   const nq=nrm(t);const gs=(gr.data||[]).filter(g=>nrm(g.name).includes(nq)).slice(0,3);
   hl=0;const bs=[...gs.map(g=>h('button',{type:'button',role:'option',onmousedown(e){e.preventDefault()},onclick(){addGroup(g);q.value='';sg.hidden=true}},pic(g.image_url),
