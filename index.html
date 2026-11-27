@@ -118,16 +118,22 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .chip:hover{border-color:var(--fill-2);color:var(--ink)}
 .chip:active{transform:scale(.96)}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
-/* selector de súper: pastillas con logo y nombre (en el móvil se desliza en una fila; en el PC ocupan varias filas si hace falta) */
-#kStore{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 6px;margin:0 -2px}
-#kStore::-webkit-scrollbar{display:none}
-@media (min-width:900px){#kStore{flex-wrap:wrap;overflow:visible}}
-.stcard{flex:none;display:inline-flex;align-items:center;gap:10px;padding:7px 16px 7px 7px;border-radius:999px;background:var(--surface);border:1.5px solid var(--line);cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;font:inherit;color:inherit}
+/* selector de súper. Móvil: cuadrícula con todos a la vista (logo arriba, nombre debajo), sin desplazar de lado.
+   PC (≥ 900 px): pastillas con logo y nombre en una o varias filas. */
+#kStore{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 0 4px}
+.stcard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-width:0;padding:12px 6px 11px;border-radius:16px;background:var(--surface);border:1.5px solid var(--line);cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;font:inherit;color:inherit}
+.stcard .slogo{width:42px;height:42px;border-radius:12px;font-size:13px;flex:none}
+.stcard b{font-size:13.5px;line-height:1.2;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stcard:hover{border-color:var(--ink-3)}
-.stcard .slogo{width:34px;height:34px;border-radius:10px;font-size:11px;flex:none}
-.stcard b{font-size:14.5px;line-height:1.2;white-space:nowrap;font-weight:700}
 .stcard[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent-soft)}
 .stcard[aria-checked="true"] b{color:var(--accent-ink)}
+@media (min-width:420px){#kStore{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:900px){
+  #kStore{display:flex;flex-wrap:wrap;gap:10px}
+  .stcard{flex-direction:row;gap:11px;padding:8px 20px 8px 8px;border-radius:999px}
+  .stcard .slogo{width:40px;height:40px;border-radius:11px}
+  .stcard b{font-size:15.5px}
+}
 .sthead{display:flex;align-items:center;gap:14px;margin:14px 2px 4px}
 .sthead h2{margin:0;font-size:20px}
 .sthead p{margin:2px 0 0;font-size:13px;color:var(--ink-3)}
