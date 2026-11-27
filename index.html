@@ -118,22 +118,38 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .chip:hover{border-color:var(--fill-2);color:var(--ink)}
 .chip:active{transform:scale(.96)}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
-/* selector de súper. Móvil: cuadrícula con todos a la vista (logo arriba, nombre debajo), sin desplazar de lado.
-   PC (≥ 900 px): pastillas con logo y nombre en una o varias filas. */
-#kStore{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:2px 0 4px}
-.stcard{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-width:0;padding:12px 6px 11px;border-radius:16px;background:var(--surface);border:1.5px solid var(--line);cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;font:inherit;color:inherit}
-.stcard .slogo{width:42px;height:42px;border-radius:12px;font-size:13px;flex:none}
-.stcard b{font-size:13.5px;line-height:1.2;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* selector de súper.
+   Móvil (< 900 px): recuadro grande con el súper que se ve + botón «Otros súpers» que abre un desplegable con todos en grande.
+   PC (≥ 900 px): pastillas con logo y nombre (#kStore). */
+#kStore{display:none;flex-wrap:wrap;gap:10px;padding:2px 0 4px}
+.stcard{display:inline-flex;align-items:center;gap:11px;padding:8px 20px 8px 8px;border-radius:999px;background:var(--surface);border:1.5px solid var(--line);cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s;font:inherit;color:inherit}
+.stcard .slogo{width:40px;height:40px;border-radius:11px;font-size:13px;flex:none}
+.stcard b{font-size:15.5px;line-height:1.2;font-weight:700;white-space:nowrap}
 .stcard:hover{border-color:var(--ink-3)}
 .stcard[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent-soft)}
 .stcard[aria-checked="true"] b{color:var(--accent-ink)}
-@media (min-width:420px){#kStore{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media (min-width:900px){
-  #kStore{display:flex;flex-wrap:wrap;gap:10px}
-  .stcard{flex-direction:row;gap:11px;padding:8px 20px 8px 8px;border-radius:999px}
-  .stcard .slogo{width:40px;height:40px;border-radius:11px}
-  .stcard b{font-size:15.5px}
-}
+.stmob{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:stretch}
+.stcur{display:flex;align-items:center;gap:12px;min-width:0;padding:12px 14px;border-radius:20px;background:var(--accent-soft);border:1.5px solid var(--accent)}
+.stcur .slogo{width:52px;height:52px;border-radius:14px;font-size:15px;flex:none}
+.stcur b{display:block;font-size:19px;font-weight:800;letter-spacing:-.02em;line-height:1.15;color:var(--accent-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stcur small{display:block;font-size:12.5px;color:var(--ink-2);margin-top:2px}
+.stother{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:104px;padding:10px 12px;border-radius:20px;background:var(--surface);border:1.5px solid var(--line);font:inherit;color:inherit;cursor:pointer}
+.stother .mini{display:flex}
+.stother .mini .slogo{width:26px;height:26px;border-radius:8px;font-size:9px;border:2px solid var(--surface);margin-left:-7px}
+.stother .mini .slogo:first-child{margin-left:0}
+.stother b{font-size:13px;font-weight:700;display:flex;align-items:center;gap:3px;white-space:nowrap}
+.stother b svg.i{width:14px;height:14px;transform:rotate(90deg)}
+.stsheet h2{font-size:20px;font-weight:800;margin:0 0 4px}
+.stsheet p{margin:0 0 14px;font-size:13px;color:var(--ink-3)}
+.stgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stbig{position:relative;display:flex;flex-direction:column;align-items:center;gap:9px;padding:18px 8px 15px;border-radius:20px;background:var(--surface);border:1.5px solid var(--line);font:inherit;color:inherit;cursor:pointer}
+.stbig .slogo{width:60px;height:60px;border-radius:16px;font-size:17px}
+.stbig b{font-size:16px;font-weight:700;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.stbig[aria-checked="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.stbig[aria-checked="true"] b{color:var(--accent-ink)}
+.stbig .now{position:absolute;top:8px;right:8px;font-size:11px;font-weight:800;color:var(--on-accent);background:var(--accent);border-radius:999px;padding:2px 8px}
+@media (max-width:899px){#kHead h2{display:none}}
+@media (min-width:900px){#kStore{display:flex}.stmob{display:none}}
 .sthead{display:flex;align-items:center;gap:14px;margin:14px 2px 4px}
 .sthead h2{margin:0;font-size:20px}
 .sthead p{margin:2px 0 0;font-size:13px;color:var(--ink-3)}
@@ -727,6 +743,7 @@ button.link{background:none;border:0;padding:0;color:var(--accent-ink);font:inhe
       <section class="screen" id="s-catalogo" data-title="Catálogo">
         <div class="page-title"><h1>Catálogo por supermercado</h1></div>
         <div class="stpick" id="kStore" role="radiogroup" aria-label="Supermercado"></div>
+        <div class="stmob" id="kStoreM"></div>
         <div class="sthead" id="kHead"></div>
         <label class="searchbox" style="margin-top:12px"><svg class="i"><use href="#i-search"/></svg><span class="sr">Buscar en el catálogo</span><input id="kq" type="search" placeholder="Buscar"></label>
         <div class="chips" id="kTop" style="margin-top:12px"></div>
@@ -1288,7 +1305,12 @@ async function rCatalog(){
   $('#kSort').value=K.sort;kChips();kLoad(true);
   const kst=await kStats();
   if(store!==K.store)return;
-  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{class:'stcard',type:'button',role:'radio','aria-checked':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},slogo(id),h('b',null,n))));
+  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{class:'stcard',type:'button',role:'radio','aria-checked':String(K.store===id),onclick(){kPick(id)}},slogo(id),h('b',null,n))));
+  const otros=kStores().filter(([id])=>id!==K.store);
+  $('#kStoreM').replaceChildren(
+    h('div',{class:'stcur'},slogo(K.store),h('div',{style:'min-width:0'},h('b',null,kName(K.store)),h('small',null,'Viendo sus productos'))),
+    otros.length?h('button',{class:'stother',type:'button','aria-haspopup':'dialog',onclick:openStorePick},
+      h('span',{class:'mini'},...otros.slice(0,3).map(([id])=>slogo(id))),h('b',null,'Otros súpers',ic('i-chev'))):null);
   const cur=kst[K.store];
   $('#kHead').replaceChildren(h('div',null,h('h2',null,kName(K.store)),h('p',null,cur?[nf0(cur.n)+' productos',cur.offers?nf0(cur.offers)+' en oferta':null,'actualizado '+fdate(cur.updated)].filter(Boolean).join(' · '):'Catálogo')),
     SURL[K.store]?h('a',{class:'btn btn-s btn-sm',href:SURL[K.store],target:'_blank',rel:'noopener'},'Su web'):null);
@@ -1301,6 +1323,16 @@ async function rCatalog(){
   $('#kSub').hidden=!t;
   $('#kSub').replaceChildren(...(t?[h('button',{class:'chip',type:'button','aria-pressed':String(!K.sub),onclick(){K.sub=null;rCatalog()}},'Todo '+t.name.toLowerCase()),
     ...t.subs.map(s=>h('button',{class:'chip',type:'button','aria-pressed':String(K.sub===s.id),onclick(){K.sub=s.id;rCatalog()}},s.name+' · '+s.n))]:[]))}
+// cambiar de súper en el catálogo (pastillas del PC y desplegable del móvil)
+function kPick(id){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}
+// móvil: desplegable con todos los súpers en grande
+function openStorePick(){const root=$('#sheetRoot');
+  const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
+  const sheet=h('div',{class:'sheet stsheet',role:'dialog','aria-modal':'true','aria-label':'Elegir supermercado',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),
+    h('h2',null,'Elige supermercado'),h('p',null,'Los que tienes cerca. Toca uno para ver sus productos.'),
+    h('div',{class:'stgrid',role:'radiogroup','aria-label':'Supermercado'},...kStores().map(([id,n])=>h('button',{class:'stbig',type:'button',role:'radio','aria-checked':String(K.store===id),
+      onclick(){close();kPick(id);$('#kStoreM').scrollIntoView({block:'start',behavior:'smooth'})}},K.store===id?h('span',{class:'now'},'Ahora'):null,slogo(id),h('b',null,n)))));
+  root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));sheet.querySelector('[aria-checked="true"]')?.focus()}
 async function kLoad(reset){
   const grid=$('#kgrid'),count=$('#kCount'),more=$('#kMore');
   if(reset){K.pos=0;count.textContent='';more.hidden=true;grid.replaceChildren(h('div',{class:'empty',style:'grid-column:1/-1'},'Cargando productos…'))}

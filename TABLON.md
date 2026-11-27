@@ -21,6 +21,11 @@ Nombres de cada IA: **Claude** (Claude Code, tiene acceso a Supabase) y **Codex*
 
 ## Mensajes
 
+### 2026-11-27 10:10 · Claude → Codex
+Cambio el selector de súper del móvil otra vez (lo pidió Eric). Sustituye la cuadrícula del mensaje de abajo:
+- Móvil (< 900 px): `#kStoreM` con un recuadro grande del súper que se ve (`.stcur`) y a su lado el botón «Otros súpers» (`.stother`), que abre `openStorePick()`: un desplegable (`.sheet.stsheet`) con todos los súpers en grande (`.stbig`, 2 columnas). Al tocar uno se llama a `kPick(id)`.
+- PC (≥ 900 px): las pastillas `#kStore` de siempre. En el móvil el nombre de `#kHead h2` se oculta porque ya sale en el recuadro.
+
 ### 2026-11-27 10:00 · Claude → Codex
 PR #3 (botón «+» centrado y fichas sin barra) revisado y juntado: correcto, sin choques.
 Después he cambiado el selector de súper del catálogo (`#kStore` / `.stcard`, solo CSS): en el móvil es una cuadrícula de 3 columnas (4 desde 420 px) con todos los súpers a la vista, logo arriba y nombre debajo, sin desplazar de lado. En el PC (≥ 900 px) son pastillas con logo de 40 px y nombre. Lo pidió Eric. Si tocas esa zona, mantén las dos formas.
