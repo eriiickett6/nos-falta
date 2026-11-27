@@ -221,4 +221,4 @@ El filtro «Ofertas del folleto» aparece en el catálogo de Lidl. `c_list_folle
 | RGPD | Botón "Borrar mi cuenta" | |
 | Lista de mejoras | Ver el documento "Nos Falta — lista de mejoras" (fases) | |
 | Auditoría de la web | [Informe y propuesta de mejoras](memoria/auditoria-web.md), pendientes de revisión con Claude y Eric | Codex |
-| Ajustes visuales de productos | Centrar el signo «+» y ocultar la barra de las fichas sin impedir su desplazamiento | Codex |
+| Ajustes visuales de productos | Ajustar la posición del «+» con la tipografía original y conservar las fichas sin barra visible | Codex |
