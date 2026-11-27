@@ -2,7 +2,7 @@
    - La app (HTML, iconos, librería) se guarda para abrir sin internet.
    - Los datos (Supabase) NO pasan por aquí: la app guarda la casa en el móvil y una cola de cambios.
    - Sube la versión (V) si cambia la lista de archivos básicos. */
-const V = 'nf-app-v2';
+const V = 'nf-app-v3';
 const CORE = ['./', 'index.html', 'privacidad.html', 'manifest.webmanifest',
   'img/brand/logo-32.png', 'img/brand/logo-64.png', 'img/brand/logo-96.png', 'img/brand/logo-180.png', 'img/brand/logo-192.png', 'img/brand/logo-512.png',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'];

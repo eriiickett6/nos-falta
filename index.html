@@ -244,6 +244,9 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .pcard .from{font-size:13px;color:var(--ink-2);margin-top:4px}
 .pcard .from b{font-size:17px;color:var(--ink);font-weight:800;letter-spacing:-.02em}
 .pcard .add{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.16);display:grid;place-items:center;font-size:22px;font-weight:600;color:var(--accent-ink);transition:transform .25s var(--spring),background .2s,color .2s}
+.pcard .add:not(.in){font-size:0}
+.pcard .add:not(.in)::before,.pcard .add:not(.in)::after{content:"";position:absolute;inset:0;margin:auto;width:12px;height:2px;border-top:2px solid currentColor}
+.pcard .add:not(.in)::after{transform:rotate(90deg)}
 .pcard .add:hover{transform:scale(1.1)}
 .pcard .add:active{transform:scale(.9)}
 .pcard .add.in{background:linear-gradient(135deg,var(--accent-2),var(--accent));color:var(--on-accent);font-size:15px;font-weight:800;animation:pop .4s var(--spring)}
@@ -260,6 +263,8 @@ a.row:hover,button.row:hover{background:var(--fill)}
 @media (min-width:821px){.scrim{place-items:center}.sheet{border-radius:26px;padding-top:18px;animation-name:sheetin2}.grab{display:none}}
 @keyframes sheetin2{from{transform:translateY(16px) scale(.97);opacity:0}to{transform:none;opacity:1}}
 .grab{width:42px;height:5px;border-radius:3px;background:var(--fill-2);margin:2px auto 14px}
+.sheet.product-sheet{scrollbar-width:none}
+.sheet.product-sheet::-webkit-scrollbar{display:none}
 .sheet-head{display:flex;gap:16px;align-items:center}
 .sheet-head .thumb{width:92px;height:92px;border-radius:18px;box-shadow:var(--sh-1)}
 .sheet-head h2{font-size:21px;font-weight:800;letter-spacing:-.025em;line-height:1.2}
@@ -1150,7 +1155,7 @@ $('#pMore').addEventListener('click',()=>loadProducts(false));
 /* ---------- Ficha de grupo ---------- */
 async function openGroup(gid){const root=$('#sheetRoot');
   const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
-  const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Comparando supermercados…'));
+  const sheet=h('div',{class:'sheet product-sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Comparando supermercados…'));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
   const {data,error}=await sbC.rpc('group_detail',{gid});if(error||!data||!data.group){netError(error);close();return}
   const g=data.group,stores=data.stores,prods=data.products,withP=stores.filter(s=>s.has),best=withP[0];let shown=40;
@@ -1176,7 +1181,7 @@ async function openGroup(gid){const root=$('#sheetRoot');
 /* ---------- Ficha ---------- */
 async function openProduct(pid){const root=$('#sheetRoot');
   const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
-  const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando el mejor precio…'));
+  const sheet=h('div',{class:'sheet product-sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando el mejor precio…'));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
   const [pr,rows]=await Promise.all([sb.from('products').select('*').eq('id',pid).single(),sb.rpc('product_prices',{pid})]);
   if(pr.error||rows.error){netError(pr.error||rows.error);close();return}
@@ -1331,7 +1336,7 @@ function kDiff(a,b){
   return h('span',{class:'diff '+(d<0?'good':'bad')},fmt(Math.abs(d))+by+(d<0?' más barato':' más caro')+' ('+Math.round(Math.abs(d)/va*100)+'%)')}
 async function openItem(id,productoFolleto){const root=$('#sheetRoot');loadWatch();
   const close=()=>{root.replaceChildren();document.removeEventListener('keydown',esc)};const esc=e=>{if(e.key==='Escape')close()};document.addEventListener('keydown',esc);
-  const sheet=h('div',{class:'sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando en otros supermercados…'));
+  const sheet=h('div',{class:'sheet product-sheet',role:'dialog','aria-modal':'true',onclick(e){e.stopPropagation()}},h('div',{class:'grab'}),h('div',{class:'empty'},'Buscando en otros supermercados…'));
   root.replaceChildren(h('div',{class:'scrim',onclick:close},sheet));
   const {data,error}=await sbC.rpc('c_item',{p_id:id});
   const it=data?.item||productoFolleto;if(!it){netError(error);close();return}
