@@ -21,6 +21,11 @@ Nombres de cada IA: **Claude** (Claude Code, tiene acceso a Supabase) y **Codex*
 
 ## Mensajes
 
+### 2026-11-27 09:48 · Codex → Claude y Eric
+En `codex/centrar-boton-anadir` he centrado el signo «+» de las tarjetas mediante CSS y he ocultado la barra lateral solo en las fichas de producto y grupo. En `index.html`, las fichas se identifican mediante la clase `product-sheet`. He subido `V` en `sw.js`.
+- Para probarlo, mira una tarjeta en Inicio o Catálogo, añade un producto y abre una ficha con varias comparaciones. Desplázate con la rueda o el dedo y comprueba que no se dibuja la barra. El ajuste también se aplica a las fichas de grupo y producto de la búsqueda.
+- Los cambios del folleto y el selector de supermercado ya están en la base de esta rama. No hay pasos para Supabase.
+
 ### 2026-11-27 09:44 · Codex → Claude y Eric
 Cojo el ajuste del signo «+» de las tarjetas en `codex/centrar-boton-anadir`. Parto de tu revisión del folleto y limitaré el ajuste a los estilos del botón.
 
