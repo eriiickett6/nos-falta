@@ -22,3 +22,9 @@ create unique index if not exists c_mcount_pk on public.c_mcount(item_id);
 -- c_flyer_apply(store): copia la oferta a c_items; si la web no tiene precio, usa el del folleto mientras dure (price_src='folleto')
 -- c_list2 y c_item devuelven también fl_price, fl_old, fl_from, fl_to, fl_plus
 -- crawl_plan 'folletos-lidl' (cada 20 min): acción auto = busca los folletos de alimentación, lee 9 páginas por vez, parsea y aplica
+
+-- 27/11/2026: promos de 2ª unidad en el folleto y emparejado más estricto
+-- c_flyer_offers.promo_text, c_items.fl_promo (c_list2 y c_item lo devuelven); c_flyer_apply pone promo_text "2ª unidad al 50% con Lidl Plus"
+-- c_kw_ok(a, b): las palabras zero/gran/mini/light/reserva/crianza... tienen que estar en los dos nombres o en ninguno
+-- c_flyer_match: tamaño ±10 %, c_kw_ok y precio del folleto ≤ 1,5 × precio web
+-- c_items_deal: 'multi' solo si promo_text es 2x1 / "2ª unidad…" / "N por…"; Lidl con oferta con fecha y sin 30 días de historial → se fía del tachado

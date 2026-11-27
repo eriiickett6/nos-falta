@@ -10,7 +10,7 @@ const API = 'https://endpoints.leaflets.schwarz/v4/flyer?flyer_identifier=';
 // ---------- Del texto con posiciones a ofertas ----------
 type It = { s: string, x: number, y: number, h: number, w: number };
 type Line = { s: string, x: number, y: number, h: number, x2: number };
-const PRICE = /^\d{1,3}\.\d{2}$/;
+const PRICE = /^\d{1,3}\.\d{2}\*?$/; // "4.25*": el asterisco remite a la letra pequeña
 const SIZE = /^(?:(\d+)\s*x\s*)?(\d+(?:[.,]\d+)?)\s*(kg|g|l|ml|cl)\b/i;
 const toNum = (s: string) => Number(s.replace(',', '.'));
 
@@ -48,7 +48,7 @@ function blocksOf(lines: Line[]) {
     const perOf = (u: string) => (u === 'kg' || u === 'l' ? 1 : 0.1); // 100 g = 0,1 kg
     // promo de 2ª unidad: "1 ud 19,08 €/kg / 2 uds 14,33 €/kg" (en catalán "1 u. … / 2 u. …").
     // Precio de una = tamaño × €/kg de 1 ud; precio grande (2ª unidad) = 2 × (tamaño × €/kg de 2 uds) − precio de una.
-    const multiBlk = ups.length >= 2 && /(^|\s)1\s*u(d)?\.?\s*\d/i.test(text) && /(^|\s|\/)\s*2\s*u(ds|\.)?\s*\d/i.test(text);
+    const multiBlk = ups.length >= 2 && /(^|\s)1\s*(u(d)?\.?|pack|paquet)\s*\d/i.test(text) && /(^|\s|\/)\s*2\s*(u(ds|\.)?|packs?|paquets?)\s*\d/i.test(text);
     if (multiBlk && qty) {
       const [u1, u2] = ups;
       const one = qty / perOf(u1.u) * u1.v, avg = qty / perOf(u2.u) * u2.v;
@@ -67,8 +67,9 @@ function blocksOf(lines: Line[]) {
   }).filter(b => b.useful);
 }
 function parsePage(items: It[], vf: string, vt: string) {
-  const prices = items.filter(i => PRICE.test(i.s) && i.h >= 40).map(i => ({ ...i, v: +i.s, used: false }));
-  const olds = items.filter(i => PRICE.test(i.s) && i.h >= 10 && i.h < 40).map(i => ({ ...i, v: +i.s, used: false }));
+  // precio grande (h ≥ 30) y precios pequeños de al lado ("antes" o "1 ud"); algunas páginas usan letra algo menor
+  const prices = items.filter(i => PRICE.test(i.s) && i.h >= 30).map(i => ({ ...i, v: parseFloat(i.s), used: false }));
+  const olds = items.filter(i => PRICE.test(i.s) && i.h >= 7.5 && i.h < 30).map(i => ({ ...i, v: parseFloat(i.s), used: false }));
   const pcts = items.filter(i => /^-\d{1,2}\s*%$/.test(i.s));
   const plus = items.filter(i => /lidl plus/i.test(i.s) && /amb|con/i.test(i.s));
   const blocks = blocksOf(linesOf(items));
@@ -88,9 +89,9 @@ function parsePage(items: It[], vf: string, vt: string) {
     const lp = plus.find(l => d(l, p) < 130);
     // "2ª ud 1.15 · 1 ud 2.29 · -50% 2ª ud": el precio grande es el de la 2ª unidad y el pequeño ("1 ud") el de una.
     // Entonces el precio es el de una unidad y la promo va aparte (no es un precio de antes).
-    // etiquetas: castellano "2ª ud" / "1 ud", catalán "2a u." / "1 u."
-    const two = items.some(i => /2\s*[ªa]\.?\s*u(d|\.|nitat|nidad)/i.test(i.s) && d(i, p) < 200);
-    const one = o ? items.some(i => /^1\s*u(d)?\.?$/i.test(i.s) && d(i, o) < 90) : false;
+    // etiquetas: castellano "2ª ud" / "1 ud", catalán "2a u." / "1 u.", packs "2° pack" / "1 pack" (catalán "2n paquet" / "1 paquet")
+    const two = items.some(i => /2\s*(?:[ªa°º]|n)\.?\s*(u(d|\.|nitat|nidad)|pack|paquet)/i.test(i.s) && d(i, p) < 200);
+    const one = o ? items.some(i => /^1\s*(u(d)?\.?|pack|paquet)$/i.test(i.s) && d(i, o) < 90) : false;
     const multi = !!(o && two && one);
     const mpct = multi ? Math.round((1 - p.v / o!.v) * 100 / 5) * 5 : null;
     out.push({ name: [b.brand, b.name].filter(Boolean).join(' '), name_es: [b.brand, b.nameEs].filter(Boolean).join(' '), brand: b.brand,

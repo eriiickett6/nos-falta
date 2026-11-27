@@ -170,7 +170,8 @@ Función `catalog-folleto`, acción `auto` cada 20 min (`crawl_plan` `folletos-l
 2. Metadatos y PDF: `https://endpoints.leaflets.schwarz/v4/flyer?flyer_identifier=<id>` → `pdfUrl`.
 3. `ingest`: 9 páginas por llamada con `npm:unpdf`; guarda cada trozo de texto con su posición en `c_flyer_pages`. El total de páginas va en `import_config.fl_pages_<id>`.
 4. `parse`: une texto en líneas y bloques, empareja cada bloque con su precio grande, primero por la cuenta tamaño × €/kg = precio (`how = 'cuenta'`) y si no por cercanía (`'cerca'`), y saca el precio tachado, el %, Lidl Plus y las fechas de la página → `c_flyer_offers`.
-5. `c_flyer_match`: une cada oferta con su producto (similitud trigram ≥ 0,45 + tamaño ±10 %).
+5. `c_flyer_match`: une cada oferta con su producto. Pide similitud trigram ≥ 0,45, tamaño ±10 %, que coincidan las palabras que cambian el producto (`c_kw_ok`: zero, gran, mini, light, reserva, crianza…) y que el precio del folleto no pase de 1,5 veces el de la web.
+   Las promos de 2ª unidad del folleto se guardan en `c_flyer_offers.promo_text` → `c_items.fl_promo`.
 6. `c_flyer_apply('lidl')`: copia la oferta a `c_items.fl_*`. Si la web no tiene precio, usa el del folleto mientras dura (`price_src = 'folleto'`) y lo quita al acabar.
 La app enseña "Folleto, desde el 27 nov · 1,29 € con Lidl Plus" (`flTxt` en index.html).
 
