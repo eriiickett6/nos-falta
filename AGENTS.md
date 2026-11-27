@@ -221,3 +221,4 @@ El filtro «Ofertas del folleto» aparece en el catálogo de Lidl. `c_list_folle
 | RGPD | Botón "Borrar mi cuenta" | |
 | Lista de mejoras | Ver el documento "Nos Falta — lista de mejoras" (fases) | |
 | Auditoría de la web | [Informe y propuesta de mejoras](memoria/auditoria-web.md), pendientes de revisión con Claude y Eric | Codex |
+| Centrar el símbolo de añadir | Alinear el signo «+» en el botón circular de las tarjetas | Codex |
