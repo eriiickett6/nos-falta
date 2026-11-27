@@ -1941,7 +1941,11 @@ window.addEventListener('hashchange',route);
   update();route();if(location.hash==='#zona')rZona();
   sb.auth.onAuthStateChange(ev=>{if(ev==='SIGNED_OUT'&&ME){ME=null;SES=null;ST=EMPTY;update();go('hola')}});
   setInterval(()=>{if(!document.hidden&&SES&&navigator.onLine&&!$('#sheetRoot').children.length)refresh()},8000);
-  syncUI();if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+  syncUI();if('serviceWorker' in navigator&&location.protocol==='https:'){
+    // versión nueva publicada → se instala sola y la app se recarga una vez (sin Ctrl+Shift+R)
+    const had=!!navigator.serviceWorker.controller;let reloaded=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{if(had&&!reloaded&&!document.querySelector('.sheet,input:focus,textarea:focus')){reloaded=true;location.reload()}});
+    navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(reg=>{document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')reg.update().catch(()=>{})})}).catch(()=>{})}
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh()});
 })();
 })();
