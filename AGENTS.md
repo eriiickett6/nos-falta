@@ -197,6 +197,8 @@ El filtro «Ofertas del folleto» aparece en el catálogo de Lidl. `c_list_folle
 
 **Las IAs se hablan por `TABLON.md`** (mensajes con fecha, quién y para quién). Léelo al empezar cada sesión.
 
+**Claude supervisa (lo pidió Eric):** al empezar cada sesión, Claude hace `git fetch`, mira las ramas y PR nuevos de Codex u otras IAs, comprueba que no rompen nada (sintaxis, choques con cambios recientes, SQL que haya que aplicar) y deja en el tablón qué ha revisado, qué ha cambiado al juntarlo y qué falta.
+
 1. **Una tarea = una rama**: `git switch -c <ia>/<tarea>` (ej. `codex/filtro-folleto`). Merge a `main` cuando funcione.
 2. **Reservar la tarea** en la tabla de §7: poner tu nombre en "Quién" en un commit pequeño antes de empezar.
 3. **No tocar a la vez la misma zona.** Zonas que chocan fácilmente:
@@ -218,3 +220,4 @@ El filtro «Ofertas del folleto» aparece en el catálogo de Lidl. `c_list_folle
 | Borrar `dist/` | Restos de Wix | |
 | RGPD | Botón "Borrar mi cuenta" | |
 | Lista de mejoras | Ver el documento "Nos Falta — lista de mejoras" (fases) | |
+| Auditoría de la web | [Informe y propuesta de mejoras](memoria/auditoria-web.md), pendientes de revisión con Claude y Eric | Codex |
