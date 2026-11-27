@@ -585,6 +585,16 @@ body.nohouse .view{padding-bottom:40px;margin:0 auto}
 .plan .col{background:var(--fill);border-radius:14px;padding:10px 12px}
 .plan .col b{display:flex;align-items:center;gap:8px;margin-bottom:4px}
 .plan .col span{display:block;font-size:13px;color:var(--ink-2)}
+/* ---------- Animaciones al tocar productos (ligeras: solo transform y opacidad, sin bucles) ---------- */
+/* tocar una tarjeta: se hunde un poco */
+.pcard:has(>.pcard-open:active){transform:scale(.975);transition-duration:.12s}
+/* añadir a la lista: «+1» que sube, brillo en la tarjeta y la pestaña «Mi lista» da un saltito */
+.flyup{position:absolute;top:30px;right:62px;z-index:3;pointer-events:none;font-weight:800;font-size:13px;line-height:1;color:var(--on-accent);background:linear-gradient(135deg,var(--accent-2),var(--accent));border-radius:999px;padding:4px 8px;box-shadow:0 4px 12px rgba(242,101,42,.35);animation:flyup .75s var(--ease) forwards}
+@keyframes flyup{0%{transform:translateY(6px) scale(.5);opacity:0}25%{transform:translateY(-4px) scale(1.05);opacity:1}100%{transform:translateY(-28px) scale(.9);opacity:0}}
+.pcard.added{animation:addglow .6s var(--ease)}
+@keyframes addglow{0%{box-shadow:0 0 0 0 rgba(242,101,42,.5),var(--sh-1)}100%{box-shadow:0 0 0 14px rgba(242,101,42,0),var(--sh-1)}}
+a[href="#lista"].bump>svg.i,a[href="#lista"].bump .badge{animation:bump .5s var(--spring)}
+@keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 .side .themebtn{margin-top:auto;width:100%;text-align:left;font-size:15px}
 .side .outbtn{width:100%;text-align:left;font-size:15px}
@@ -862,6 +872,13 @@ function h(tag,a,...kids){const n=document.createElement(tag);if(a)for(const k i
   if(k==='class')n.className=v;else if(k==='text')n.textContent=v;else if(k.startsWith('on'))n.addEventListener(k.slice(2),v);else n.setAttribute(k,v===true?'':v)}
   for(const c of kids.flat()){if(c==null||c===false)continue;n.append(c.nodeType?c:document.createTextNode(c))}return n}
 function ic(id,cls){const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('class',cls||'i');s.setAttribute('aria-hidden','true');const u=document.createElementNS('http://www.w3.org/2000/svg','use');u.setAttribute('href','#'+id);s.append(u);return s}
+// animación al añadir desde cualquier tarjeta de producto (escucha en captura: sale al momento, sin esperar a la red)
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+document.addEventListener('click',e=>{const b=e.target.closest('.pcard .add');if(!b||RM.matches)return;const c=b.closest('.pcard');
+  const f=h('span',{class:'flyup','aria-hidden':'true'},'+1');c.append(f);f.addEventListener('animationend',()=>f.remove(),{once:true});setTimeout(()=>f.remove(),1200);
+  c.classList.remove('added');void c.offsetWidth;c.classList.add('added');
+  if(navigator.vibrate)try{navigator.vibrate(8)}catch(_){}
+  setTimeout(()=>document.querySelectorAll('.side a[href="#lista"],.tabbar a[href="#lista"]').forEach(a=>{a.classList.remove('bump');void a.offsetWidth;a.classList.add('bump')}),300)},true);
 let tt;function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2400)}
 const pl=(n,a,b)=>n.toLocaleString('es-ES')+' '+(n===1?a:b);
 function pic(url,cls){const box=h('span',{class:(cls||'thumb')+(url?'':' ph')});if(url){const im=h('img',{src:url,alt:'',loading:'lazy'});im.onerror=()=>{box.classList.add('ph');box.replaceChildren(ic('i-box'))};box.append(im)}else box.append(ic('i-box'));return box}
