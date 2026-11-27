@@ -265,12 +265,15 @@ a.row:hover,button.row:hover{background:var(--fill)}
 .pcard .s{font-size:12.5px;color:var(--ink-3)}
 .pcard .from{font-size:13px;color:var(--ink-2);margin-top:4px}
 .pcard .from b{font-size:17px;color:var(--ink);font-weight:800;letter-spacing:-.02em}
-.pcard .add{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:var(--surface);box-shadow:0 4px 14px rgba(0,0,0,.16);display:grid;place-items:center;font-size:22px;font-weight:600;color:var(--accent-ink);transition:transform .25s var(--spring),background .2s,color .2s}
-/* «+» dibujado con dos barras redondeadas (centrado exacto y mismo grosor en todos los móviles; no depende de la fuente) */
-.pcard .add:not(.in),.madd:not(.in){font-size:0}
-.pcard .add:not(.in)::before,.pcard .add:not(.in)::after,.madd:not(.in)::before,.madd:not(.in)::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:2.75px;margin:-1.375px 0 0 -8px;border-radius:2px;background:currentColor}
-.pcard .add:not(.in)::after,.madd:not(.in)::after{transform:rotate(90deg)}
-.pcard .add:hover{transform:scale(1.1)}
+.pcard .add{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;background:var(--surface);border:1px solid rgba(0,0,0,.06);box-shadow:0 1px 2px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.10);display:grid;place-items:center;font-size:22px;font-weight:600;color:var(--accent-ink);transition:transform .25s var(--spring),background .2s,color .2s}
+/* Iconos de los botones de añadir: el mismo «+» y «✓» de trazo redondeado que el resto de iconos de la app (i-plus / i-check),
+   dibujados como SVG: nítidos con cualquier zoom, centrados al píxel y sin depender de la fuente del móvil. */
+.pcard .add:not(.in),.madd:not(.in),.pcard .add.ok,.madd.ok{font-size:0}
+.pcard .add:not(.in)::before,.madd:not(.in)::before,.pcard .add.ok::before,.madd.ok::before{content:"";position:absolute;inset:0;margin:auto;width:20px;height:20px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center/contain no-repeat}
+.pcard .add.ok::before,.madd.ok::before{width:18px;height:18px;-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E");mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")}
+.madd:not(.in)::before{width:18px;height:18px}
+.pcard .add.in.ok,.madd.in.ok{font-size:0;color:var(--on-accent)} /* el texto «+» no debe asomar debajo del ✓ */
+.pcard .add:hover{transform:scale(1.08);background:var(--accent-soft)}
 .pcard .add:active{transform:scale(.9)}
 .pcard .add.in{background:linear-gradient(135deg,var(--accent-2),var(--accent));color:var(--on-accent);font-size:15px;font-weight:800;animation:pop .4s var(--spring)}
 .pcard .own{position:absolute;top:16px;left:16px}
@@ -1329,7 +1332,7 @@ function kcard(it,filtro){
       it.nm>0?h('span',{class:'kmatch'},(it.nms>0?'Igual':'Parecido')+' en otro súper'):null,
       fl&&(folleto||it.price==null||it.fl_from>hoy||Math.abs(it.fl_price-it.price)>=0.01)?h('span',{class:'kmatch'},fl):null),
     precio!=null&&antes>precio?h('span',{class:'disc'},'−'+Math.round((1-precio/antes)*100)+'%'):(folleto?(it.fl_promo?h('span',{class:'disc promo'},it.fl_promo):null):it.promo_text?h('span',{class:'disc promo'},it.promo_text):null),
-    h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
+    h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){this.className='add in ok';this.setAttribute('aria-label',it.name+' añadido a la lista');await addCItem(it)}},'+'))}
 // número de productos de cada súper (si falla, no se guarda el fallo: se vuelve a pedir la próxima vez)
 let KST=null;async function kStats(){if(KST)return KST;const {data,error}=await sbC.rpc('c_store_stats');if(error||!data)return {};KST=data;return KST}
 const nf0=n=>Number(n).toLocaleString('es-ES',{useGrouping:'always'});
@@ -1448,7 +1451,7 @@ async function openItem(id,productoFolleto){const root=$('#sheetRoot');loadWatch
           h('div',{class:'pr num'},h('b',null,m.loose&&m.unit_price!=null?fmt(m.unit_price)+kUnit(m.unit):fmt(m.price)),
             !m.loose&&m.unit_price!=null?h('small',null,fmt(m.unit_price)+kUnit(m.unit)):null),
           kDiff(it,m)||h('span'),
-          h('button',{class:'madd',type:'button','aria-label':'Añadir '+m.name+' de '+kName(m.store)+' a la lista',async onclick(e){e.stopPropagation();this.className='madd in';this.textContent='✓';await addCItem(m)}},'+'))})):
+          h('button',{class:'madd',type:'button','aria-label':'Añadir '+m.name+' de '+kName(m.store)+' a la lista',async onclick(e){e.stopPropagation();this.className='madd in ok';this.setAttribute('aria-label',m.name+' añadido a la lista');await addCItem(m)}},'+'))})):
         h('div',{class:'group'},h('div',{class:'empty'},KMODE==='strict'&&all.length?'No hay uno casi idéntico. Prueba «Parecido».':'Aún no lo hemos encontrado en otro súper.')),
       h('p',{class:'foot-note'},KMODE==='strict'?'Casi idéntico: mismo tipo, misma variedad y casi el mismo tamaño (±5%).':'Parecido: mismo tipo y variedad, tamaño parecido (±30%). Si el tamaño cambia, comparamos el precio por kilo o litro.'),
       h('div',{style:'display:flex;gap:10px;margin-top:14px'},h('button',{class:'btn btn-p',type:'button',style:'flex:1',async onclick(){await addCItem(it);added=true;draw()}},added?'Añadido ✓ · añadir otro':'Añadir a mi lista'),
