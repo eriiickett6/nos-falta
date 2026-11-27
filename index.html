@@ -1251,7 +1251,8 @@ function kcard(it){
       flTxt(it)&&(it.fl_from>new Date().toISOString().slice(0,10)||Math.abs(it.fl_price-it.price)>=0.01)?h('span',{class:'kmatch'},flTxt(it)):null),
     it.old_price&&it.old_price>it.price?h('span',{class:'disc'},'−'+Math.round((1-it.price/it.old_price)*100)+'%'):(it.promo_text?h('span',{class:'disc promo'},it.promo_text):null),
     h('button',{class:'add',type:'button','aria-label':'Añadir '+it.name+' a la lista',async onclick(){await addCItem(it);this.className='add in';this.textContent='✓'}},'+'))}
-let KST=null;async function kStats(){if(KST)return KST;const {data}=await sbC.rpc('c_store_stats');KST=data||{};return KST}
+// número de productos de cada súper (si falla, no se guarda el fallo: se vuelve a pedir la próxima vez)
+let KST=null;async function kStats(){if(KST)return KST;const {data,error}=await sbC.rpc('c_store_stats');if(error||!data)return {};KST=data;return KST}
 const nf0=n=>Number(n).toLocaleString('es-ES',{useGrouping:'always'});
 const SURL={aldi:'https://www.aldi.es',lidl:'https://www.lidl.es',mercadona:'https://tienda.mercadona.es',bonarea:'https://www.bonarea-online.com',condis:'https://compraonline.condis.es',dia:'https://www.dia.es',alcampo:'https://www.compraonline.alcampo.es',bonpreu:'https://www.compraonline.bonpreuesclat.cat',ahorramas:'https://www.ahorramas.com',gadis:'https://www.gadisline.com',ametller:'https://www.ametllerorigen.com',froiz:'https://supermercado.froiz.com',hiperdino:'https://www.hiperdino.es'};
 async function kTree(){if(K.tree[K.store])return K.tree[K.store];
@@ -1260,7 +1261,7 @@ async function rCatalog(){
   if(!kStores().some(([id])=>id===K.store))K.store=kStores()[0][0];
   $('#kSort').value=K.sort;$('#kOff').setAttribute('aria-pressed',String(K.off==='rebaja'));$('#kMulti').setAttribute('aria-pressed',String(K.off==='multi'));
   const kst=await kStats();
-  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{class:'stcard',type:'button',role:'radio','aria-checked':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},slogo(id),h('b',null,n),h('small',{class:'num'},kst[id]?nf0(kst[id].n)+' productos':'—'))));
+  $('#kStore').replaceChildren(...kStores().map(([id,n])=>h('button',{class:'stcard',type:'button',role:'radio','aria-checked':String(K.store===id),onclick(){if(K.store===id)return;K.store=id;K.top=null;K.sub=null;rCatalog()}},slogo(id),h('b',null,n),h('small',{class:'num'},kst[id]?nf0(kst[id].n)+' productos':'Ver productos'))));
   const cur=kst[K.store];
   $('#kHead').replaceChildren(h('div',null,h('h2',null,kName(K.store)),h('p',null,cur?[nf0(cur.n)+' productos',cur.offers?nf0(cur.offers)+' en oferta':null,'actualizado '+fdate(cur.updated)].filter(Boolean).join(' · '):'Catálogo')),
     SURL[K.store]?h('a',{class:'btn btn-s btn-sm',href:SURL[K.store],target:'_blank',rel:'noopener'},'Su web'):null);

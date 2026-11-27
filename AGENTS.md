@@ -88,6 +88,7 @@ Supabase catálogo
 | `c_group_stats` | `search_groups` en < 10 ms | cada hora |
 | `c_offers_cmp` | comparador (`compare_groups`, `group_detail`) | cada hora |
 | `c_cat_counts` | árbol de categorías (`c_tree`) | cada hora |
+| `c_store_stats_mv` | nº de productos de cada súper (`c_store_stats`) | cada hora |
 | `c_drops_mv` | bajadas de precio | cada 3 h |
 
 Si creas una vista materializada nueva que lea el navegador: `grant select … to anon, authenticated` (las funciones no son SECURITY DEFINER).

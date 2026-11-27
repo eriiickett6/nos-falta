@@ -28,3 +28,5 @@ create unique index if not exists c_mcount_pk on public.c_mcount(item_id);
 -- c_kw_ok(a, b): las palabras zero/gran/mini/light/reserva/crianza... tienen que estar en los dos nombres o en ninguno
 -- c_flyer_match: tamaño ±10 %, c_kw_ok y precio del folleto ≤ 1,5 × precio web
 -- c_items_deal: 'multi' solo si promo_text es 2x1 / "2ª unidad…" / "N por…"; Lidl con oferta con fecha y sin 30 días de historial → se fía del tachado
+
+-- 27/11/2026: c_store_stats_mv (nº de productos por súper, se refresca cada hora en catalogo-emparejar); c_store_stats() la lee
