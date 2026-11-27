@@ -45,9 +45,16 @@ function blocksOf(lines: Line[]) {
     // precio esperado = tamaño × precio por kilo/litro de oferta (el último que aparece)
     let expected: number | null = null, unitPrice: number | null = null, unit: string | null = null;
     const up = ups[ups.length - 1];
-    if (up && qty) {
-      const per = up.u === 'kg' || up.u === 'l' ? 1 : 0.1; // 100 g = 0,1 kg
-      expected = +(qty / per * up.v).toFixed(2); unitPrice = up.u.startsWith('100') ? +(up.v * 10).toFixed(2) : up.v; unit = qu;
+    const perOf = (u: string) => (u === 'kg' || u === 'l' ? 1 : 0.1); // 100 g = 0,1 kg
+    // promo de 2ª unidad: "1 ud 19,08 €/kg / 2 uds 14,33 €/kg" (en catalán "1 u. … / 2 u. …").
+    // Precio de una = tamaño × €/kg de 1 ud; precio grande (2ª unidad) = 2 × (tamaño × €/kg de 2 uds) − precio de una.
+    const multiBlk = ups.length >= 2 && /(^|\s)1\s*u(d)?\.?\s*\d/i.test(text) && /(^|\s|\/)\s*2\s*u(ds|\.)?\s*\d/i.test(text);
+    if (multiBlk && qty) {
+      const [u1, u2] = ups;
+      const one = qty / perOf(u1.u) * u1.v, avg = qty / perOf(u2.u) * u2.v;
+      expected = +(2 * avg - one).toFixed(2); unitPrice = u1.u.startsWith('100') ? +(u1.v * 10).toFixed(2) : u1.v; unit = qu;
+    } else if (up && qty) {
+      expected = +(qty / perOf(up.u) * up.v).toFixed(2); unitPrice = up.u.startsWith('100') ? +(up.v * 10).toFixed(2) : up.v; unit = qu;
     }
     const top = ls.filter(l => !sizeLine || l.y < sizeLine.y).filter(l => l.h >= 8.3);
     const brandL = top.filter(l => /^[A-ZÀ-Ý0-9 &'.\-]{3,}$/.test(l.s) && /[A-Z]{3}/.test(l.s));
@@ -79,9 +86,19 @@ function parsePage(items: It[], vf: string, vt: string) {
     if (o) o.used = true;
     const pc = o ? pcts.sort((a, c) => d(a, o) - d(c, o))[0] : null;
     const lp = plus.find(l => d(l, p) < 130);
+    // "2ª ud 1.15 · 1 ud 2.29 · -50% 2ª ud": el precio grande es el de la 2ª unidad y el pequeño ("1 ud") el de una.
+    // Entonces el precio es el de una unidad y la promo va aparte (no es un precio de antes).
+    // etiquetas: castellano "2ª ud" / "1 ud", catalán "2a u." / "1 u."
+    const two = items.some(i => /2\s*[ªa]\.?\s*u(d|\.|nitat|nidad)/i.test(i.s) && d(i, p) < 200);
+    const one = o ? items.some(i => /^1\s*u(d)?\.?$/i.test(i.s) && d(i, o) < 90) : false;
+    const multi = !!(o && two && one);
+    const mpct = multi ? Math.round((1 - p.v / o!.v) * 100 / 5) * 5 : null;
     out.push({ name: [b.brand, b.name].filter(Boolean).join(' '), name_es: [b.brand, b.nameEs].filter(Boolean).join(' '), brand: b.brand,
-      size_label: b.size, net_qty: b.qty, net_unit: b.qu, price: p.v, old_price: o ? o.v : null, pct: pc && o && d(pc, o) < 120 ? Math.abs(parseInt(pc.s)) : null,
-      unit_price: b.unitPrice, unit: b.unit, lidl_plus: !!lp, valid_from: from, valid_to: to, how });
+      size_label: b.size, net_qty: b.qty, net_unit: b.qu,
+      price: multi ? o!.v : p.v, old_price: multi ? null : (o ? o.v : null),
+      pct: multi ? null : (pc && o && d(pc, o) < 120 ? Math.abs(parseInt(pc.s)) : null),
+      promo_text: multi ? '2ª unidad al ' + mpct + '%' : null,
+      unit_price: multi ? (b.qty ? +(o!.v / b.qty).toFixed(2) : null) : b.unitPrice, unit: multi ? (b.qty ? b.qu : null) : b.unit, lidl_plus: !!lp, valid_from: from, valid_to: to, how });
   };
   // 1) emparejados por la cuenta tamaño × precio por kilo
   for (const b of blocks) {

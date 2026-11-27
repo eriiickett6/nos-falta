@@ -43,19 +43,35 @@ const fmt = (q: number, u: string) => (u === 'kg' && q < 1 ? Math.round(q * 1000
 function fromGrid(x: any) {
   if (!x || !x.erpNumber) return null;
   const kf = x.keyfacts || {};
-  // el precio completo (texto de la promo "-50% 2a ud.", fechas) solo viene en regionsPrices; x.price es un resumen sin el texto
-  const rp = (Object.values(x.regionsPrices || {}) as any[]).map((r: any) => r?.currentPrice).find((c: any) => typeof c?.price === 'number');
-  let pr: any = rp ? { ...rp, packaging: rp.packaging?.text ? rp.packaging : x.price?.packaging, basePrice: rp.basePrice?.text ? rp.basePrice : x.price?.basePrice } : (x.price || {});
+  // Dónde pone Lidl cada precio (API de cuadrícula):
+  //  - regionsPrices[r].currentPrice: precio normal completo (tachado, texto "-50% 2a ud.", fechas).
+  //  - regionsPrices[r].currentLidlPlusPrice: oferta solo con Lidl Plus (price + highlightText "-50% 2a ud.").
+  //  - x.price y x.lidlPlus: resúmenes que a veces NO traen el texto de la promo ni el tachado. Solo de reserva.
+  const regs = Object.values(x.regionsPrices || {}) as any[];
+  const cur = regs.map((r: any) => r?.currentPrice).find((c: any) => typeof c?.price === 'number');
+  const curPlus = regs.map((r: any) => r?.currentLidlPlusPrice).find((c: any) => typeof c?.price?.price === 'number');
   const name = String(x.fullTitle || kf.fullTitle || x.title || '').trim();
   if (!name) return null;
-  // sin precio normal pero con precio para clientes de Lidl Plus (su app gratuita): se usa ese y se avisa
-  const lp = (x.lidlPlus || []).find((l: any) => typeof l?.price?.price === 'number');
-  const plus = num(pr.price) == null && !!lp;
-  if (plus) pr = { ...lp.price, packaging: lp.price.packaging?.text ? lp.price.packaging : pr.packaging };
-  const multi = promoOf([pr.discount?.discountText, ...((x.ribbons || []).map((r: any) => r?.text))].filter(Boolean).join(' | '));
+  const lpSum = (x.lidlPlus || []).find((l: any) => typeof l?.price?.price === 'number');
+  const keepPack = (o: any) => ({ ...o, packaging: o.packaging?.text ? o.packaging : x.price?.packaging, basePrice: o.basePrice?.text ? o.basePrice : x.price?.basePrice });
+  let pr: any, plus = false, plusTxt: string | null = null, extra = '';
+  if (cur) pr = keepPack(cur);
+  else if (typeof x.price?.price === 'number') pr = x.price;
+  else if (curPlus || lpSum) {
+    // sin precio normal: la oferta es solo con Lidl Plus (su app gratuita)
+    plus = true;
+    const src = curPlus || lpSum;
+    pr = keepPack(src.price);
+    plusTxt = String(src.lidlPlusText || 'Con Lidl Plus');
+    extra = [src.highlightText, lpSum?.highlightText].filter(Boolean).join(' | ');
+  } else pr = x.price || {};
+  const multi0 = promoOf([pr.discount?.discountText, extra, ...((x.ribbons || []).map((r: any) => r?.text))].filter(Boolean).join(' | '));
+  const multi = multi0 && plus ? multi0 + ' con Lidl Plus' : multi0;
   const del = num(pr.oldPrice ?? pr.discount?.deletedPrice);
   // "-50% 2a ud.": el precio grande es el de la 2ª unidad; el normal (lo que pagas por una) es el tachado
-  const price = multi && del ? del : num(pr.price);
+  // si Lidl no da el tachado, el precio de una unidad sale del % ("-50% 2a ud." y 1,15 € → 2,30 €)
+  const pct2 = (multi || '').match(/unidad al (\d+)%/);
+  const price = multi && del ? del : multi && pct2 && num(pr.price) ? +(num(pr.price)! / (1 - +pct2[1] / 100)).toFixed(2) : num(pr.price);
   const old = multi ? null : del;
   const pack = String(pr.packaging?.text || '').trim();
   const bp = String(pr.basePrice?.text || '').trim();
@@ -82,7 +98,7 @@ function fromGrid(x: any) {
     size_label: loose ? (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : 'a granel') : (pack ? pack.replace(/(\d)(kg|g|l|ml)\b/i, '$1 $2') : (net_qty && net_unit ? fmt(net_qty, net_unit) : null)),
     net_qty: loose ? null : net_qty, net_unit: loose ? null : net_unit, pack_n: sz.n && sz.n > 1 ? sz.n : null,
     price, unit_price: u2 ? unit_price : null, unit: u2, loose,
-    old_price: old && price && old > price ? old : null, promo_until: (old && price && old > price) || multi ? end : null, promo_text: multi || (plus ? String(lp.lidlPlusText || 'Con Lidl Plus') : null),
+    old_price: old && price && old > price ? old : null, promo_until: (old && price && old > price) || multi ? end : null, promo_text: multi || (plus ? plusTxt : null),
     store_cat: ids.length ? ids.join('*') : null, store_cat_path: names.length ? names.join(' > ') : (x.category || null),
     excluded: /electr|inform\u00e1t|ropa|calzado|herramient|bricolaje|juguete|deporte|muebl/i.test(wName),
     active: price != null, _badge: badge,

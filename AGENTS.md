@@ -145,7 +145,9 @@ Desactivar: `update ops.crawl_plan set active = false where name = '…';`
 
 - Función `promoOf(texto)` en cada lector: devuelve `2x1`, `3x2`, `2ª unidad al 50%`, `2ª unidad gratis`, `3 por 5,00 €`… o null.
 - **Regla de precio**: con una promo de varias unidades, `price` = lo que cuesta **una** unidad (el precio tachado), `old_price` = null y `promo_text` = la promo. Nunca guardar como precio el de la 2ª unidad. La app calcula el precio medio llevando varias (`promoAvg`).
-- **Lidl**: el texto "-50% 2a ud." **solo** viene en `regionsPrices[*].currentPrice.discount.discountText` de la API de cuadrícula; `price` a secas es un resumen sin ese texto. Si no se lee ahí, sale como "−50%" falso (fallo corregido el 26/11/2026).
+- **Lidl, web (API de cuadrícula)**: el precio completo está en `regionsPrices[*].currentPrice` (tachado, `discount.discountText` = "-50% 2a ud.", fechas). Si la oferta es **solo con Lidl Plus**, está en `regionsPrices[*].currentLidlPlusPrice` (`price` + `highlightText` = "-50% 2a ud."). `x.price` y `x.lidlPlus` son resúmenes que a veces no traen ni el texto ni el tachado: solo de reserva. Si falta el tachado, el precio de una unidad se saca del %. Resultado correcto del jamón Realvalle: `price` 2,29 €, `promo_text` "2ª unidad al 50% con Lidl Plus".
+- **Lidl, folleto PDF**: en grande va el precio de la 2ª unidad ("2ª ud 1.15") y en pequeño "1 ud 2.29" (en catalán "2a u." / "1 u."). Eso no es un precio de antes: el precio es el de "1 ud" y la promo va en `promo_text`. La cuenta que lo comprueba: con "1 ud 19,08 €/kg / 2 uds 14,33 €/kg" y 120 g, el precio grande = 2 × 1,72 − 2,29 = 1,15 €.
+- Fallos de este tipo los vio Eric a ojo dos veces (26 y 27/11/2026): antes de dar por buena una tienda nueva o un cambio en un lector, comparar a mano 5-10 productos con promo contra su web.
 
 ### 5.4b Cuándo una rebaja es "real" (trigger `c_items_deal`)
 

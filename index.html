@@ -1242,7 +1242,7 @@ function promoAvg(it){const t=it.promo_text||'',p=Number(it.price);if(!t||!p)ret
 // oferta del folleto semanal de Lidl (sale antes que en su web): "Folleto 27–29 nov · 1,29 €"
 function flTxt(it){if(it.fl_price==null||!it.fl_from)return null;const d=x=>new Date(x+'T12:00').toLocaleDateString('es-ES',{day:'numeric',month:'short'});
   const hoy=new Date().toISOString().slice(0,10),fut=it.fl_from>hoy;
-  return (fut?'Folleto, desde el '+d(it.fl_from):'Folleto, hasta el '+d(it.fl_to))+' · '+fmt(it.fl_price)+(it.fl_plus?' con Lidl Plus':'')}
+  return (fut?'Folleto, desde el '+d(it.fl_from):'Folleto, hasta el '+d(it.fl_to))+' · '+fmt(it.fl_price)+(it.fl_promo?' · '+it.fl_promo:'')+(it.fl_plus?' con Lidl Plus':'')}
 function kcard(it){
   return h('div',{class:'pcard'},
     h('button',{class:'pcard-open',type:'button',onclick(){openItem(it.id)}},pic(it.image_url,'art'),h('span',{class:'t'},it.name),
